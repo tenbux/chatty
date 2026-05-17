@@ -8,17 +8,12 @@ import chatty.util.hotkeys.Hotkey;
 import chatty.util.tts.SpeakRequest;
 import chatty.util.tts.TextToSpeech;
 import chatty.util.tts.VoiceInfo;
-import java.awt.BorderLayout;
-import java.awt.GridBagConstraints;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JList;
-import javax.swing.JPanel;
-import javax.swing.JSlider;
 
 /**
  *
@@ -50,9 +45,7 @@ public class TextToSpeechSettings extends SettingsPanel {
         d.addMapSetting("ttsVoice", voiceSelection);
         
         JButton selectVoiceButton = new JButton("Select Voice");
-        selectVoiceButton.addActionListener(e -> {
-            voiceSelection.showDialog();
-        });
+        selectVoiceButton.addActionListener(e -> voiceSelection.showDialog());
         main.add(selectVoiceButton, SettingsDialog.makeGbc(0, 10, 1, 1));
         
         volumeSlider = new SliderLongSetting(JSlider.HORIZONTAL, 0, 100, 80);
@@ -142,7 +135,7 @@ public class TextToSpeechSettings extends SettingsPanel {
                 String providerId = TextToSpeech.get(d.settings).getProviderId();
                 List<VoiceInfo> voiceInfo = TextToSpeech.get(d.settings).getAvailableVoices();
                 listData.clear();
-                voiceInfo.forEach(v -> listData.addElement(v));
+                voiceInfo.forEach(listData::addElement);
                 
                 String selectedVoiceName = (String) data.get(providerId);
                 list.setSelectedValue(new VoiceInfo(selectedVoiceName, null, null), true);
@@ -158,7 +151,7 @@ public class TextToSpeechSettings extends SettingsPanel {
         public Map getSettingValue() {
             VoiceInfo selectedVoice = list.getSelectedValue();
             if (selectedVoice != null) {
-                data.put(TextToSpeech.get(d.settings).getProviderId(), selectedVoice.name);
+                data.put(TextToSpeech.get(d.settings).getProviderId(), selectedVoice.name());
             }
             return data;
         }

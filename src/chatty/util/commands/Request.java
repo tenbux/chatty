@@ -131,10 +131,7 @@ public class Request implements Item {
         if (!Objects.equals(this.url, other.url)) {
             return false;
         }
-        if (!Objects.equals(this.options, other.options)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.options, other.options);
     }
 
     @Override

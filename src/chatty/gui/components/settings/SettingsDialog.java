@@ -2,53 +2,33 @@
 package chatty.gui.components.settings;
 
 import chatty.gui.GuiUtil;
-import chatty.util.colors.HtmlColors;
-import chatty.gui.laf.LaF;
-import chatty.gui.laf.LaF.LaFSettings;
 import chatty.gui.MainGui;
 import chatty.gui.components.LinkLabel;
 import chatty.gui.components.LinkLabelListener;
 import chatty.gui.components.settings.Tree.HighlightTreeCellRenderer;
+import chatty.gui.laf.LaF;
+import chatty.gui.laf.LaF.LaFSettings;
 import chatty.lang.Language;
 import chatty.util.Sound;
 import chatty.util.StringUtil;
 import chatty.util.api.TokenInfo;
 import chatty.util.api.usericons.Usericon;
 import chatty.util.colors.ColorCorrectionNew;
+import chatty.util.colors.HtmlColors;
 import chatty.util.hotkeys.Hotkey;
 import chatty.util.settings.Setting;
 import chatty.util.settings.Settings;
-import java.awt.CardLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
+
+import javax.swing.*;
+import javax.swing.tree.DefaultMutableTreeNode;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.swing.*;
-import javax.swing.tree.DefaultMutableTreeNode;
 
 /**
  * Main settings dialog class that provides ways to add different kinds of
@@ -110,7 +90,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
             "webp", "inputLimitsEnabled", "chatInsertTop"
     ));
     
-    private final Set<String> reconnectRequiredDef = new HashSet<>(Arrays.asList(
+    private final Set<String> reconnectRequiredDef = new HashSet<>(List.of(
             "membershipEnabled"
     ));
     
@@ -197,41 +177,33 @@ public class SettingsDialog extends JDialog implements ActionListener {
     
     // Page definition for JTree navigation
     static {
-        MENU.put(Page.MAIN, Arrays.asList(new Page[]{}));
-        MENU.put(Page.LOOK, Arrays.asList(new Page[]{
-            Page.CHATCOLORS,
-            Page.MSGCOLORS,
-            Page.USERCOLORS,
-            Page.USERICONS,
-            Page.EMOTES,
-            Page.FONTS,
-        }));
-        MENU.put(Page.CHAT, Arrays.asList(new Page[]{
-            Page.MESSAGES,
-            Page.MODERATION,
-            Page.NAMES,
-            Page.HIGHLIGHT,
-            Page.IGNORE,
-            Page.FILTER,
-            Page.CUSTOM_TABS,
-            Page.LOGGING,
-            Page.SHARED_CHAT,
-        }));
-        MENU.put(Page.WINDOW, Arrays.asList(new Page[]{
-            Page.TABS,
-            Page.NOTIFICATIONS,
-            Page.TTS,
-            Page.LIVE_STREAMS
-        }));
-        MENU.put(Page.OTHER, Arrays.asList(new Page[]{
-            Page.COMMANDS,
-            Page.ADVANCED,
-            Page.COMPLETION,
-            Page.HISTORY,
-            Page.STREAM,
-            Page.HOTKEYS,
-        }));
-        MENU.put(Page.SIMPLE, Arrays.asList(new Page[]{}));
+        MENU.put(Page.MAIN, List.of());
+        MENU.put(Page.LOOK, Arrays.asList(Page.CHATCOLORS,
+                Page.MSGCOLORS,
+                Page.USERCOLORS,
+                Page.USERICONS,
+                Page.EMOTES,
+                Page.FONTS));
+        MENU.put(Page.CHAT, Arrays.asList(Page.MESSAGES,
+                Page.MODERATION,
+                Page.NAMES,
+                Page.HIGHLIGHT,
+                Page.IGNORE,
+                Page.FILTER,
+                Page.CUSTOM_TABS,
+                Page.LOGGING,
+                Page.SHARED_CHAT));
+        MENU.put(Page.WINDOW, Arrays.asList(Page.TABS,
+                Page.NOTIFICATIONS,
+                Page.TTS,
+                Page.LIVE_STREAMS));
+        MENU.put(Page.OTHER, Arrays.asList(Page.COMMANDS,
+                Page.ADVANCED,
+                Page.COMPLETION,
+                Page.HISTORY,
+                Page.STREAM,
+                Page.HOTKEYS));
+        MENU.put(Page.SIMPLE, List.of());
     }
 
     public SettingsDialog(final MainGui owner, final Settings settings) {
@@ -248,13 +220,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
         });
         
         // For help links on setting pages
-        settingsHelpLinkLabelListener = new LinkLabelListener() {
-
-            @Override
-            public void linkClicked(String type, String ref) {
-                owner.openHelp("help-settings.html", ref);
-            }
-        };
+        settingsHelpLinkLabelListener = (type, ref) -> owner.openHelp("help-settings.html", ref);
         
         // Save references
         this.owner = owner;
@@ -359,16 +325,12 @@ public class SettingsDialog extends JDialog implements ActionListener {
         gbc = makeGbc(0,2,1,1);
         gbc.anchor = GridBagConstraints.NORTHWEST;
         gbc.insets = new Insets(0,10,0,0);
-        add(new LinkLabel("[maeh:muh Help]", new LinkLabelListener() {
-
-            @Override
-            public void linkClicked(String type, String ref) {
-                if (currentlyShown == Page.COMMANDS) {
-                    owner.openHelp("help-custom_commands.html", "");
-                }
-                else {
-                    owner.openHelp("help-settings.html", currentlyShown.name);
-                }
+        add(new LinkLabel("[maeh:muh Help]", (type, ref) -> {
+            if (currentlyShown == Page.COMMANDS) {
+                owner.openHelp("help-custom_commands.html", "");
+            }
+            else {
+                owner.openHelp("help-settings.html", currentlyShown.name);
             }
         }), gbc);
         
@@ -377,18 +339,14 @@ public class SettingsDialog extends JDialog implements ActionListener {
         //--------------------------
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         JTextField searchField = new JTextField(10);
-        GuiUtil.addChangeListener(searchField.getDocument(), e -> {
-            search(searchField.getText());
-        });
+        GuiUtil.addChangeListener(searchField.getDocument(), e -> search(searchField.getText()));
         
         JLabel searchLabel = new JLabel(Language.getString("settings.search"));
         searchLabel.setLabelFor(searchField);
         
         JButton resetSearchButton = new JButton(Language.getString("settings.resetSearch"));
         GuiUtil.smallButtonInsets(resetSearchButton);
-        resetSearchButton.addActionListener(e -> {
-            searchField.setText("");
-        });
+        resetSearchButton.addActionListener(e -> searchField.setText(""));
         
         searchPanel.add(searchLabel);
         searchPanel.add(searchField);
@@ -500,50 +458,56 @@ public class SettingsDialog extends JDialog implements ActionListener {
     }
     
     private void editDirectly(final String action, final Object parameter) {
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                if (action.equals("editUsercolorItem")) {
+        SwingUtilities.invokeLater(() -> {
+            switch (action) {
+                case "editUsercolorItem" -> {
                     showPanel(Page.USERCOLORS);
-                    getPanel(UsercolorSettings.class).editItem((String)parameter);
-                } else if (action.equals("editCustomNameItem")) {
+                    getPanel(UsercolorSettings.class).editItem((String) parameter);
+                }
+                case "editCustomNameItem" -> {
                     showPanel(Page.NAMES);
-                    getPanel(NameSettings.class).editCustomName((String)parameter);
-                } else if (action.equals("addUsericonOfBadgeType")) {
+                    getPanel(NameSettings.class).editCustomName((String) parameter);
+                }
+                case "addUsericonOfBadgeType" -> {
                     showPanel(Page.USERICONS);
-                    Usericon icon = (Usericon)parameter;
+                    Usericon icon = (Usericon) parameter;
                     getPanel(ImageSettings.class).addUsericonOfBadgeType(icon.type, icon.badgeType.toString());
-                } else if (action.equals("addUsericonOfBadgeTypeAllVariants")) {
+                }
+                case "addUsericonOfBadgeTypeAllVariants" -> {
                     showPanel(Page.USERICONS);
-                    Usericon icon = (Usericon)parameter;
-                    getPanel(ImageSettings.class).addUsericonOfBadgeType(icon.type, icon.badgeType.id);
-                } else if (action.equals("selectHighlight")) {
+                    Usericon icon = (Usericon) parameter;
+                    getPanel(ImageSettings.class).addUsericonOfBadgeType(icon.type, icon.badgeType.id());
+                }
+                case "selectHighlight" -> {
                     showPanel(Page.HIGHLIGHT);
                     @SuppressWarnings("unchecked") // By convention
                     Collection<String> data = (Collection<String>) parameter;
                     getPanel(HighlightSettings.class).selectItems(data);
-                } else if (action.equals("selectIgnore")) {
+                }
+                case "selectIgnore" -> {
                     showPanel(Page.IGNORE);
                     @SuppressWarnings("unchecked") // By convention
                     Collection<String> data = (Collection<String>) parameter;
                     getPanel(IgnoreSettings.class).selectItems(data);
-                } else if (action.equals("selectMsgColor")) {
+                }
+                case "selectMsgColor" -> {
                     showPanel(Page.MSGCOLORS);
                     getPanel(MsgColorSettings.class).selectItem((String) parameter);
-                } else if (action.equals("selectRouting")) {
+                }
+                case "selectRouting" -> {
                     showPanel(Page.CUSTOM_TABS);
                     @SuppressWarnings("unchecked") // By convention
                     Collection<String> data = (Collection<String>) parameter;
                     getPanel(RoutingSettings.class).selectItems(data);
-                } else if (action.equals("selectNotification")) {
+                }
+                case "selectNotification" -> {
                     showPanel(Page.NOTIFICATIONS);
                     @SuppressWarnings("unchecked") // By convention
                     long id = Long.parseLong((String) parameter);
                     getPanel(NotificationSettings.class).selectItem(id);
-                } else if (action.equals("show")) {
-                    showPage((String) parameter);
-                } else if (action.equals("editHotkey")) {
+                }
+                case "show" -> showPage((String) parameter);
+                case "editHotkey" -> {
                     showPanel(Page.HOTKEYS);
                     getPanel(HotkeySettings.class).edit((String) parameter);
                 }
@@ -911,9 +875,8 @@ public class SettingsDialog extends JDialog implements ActionListener {
         return result;
     }
     
-    protected StringSetting addStringSetting(String settingName, StringSetting setting) {
+    protected void addStringSetting(String settingName, StringSetting setting) {
         stringSettings.put(settingName, setting);
-        return setting;
     }
     
     protected JTextField addSimpleStringSetting(String settingName, int size, boolean editable) {
@@ -1060,7 +1023,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
     protected SimpleTableEditor<String> addStringMapSetting(String name,
             int width, int height,
             String keyLabel, String valueLabel) {
-        SimpleTableEditor<String> table = new SimpleTableEditor<String>(this, String.class, keyLabel, valueLabel) {
+        SimpleTableEditor<String> table = new SimpleTableEditor<>(this, String.class, keyLabel, valueLabel) {
 
             @Override
             protected String valueFromString(String input) {
@@ -1075,29 +1038,28 @@ public class SettingsDialog extends JDialog implements ActionListener {
     protected SimpleTableEditor<Long> addLongMapSetting(String name,
             int width, int height,
             String keyLabel, String valueLabel) {
-        SimpleTableEditor<Long> table = new SimpleTableEditor<Long>(this, Long.class, keyLabel, valueLabel) {
+        SimpleTableEditor<Long> table = new SimpleTableEditor<>(this, Long.class, keyLabel, valueLabel) {
 
             @Override
             protected Long valueFromString(String input) {
                 try {
                     return Long.valueOf(input);
-                }
-                catch (NumberFormatException ex) {
-                    return (long)0;
+                } catch (NumberFormatException ex) {
+                    return (long) 0;
                 }
             }
         };
         table.setValueFilter("[^0-9]");
         table.setPreferredSize(new Dimension(width, height));
-        table.setTableEditorEditAllHandler(new TableEditor.TableEditorEditAllHandler<SimpleTableEditor.MapItem<Long>>() {
-            
+        table.setTableEditorEditAllHandler(new TableEditor.TableEditorEditAllHandler<>() {
+
             private final Pattern PARSE_LINE = Pattern.compile("(.*) (-?[0-9]+)");
-            
+
             @Override
             public String toString(List<SimpleTableEditor.MapItem<Long>> data) {
                 StringBuilder b = new StringBuilder();
                 for (SimpleTableEditor.MapItem<Long> entry : data) {
-                    b.append(entry.key).append(" ").append(entry.value).append("\n");
+                    b.append(entry.key()).append(" ").append(entry.value()).append("\n");
                 }
                 return b.toString();
             }
@@ -1111,8 +1073,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
                     if (m.matches()) {
                         try {
                             result.add(new SimpleTableEditor.MapItem<>(m.group(1), Long.valueOf(m.group(2))));
-                        }
-                        catch (NumberFormatException ex) {
+                        } catch (NumberFormatException ex) {
                             // Don't add
                         }
                     }
@@ -1187,16 +1148,9 @@ public class SettingsDialog extends JDialog implements ActionListener {
     //==========================
     private final Color searchHighlightColor = ColorCorrectionNew.offset(getBackground(), 0.8f);
     private final Map<Component, State> stateBeforeSearch = new HashMap<>();
-    
-    private static class State {
-        private final Color color;
-        private final boolean opaque;
 
-        public State(Color color, boolean opaque) {
-            this.color = color;
-            this.opaque = opaque;
-        }
-        
+    private record State(Color color, boolean opaque) {
+
     }
     
     /**
@@ -1241,8 +1195,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
         // Components
         for (Map.Entry<Component, State> entry : stateBeforeSearch.entrySet()) {
             Component comp = entry.getKey();
-            if (comp instanceof JTabbedPane) {
-                JTabbedPane tabs = (JTabbedPane) comp;
+            if (comp instanceof JTabbedPane tabs) {
                 for (int i=0; i<tabs.getTabCount(); i++) {
                     tabs.setBackgroundAt(i, null);
                 }
@@ -1275,8 +1228,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
             }
             // Highlight parent if results have been found
             if (subResults > 0) {
-                if (comp instanceof JTabbedPane) {
-                    JTabbedPane tabs = (JTabbedPane) comp;
+                if (comp instanceof JTabbedPane tabs) {
                     boolean highlighted = false;
                     for (int i = 0; i < tabs.getTabCount(); i++) {
                         for (Component hl : stateBeforeSearch.keySet()) {
@@ -1331,9 +1283,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
             }
         }
         if (comp instanceof JButton) {
-            if (checkSearchText(((JButton) comp).getText(), search)) {
-                return true;
-            }
+            return checkSearchText(((JButton) comp).getText(), search);
         }
         return false;
     }

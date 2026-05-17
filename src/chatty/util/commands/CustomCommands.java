@@ -1,23 +1,14 @@
 
 package chatty.util.commands;
 
-import chatty.Commands;
-import chatty.Helper;
-import chatty.Room;
-import chatty.TwitchClient;
-import chatty.TwitchCommands;
+import chatty.*;
 import chatty.gui.components.eventlog.EventLog;
-import chatty.util.DateTime;
 import chatty.util.StringUtil;
 import chatty.util.api.StreamInfo;
 import chatty.util.api.TwitchApi;
 import chatty.util.settings.Settings;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
@@ -115,11 +106,8 @@ public class CustomCommands {
         }
         parameters.put("nested-custom-commands", String.valueOf(getCustomCommandCount(parameters) + 1));
         
-        boolean performAsync = false;
-        if (shouldPerformAsyncReplacement(command)) {
-            performAsync = true;
-        }
-        
+        boolean performAsync = shouldPerformAsyncReplacement(command);
+
         // Collect commands for custom replacements
         Map<String, CustomCommand> customIdentifiersCommands = getCustomIdentifierCommands(command, room.getOwnerChannel());
         if (containsAsyncReplacement(customIdentifiersCommands.values())) {

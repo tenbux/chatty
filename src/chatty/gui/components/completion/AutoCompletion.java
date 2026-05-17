@@ -4,17 +4,15 @@ package chatty.gui.components.completion;
 import chatty.gui.components.completion.AutoCompletionServer.CompletionItem;
 import chatty.util.Debugging;
 import chatty.util.StringUtil;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.event.MouseEvent;
+
+import javax.swing.*;
+import javax.swing.event.CaretListener;
+import javax.swing.text.JTextComponent;
+import java.awt.*;
 import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.swing.SwingUtilities;
-import javax.swing.event.CaretEvent;
-import javax.swing.event.CaretListener;
-import javax.swing.text.JTextComponent;
 
 /**
  * Provides text completion in the associated text component. Completion can
@@ -93,25 +91,15 @@ public class AutoCompletion {
             updatePopup(false);
         });
         
-        caretListener = new CaretListener() {
-
-            @Override
-            public void caretUpdate(final CaretEvent e) {
-                /**
-                 * invokeLater because according to the Java Tutorial,
-                 * caretUpdate isn't necessarily called in the EDT. Also it
-                 * might help to wait for prevCaretPos to be updated to the
-                 * value we want here to prevent the info window from closing
-                 * when we don't want to, which would cause flickering.
-                 */
-                SwingUtilities.invokeLater(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        updateState();
-                    }
-                });
-            }
+        caretListener = e -> {
+            /**
+             * invokeLater because according to the Java Tutorial,
+             * caretUpdate isn't necessarily called in the EDT. Also it
+             * might help to wait for prevCaretPos to be updated to the
+             * value we want here to prevent the info window from closing
+             * when we don't want to, which would cause flickering.
+             */
+            SwingUtilities.invokeLater(() -> updateState());
         };
         textField.addCaretListener(caretListener);
     }
@@ -448,8 +436,8 @@ public class AutoCompletion {
             // (e.g. TAB -> no results, Shift-TAB -> results)
             end();
         }
-        if (completeToCommonPrefix && results.items.size() > 1 && showPopup) {
-            commonPrefix = findPrefixCommonToAll(results.items);
+        if (completeToCommonPrefix && results.items().size() > 1 && showPopup) {
+            commonPrefix = findPrefixCommonToAll(results.items());
             if (commonPrefix.length() - word.length() == 0 && w.isShowing()) {
                 commonPrefix = "";
             }
@@ -467,7 +455,7 @@ public class AutoCompletion {
     // Window methods
     //----------------
     private void showPopup() {
-        if (showPopup && !results.items.isEmpty()) {
+        if (showPopup && !results.items().isEmpty()) {
             w.init(results, commonPrefix, startPos);
             w.show(-1, true);
         } else {
@@ -488,7 +476,7 @@ public class AutoCompletion {
     //-----------------
     
     private void complete(int step) {
-        if (!inCompletion || results == null || results.items.isEmpty()
+        if (!inCompletion || results == null || results.items().isEmpty()
                 || step == 0) {
             return;
         }
@@ -502,12 +490,12 @@ public class AutoCompletion {
             commonPrefix = "";
         } else {
             resultIndex += step;
-            if (resultIndex >= results.items.size()) {
+            if (resultIndex >= results.items().size()) {
                 resultIndex = 0;
             } else if (resultIndex < 0) {
-                resultIndex = results.items.size() - 1;
+                resultIndex = results.items().size() - 1;
             }
-            if (resultIndex >= results.items.size()) {
+            if (resultIndex >= results.items().size()) {
                 return;
             }
             if (resultIndex < 0) {
@@ -528,10 +516,10 @@ public class AutoCompletion {
      * @param index 
      */
     private void insertWord(int index, boolean appendSpace, boolean ensureSpace) {
-        if (results.items.size() <= index) {
+        if (results.items().size() <= index) {
             return;
         }
-        String item = results.items.get(index).getCode();
+        String item = results.items().get(index).getCode();
         insertWord(item, appendSpace, ensureSpace);
     }
     
@@ -572,11 +560,11 @@ public class AutoCompletion {
      * has been returned by the results.
      */
     private void removePrefix() {
-        if (results.prefixToRemove == null || results.prefixToRemove.isEmpty()) {
+        if (results.prefixToRemove() == null || results.prefixToRemove().isEmpty()) {
             return;
         }
-        if (prefix.endsWith(results.prefixToRemove) && !prefixRemoved) {
-            startPos -= results.prefixToRemove.length();
+        if (prefix.endsWith(results.prefixToRemove()) && !prefixRemoved) {
+            startPos -= results.prefixToRemove().length();
             prefixRemoved = true;
         }
     }

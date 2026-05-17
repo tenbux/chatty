@@ -28,7 +28,7 @@ public class CompoundBooleanSetting implements LongSetting {
         long result = 0;
         for (int i = 0; i < settings.length; i++) {
             if (settings[i].getSettingValue()) {
-                result += 1 << i;
+                result += 1L << i;
             }
         }
         return result;

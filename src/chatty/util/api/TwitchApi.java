@@ -7,15 +7,16 @@ import chatty.util.CachedBulkManager;
 import chatty.util.StringUtil;
 import chatty.util.api.BlockedTermsManager.BlockedTerm;
 import chatty.util.api.BlockedTermsManager.BlockedTerms;
-import chatty.util.api.UserIDs.UserIdResult;
-import java.util.*;
-import java.util.logging.Logger;
 import chatty.util.api.ResultManager.CategoryResult;
 import chatty.util.api.ResultManager.CreateClipResult;
+import chatty.util.api.UserIDs.UserIdResult;
 import chatty.util.api.eventsub.EventSubAddResult;
 import chatty.util.api.eventsub.EventSubSubs;
+
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 /**
  * Handles TwitchApi requests and responses.
@@ -77,57 +78,42 @@ public class TwitchApi {
         userInfoManager = new UserInfoManager(this);
         emoticonManager2 = new EmoticonManager2(resultListener, requests);
         blockedTermsManager = new BlockedTermsManager(requests);
-        m = new CachedBulkManager<>(new CachedBulkManager.Requester<Req, Boolean>() {
-
-            @Override
-            public void request(CachedBulkManager<Req, Boolean> manager, Set<Req> asap, Set<Req> normal, Set<Req> backlog) {
-                Set<Req> requests = manager.makeAndSetRequested(asap, normal, backlog, 1);
-                Req req = requests.iterator().next();
-                if (req.request != null) {
-                    req.request.run();
-                }
+        m = new CachedBulkManager<>((manager, asap, normal, backlog) -> {
+            Set<Req> requests = manager.makeAndSetRequested(asap, normal, backlog, 1);
+            Req req = requests.iterator().next();
+            if (req.request != null) {
+                req.request.run();
             }
         }, "[Api] ", CachedBulkManager.NONE);
         resultManager = new ResultManager();
     }
-    
-    private static class Req {
-        
-        public final String key;
-        public final Runnable request;
-        
-        public Req(String key, Runnable request) {
-            this.key = key;
-            this.request = request;
-        }
-        
-        @Override
-        public String toString() {
-            return key;
-        }
+
+    private record Req(String key, Runnable request) {
 
         @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
+            public String toString() {
+                return key;
             }
-            if (getClass() != obj.getClass()) {
-                return false;
+
+            @Override
+            public boolean equals(Object obj) {
+                if (obj == null) {
+                    return false;
+                }
+                if (getClass() != obj.getClass()) {
+                    return false;
+                }
+                final Req other = (Req) obj;
+                return Objects.equals(this.key, other.key);
             }
-            final Req other = (Req) obj;
-            if (!Objects.equals(this.key, other.key)) {
-                return false;
-            }
-            return true;
-        }
-        
+
         @Override
-        public int hashCode() {
-            int hash = 5;
-            hash = 37 * hash + Objects.hashCode(this.key);
-            return hash;
-        }
-        
+            public int hashCode() {
+                int hash = 5;
+                hash = 37 * hash + Objects.hashCode(this.key);
+                return hash;
+            }
+
     }
     
     protected void setReceived(String requestId) {
@@ -181,9 +167,7 @@ public class TwitchApi {
             options = options | CachedBulkManager.REFRESH;
         }
         String requestId = "channel_emotes:" + id;
-        m.query(null, options, new Req(requestId, () -> {
-            requests.requestEmotesByChannelId(stream, id, requestId);
-        }));
+        m.query(null, options, new Req(requestId, () -> requests.requestEmotesByChannelId(stream, id, requestId)));
     }
     
     public void getEmotesBySets(String... emotesets) {
@@ -400,9 +384,7 @@ public class TwitchApi {
     }
     
     public void getUserIDsTest3(String usernames) {
-        userIDs.waitForUserIDs(r -> {
-            System.out.println(r.getValidIDs());
-        }, usernames.split(" "));
+        userIDs.waitForUserIDs(r -> System.out.println(r.getValidIDs()), usernames.split(" "));
     }
     
     
@@ -415,19 +397,19 @@ public class TwitchApi {
             if (r.hasError()) {
                 resultListener.putChannelInfoResult(TwitchApi.RequestResultCode.FAILED, "Could not get user id");
             } else {
-                String streamId = r.getId(info.channelLogin);
+                String streamId = r.getId(info.channelLogin());
                 if (!info.hasCategoryId()) {
                     // Search for category
-                    performGameSearch(info.category.name, (categories) -> {
+                    performGameSearch(info.category().name(), (categories) -> {
                         boolean categoryFound = false;
                         for (StreamCategory category : categories) {
-                            if (category.nameMatches(info.category)) {
+                            if (category.nameMatches(info.category())) {
                                 requests.putChannelInfoNew(streamId, info.changeCategory(category), defaultToken);
                                 categoryFound = true;
                             }
                         }
                         if (!categoryFound) {
-                            LOGGER.warning("Stream Category "+info.category.name+" not found");
+                            LOGGER.warning("Stream Category "+ info.category().name() +" not found");
                             resultListener.putChannelInfoResult(TwitchApi.RequestResultCode.FAILED, "Category not found");
                         }
                     });
@@ -436,7 +418,7 @@ public class TwitchApi {
                     requests.putChannelInfoNew(streamId, info, defaultToken);
                 }
             }
-        }, info.channelLogin);
+        }, info.channelLogin());
     }
     
     public void performGameSearch(String search, CategoryResult listener) {
@@ -543,7 +525,7 @@ public class TwitchApi {
         }, stream);
     }
         
-    public static String[] ANNOUNCEMENT_COLORS = new String[]{
+    public static final String[] ANNOUNCEMENT_COLORS = new String[]{
         "", "primary", "blue", "green", "orange", "purple"
     };
     
@@ -576,61 +558,43 @@ public class TwitchApi {
     }
     
     public interface StreamMarkerResult {
-        public void streamMarkerResult(String error);
+        void streamMarkerResult(String error);
     }
     
     public void ban(User targetUser, int length, String reason, SimpleRequestResultListener listener) {
-        runWithUserIds(targetUser, listener, (streamId, targetId) -> {
-            requests.ban(streamId, targetId, length, reason, listener);
-        });
+        runWithUserIds(targetUser, listener, (streamId, targetId) -> requests.ban(streamId, targetId, length, reason, listener));
     }
     
     public void unban(User targetUser, SimpleRequestResultListener listener) {
-        runWithUserIds(targetUser, listener, (streamId, targetId) -> {
-            requests.unban(streamId, targetId, listener);
-        });
+        runWithUserIds(targetUser, listener, (streamId, targetId) -> requests.unban(streamId, targetId, listener));
     }
     
     public void deleteMsg(Room room, String msgId, SimpleRequestResultListener listener) {
-        runWithStreamId(room, listener, streamId -> {
-            requests.deleteMsg(streamId, msgId, listener);
-        });
+        runWithStreamId(room, listener, streamId -> requests.deleteMsg(streamId, msgId, listener));
     }
     
     public void shoutout(User targetUser, SimpleRequestResultListener listener) {
-        runWithUserIds(targetUser, listener, (streamId, targetId) -> {
-            requests.shoutout(streamId, targetId, listener);
-        });
+        runWithUserIds(targetUser, listener, (streamId, targetId) -> requests.shoutout(streamId, targetId, listener));
     }
     
     public void warn(User targetUser, String reason, SimpleRequestResultListener listener) {
-        runWithUserIds(targetUser, listener, (streamId, targetId) -> {
-            requests.warn(streamId, targetId, reason, listener);
-        });
+        runWithUserIds(targetUser, listener, (streamId, targetId) -> requests.warn(streamId, targetId, reason, listener));
     }
     
     public void setVip(User targetUser, boolean add, SimpleRequestResultListener listener) {
-        runWithUserIds(targetUser, listener, (streamId, targetId) -> {
-            requests.setVip(streamId, targetId, add, listener);
-        });
+        runWithUserIds(targetUser, listener, (streamId, targetId) -> requests.setVip(streamId, targetId, add, listener));
     }
     
     public void setModerator(User targetUser, boolean add, SimpleRequestResultListener listener) {
-        runWithUserIds(targetUser, listener, (streamId, targetId) -> {
-            requests.setModerator(streamId, targetId, add, listener);
-        });
+        runWithUserIds(targetUser, listener, (streamId, targetId) -> requests.setModerator(streamId, targetId, add, listener));
     }
     
     public void requestModerators(Room room, SimpleRequestResultListener listener) {
-        runWithStreamId(room, listener, streamId -> {
-            requests.getModerators(streamId, listener);
-        });
+        runWithStreamId(room, listener, streamId -> requests.getModerators(streamId, listener));
     }
     
     public void requestVips(Room room, SimpleRequestResultListener listener) {
-        runWithStreamId(room, listener, streamId -> {
-            requests.getVips(streamId, listener);
-        });
+        runWithStreamId(room, listener, streamId -> requests.getVips(streamId, listener));
     }
     
     public void startRaid(Room room, String targetUsername, SimpleRequestResultListener listener) {
@@ -645,31 +609,21 @@ public class TwitchApi {
     }
     
     public void cancelRaid(Room room, SimpleRequestResultListener listener) {
-        runWithStreamId(room, listener, streamId -> {
-            requests.cancelRaid(streamId, listener);
-        });
+        runWithStreamId(room, listener, streamId -> requests.cancelRaid(streamId, listener));
     }
     
     public void setShieldMode(Room room, boolean enabled, SimpleRequestResultListener listener) {
-        runWithStreamId(room, listener, streamId -> {
-            requests.setShieldMode(room.getStream(), streamId, enabled, listener);
-        });
+        runWithStreamId(room, listener, streamId -> requests.setShieldMode(room.getStream(), streamId, enabled, listener));
     }
     
     public void getShieldMode(Room room, boolean oncePerStream) {
         String requestId = "getShieldMode:" + room.getStream();
         if (oncePerStream) {
             int options = CachedBulkManager.ASAP | CachedBulkManager.UNIQUE;
-            m.query(null, options, new Req(requestId, () -> {
-                runWithStreamId(room, null, streamId -> {
-                    requests.getShieldMode(room.getStream(), streamId, requestId);
-                });
-            }));
+            m.query(null, options, new Req(requestId, () -> runWithStreamId(room, null, streamId -> requests.getShieldMode(room.getStream(), streamId, requestId))));
         }
         else {
-            runWithStreamId(room, null, streamId -> {
-                requests.getShieldMode(room.getStream(), streamId, requestId);
-            });
+            runWithStreamId(room, null, streamId -> requests.getShieldMode(room.getStream(), streamId, requestId));
         }
     }
     
@@ -702,9 +656,7 @@ public class TwitchApi {
     public static final String CHAT_SETTINGS_UNIQUE = "unique_chat_mode";
     
     public void updateChatSettings(Room room, SimpleRequestResultListener listener, Object... data) {
-        runWithStreamId(room, listener, streamId -> {
-            requests.updateChatSettings(streamId, data, listener);
-        });
+        runWithStreamId(room, listener, streamId -> requests.updateChatSettings(streamId, data, listener));
     }
     
     private void runWithUserIds(User targetUser, SimpleRequestResultListener listener, BiConsumer<String, String> run) {
@@ -746,7 +698,7 @@ public class TwitchApi {
     
     public interface SimpleRequestResultListener {
         
-        public void accept(SimpleRequestResult r);
+        void accept(SimpleRequestResult r);
         
     }
     

@@ -3,13 +3,13 @@ package chatty.util.api;
 
 import chatty.util.DateTime;
 import chatty.util.JSONUtil;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.logging.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  *
@@ -110,8 +110,8 @@ public class ChannelInfoManager {
      */
     protected String makeChannelInfoJson(ChannelStatus info) {
         Map<String, String> channel = new HashMap<>();
-        channel.put("status", info.title);
-        channel.put("game", info.category.name);
+        channel.put("status", info.title());
+        channel.put("game", info.category().name());
         return JSONUtil.listMapToJSON("channel", channel);
     }
     

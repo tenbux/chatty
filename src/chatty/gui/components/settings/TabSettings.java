@@ -5,27 +5,14 @@ import chatty.gui.Channels;
 import chatty.gui.GuiUtil;
 import chatty.lang.Language;
 import chatty.util.colors.HtmlColors;
-import java.awt.Color;
-import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Consumer;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTabbedPane;
+
+import javax.swing.*;
 import javax.swing.RowSorter.SortKey;
-import javax.swing.SortOrder;
 import javax.swing.table.DefaultTableCellRenderer;
+import java.awt.*;
+import java.util.*;
+import java.util.List;
+import java.util.function.Consumer;
 
 /**
  *
@@ -62,13 +49,13 @@ public class TabSettings extends SettingsPanel {
         //--------------------------
         // Tabs Order
         //--------------------------
-        orderPanel.add(new JLabel(Language.getString("settings.tabs.order")), d.makeGbc(0, 0, 1, 1, GridBagConstraints.WEST));
+        orderPanel.add(new JLabel(Language.getString("settings.tabs.order")), SettingsDialog.makeGbc(0, 0, 1, 1, GridBagConstraints.WEST));
         Map<String, String> options = new HashMap<>();
         options.put("normal", Language.getString("settings.tabs.option.normal"));
         options.put("alphabetical", Language.getString("settings.tabs.option.alphabetical"));
         orderPanel.add(
                 d.addComboStringSetting("tabOrder", 1, false, options),
-                d.makeGbc(1, 0, 3, 1, GridBagConstraints.WEST)
+                SettingsDialog.makeGbc(1, 0, 3, 1, GridBagConstraints.WEST)
         );
         
         TabsPos tabsPos = new TabsPos(d);
@@ -85,9 +72,7 @@ public class TabSettings extends SettingsPanel {
         
         JButton tabsPosButton = new JButton("Advanced Tabs Order");
         GuiUtil.smallButtonInsets(tabsPosButton);
-        tabsPosButton.addActionListener(e -> {
-            tabsPos.show(TabSettings.this);
-        });
+        tabsPosButton.addActionListener(e -> tabsPos.show(TabSettings.this));
         
         tabsPos.setChangeListener(data -> {
             channelPrefix.update(data);
@@ -109,16 +94,16 @@ public class TabSettings extends SettingsPanel {
         // Open Tabs
         //--------------------------
         mainPanel.add(SettingsUtil.createLabel("settings.string.tabsOpen"),
-                d.makeGbc(0, 1, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 1, 1, 1, GridBagConstraints.WEST));
 
         mainPanel.add(d.addComboStringSetting("tabsOpen", false, "main", "active", "active2", "activeChan"),
-                d.makeGbc(1, 1, 3, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(1, 1, 3, 1, GridBagConstraints.WEST));
         
         mainPanel.add(d.addSimpleBooleanSetting("tabsCloseMMB"),
-                d.makeGbc(0, 2, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 2, 2, 1, GridBagConstraints.WEST));
         
         mainPanel.add(d.addSimpleBooleanSetting("tabsCloseSwitchToPrev"),
-                d.makeGbc(0, 3, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 3, 2, 1, GridBagConstraints.WEST));
         
         //--------------------------
         // Tabs Location
@@ -131,9 +116,9 @@ public class TabSettings extends SettingsPanel {
         ComboStringSetting tabPlacementSetting = new ComboStringSetting(tabPlacementOptions);
         d.addStringSetting("tabsPlacement", tabPlacementSetting);
         layoutPanel.add(new JLabel(Language.getString("settings.tabs.placement")),
-                d.makeGbc(0, 3, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 3, 1, 1, GridBagConstraints.WEST));
         layoutPanel.add(tabPlacementSetting,
-                d.makeGbc(1, 3, 3, 1, GridBagConstraints.WEST)
+                SettingsDialog.makeGbc(1, 3, 3, 1, GridBagConstraints.WEST)
         );
         
         //-------------
@@ -145,15 +130,15 @@ public class TabSettings extends SettingsPanel {
         ComboStringSetting tabLayoutSetting = new ComboStringSetting(tabLayoutOptions);
         d.addStringSetting("tabsLayout", tabLayoutSetting);
         layoutPanel.add(new JLabel(Language.getString("settings.tabs.layout")),
-                d.makeGbc(0, 4, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 4, 1, 1, GridBagConstraints.WEST));
         layoutPanel.add(tabLayoutSetting,
-                d.makeGbc(1, 4, 3, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(1, 4, 3, 1, GridBagConstraints.WEST));
         
         SettingsUtil.addLabeledComponent(layoutPanel, "tabsMaxWidth", 0, 5, 3, GridBagConstraints.WEST,
                 d.addSimpleLongSetting("tabsMaxWidth", 3, true));
         
         layoutPanel.add(d.addSimpleBooleanSetting("tabsHideIfSingle"),
-                d.makeGbc(0, 6, 3, 1));
+                SettingsDialog.makeGbc(0, 6, 3, 1));
         
         //--------------------------
         // Close Empty Tab Panes
@@ -167,8 +152,8 @@ public class TabSettings extends SettingsPanel {
         JCheckBox scroll = d.addSimpleBooleanSetting("tabsMwheelScrolling");
         JCheckBox scroll2 = d.addSimpleBooleanSetting("tabsMwheelScrollingAnywhere");
         mainPanel.add(scroll,
-                d.makeGbc(0, 7, 4, 1, GridBagConstraints.WEST));
-        gbc = d.makeGbcSub(0, 8, 4, 1, GridBagConstraints.NORTHWEST);
+                SettingsDialog.makeGbc(0, 7, 4, 1, GridBagConstraints.WEST));
+        gbc = SettingsDialog.makeGbcSub(0, 8, 4, 1, GridBagConstraints.NORTHWEST);
         mainPanel.add(scroll2,
                 gbc);
 
@@ -196,25 +181,25 @@ public class TabSettings extends SettingsPanel {
         //==========================
         popout.add(d.addSimpleBooleanSetting("popoutSaveAttributes", "Restore location/size",
                 "Save and restore the location and size of popout dialogs during the same session"),
-                d.makeGbc(0,0,1,1));
+                SettingsDialog.makeGbc(0,0,1,1));
         popout.add(d.addSimpleBooleanSetting("popoutCloseLastChannel", "Close popout when only channel",
                 "Automatically close a popout if the last channel in the main window is closed"),
-                d.makeGbc(1, 0, 1, 1));
+                SettingsDialog.makeGbc(1, 0, 1, 1));
         
         popout.add(SettingsUtil.createLabel("tabsPopoutDrag"),
-                d.makeGbc(0, 1, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 1, 1, 1, GridBagConstraints.WEST));
         
-        popout.add(d.addComboLongSetting("tabsPopoutDrag", new int[]{0,1,2}),
-                d.makeGbc(1, 1, 1, 1, GridBagConstraints.WEST));
+        popout.add(d.addComboLongSetting("tabsPopoutDrag", 0,1,2),
+                SettingsDialog.makeGbc(1, 1, 1, 1, GridBagConstraints.WEST));
         
         popout.add(SettingsUtil.createLabel("popoutClose"),
-                d.makeGbc(0, 2, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 2, 1, 1, GridBagConstraints.WEST));
         
         popout.add(d.addComboStringSetting("popoutClose", false, "ask", "close", "move"),
-                d.makeGbc(1, 2, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(1, 2, 1, 1, GridBagConstraints.WEST));
         
         popout.add(new JLabel(Language.getString("popoutClose.keyTip")),
-                d.makeGbc(0, 3, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 3, 2, 1, GridBagConstraints.WEST));
     }
     
     private static class TabInfoOptions extends JPanel implements LongSetting {
@@ -260,13 +245,11 @@ public class TabSettings extends SettingsPanel {
             return check;
         }
         
-        private final Set<Integer> COLOR_OPTIONS = new HashSet<>(Arrays.asList(new Integer[]{
-            Channels.DockChannelContainer.COLOR1,
-            Channels.DockChannelContainer.COLOR2,
-            Channels.DockChannelContainer.DOT1,
-            Channels.DockChannelContainer.DOT2,
-            Channels.DockChannelContainer.LINE
-        }));
+        private final Set<Integer> COLOR_OPTIONS = new HashSet<>(Arrays.asList(Channels.DockChannelContainer.COLOR1,
+                Channels.DockChannelContainer.COLOR2,
+                Channels.DockChannelContainer.DOT1,
+                Channels.DockChannelContainer.DOT2,
+                Channels.DockChannelContainer.LINE));
         
         private void update() {
             boolean colorSettingSelected = false;
@@ -325,14 +308,12 @@ public class TabSettings extends SettingsPanel {
     }
         
     private static class TabsPrefixPos extends JPanel {
-        
-        private final SettingsDialog d;
+
         private final ComboLongSetting setting;
         private final String prefix;
         
         private TabsPrefixPos(SettingsDialog d, String prefix, MapSetting<String, Long> mapSetting) {
             setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
-            this.d = d;
             this.prefix = prefix;
             Map<Long, String> items = new HashMap<>();
             items.put((long)-1, "Before Default Location (-1)");
@@ -372,7 +353,7 @@ public class TabSettings extends SettingsPanel {
             this.editor = d.addLongMapSetting("tabsPos", 300, 200, "Tab Name", "Position Value");
             editor.setValueFilter("[^0-9-]");
             // Listener must not be lazy init so it's there when data is loaded
-            editor.setTableEditorListener(new TableEditor.TableEditorListener<SimpleTableEditor.MapItem<Long>>() {
+            editor.setTableEditorListener(new TableEditor.TableEditorListener<>() {
                 @Override
                 public void itemAdded(SimpleTableEditor.MapItem<Long> item) {
                     informChangeListener(editor.getSettingValue());
@@ -419,28 +400,25 @@ public class TabSettings extends SettingsPanel {
 
                 GridBagConstraints gbc;
 
-                gbc = d.makeGbc(0, 0, 1, 1);
+                gbc = SettingsDialog.makeGbc(0, 0, 1, 1);
                 add(new JLabel(INFO), gbc);
 
-                gbc = d.makeGbc(0, 1, 1, 1);
+                gbc = SettingsDialog.makeGbc(0, 1, 1, 1);
                 gbc.fill = GridBagConstraints.BOTH;
                 gbc.weightx = 1;
                 gbc.weighty = 1;
                 editor.setRendererForColumn(0, new TabsPosRenderer());
                 editor.setRendererForColumn(1, new TabsPosRenderer());
-                editor.getSorter().setSortKeys(Arrays.asList(new SortKey[]{
-                    new SortKey(1, SortOrder.ASCENDING),
-                    new SortKey(0, SortOrder.ASCENDING)}));
+                editor.getSorter().setSortKeys(Arrays.asList(new SortKey(1, SortOrder.ASCENDING),
+                        new SortKey(0, SortOrder.ASCENDING)));
                 add(editor, gbc);
 
-                gbc = d.makeGbc(0, 2, 1, 1);
+                gbc = SettingsDialog.makeGbc(0, 2, 1, 1);
                 gbc.fill = GridBagConstraints.BOTH;
                 gbc.weightx = 1;
                 JButton closeButton = new JButton("Close");
                 add(closeButton, gbc);
-                closeButton.addActionListener(e -> {
-                    setVisible(false);
-                });
+                closeButton.addActionListener(e -> setVisible(false));
 
                 pack();
                 setMinimumSize(getPreferredSize());
@@ -485,26 +463,18 @@ public class TabSettings extends SettingsPanel {
     }
     
     public static String tabPosLabel(String value) {
-        if (value.equals("-")) {
-            return String.format("%s (-)",
+        return switch (value) {
+            case "-" -> String.format("%s (-)",
                     Language.getString("settings.tabsOrder.dialogs").replace(":", ""));
-        }
-        else if (value.equals("#")) {
-            return String.format("%s (#)",
+            case "#" -> String.format("%s (#)",
                     Language.getString("settings.tabsOrder.channel").replace(":", ""));
-        }
-        else if (value.equals("$")) {
-            return String.format("%s ($)",
+            case "$" -> String.format("%s ($)",
                     Language.getString("settings.tabsOrder.whisper").replace(":", ""));
-        }
-        else if (value.equals("'")) {
-            return String.format("%s (')",
+            case "'" -> String.format("%s (')",
                     Language.getString("settings.tabsOrder.customTabs").replace(":", ""));
-        }
-        else if (value.equals(Channels.DEFAULT_CHANNEL_ID)) {
-            return String.format("\"%s\" tab", Language.getString("tabs.noChannel"));
-        }
-        return value;
+            case Channels.DEFAULT_CHANNEL_ID -> String.format("\"%s\" tab", Language.getString("tabs.noChannel"));
+            default -> value;
+        };
     }
     
 }

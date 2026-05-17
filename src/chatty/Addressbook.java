@@ -5,23 +5,15 @@ import chatty.util.FileWatcher;
 import chatty.util.MiscUtil;
 import chatty.util.StringUtil;
 import chatty.util.settings.Settings;
-import chatty.util.settings.SettingsListener;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,7 +29,7 @@ public class Addressbook {
     
     private static final Logger LOGGER = Logger.getLogger(Addressbook.class.getName());
     
-    private static final Charset CHARSET = Charset.forName("UTF-8");
+    private static final java.nio.charset.Charset CHARSET = StandardCharsets.UTF_8;
     
     private static final String SETTING_NAME = "abEntries";
     
@@ -72,13 +64,7 @@ public class Addressbook {
         this.importFileName = importFilename;
         this.settings = settings;
         if (settings != null) {
-            settings.addSettingsListener(new SettingsListener() {
-
-                @Override
-                public void aboutToSaveSettings(Settings settings) {
-                    saveToSettings();
-                }
-            });
+            settings.addSettingsListener(settings1 -> saveToSettings());
         }
     }
     
@@ -135,24 +121,17 @@ public class Addressbook {
             parameters = split[1].split(" ");
             parameter = split[1].trim();
         }
-        if (command.equals("get")) {
-            return commandGet(parameters);
-        } else if (command.equals("add")) {
-            return commandAdd(parameters);
-        } else if (command.equals("set")) {
-            return commandSet(parameters);
-        } else if (command.equals("remove")) {
-            return commandRemove(parameters);
-        } else if (command.equals("renameCategory")) {
-            return commandRenameCategory(parameters);
-        } else if (command.equals("removeCategory")) {
-            return commandRemoveCategory(parameters);
-        } else if (command.equals("change")) {
-            return commandChange(parameter);
-        } else if (command.equals("info")) {
-            return commandInfo();
-        }
-        return "Invalid command.";
+        return switch (command) {
+            case "get" -> commandGet(parameters);
+            case "add" -> commandAdd(parameters);
+            case "set" -> commandSet(parameters);
+            case "remove" -> commandRemove(parameters);
+            case "renameCategory" -> commandRenameCategory(parameters);
+            case "removeCategory" -> commandRemoveCategory(parameters);
+            case "change" -> commandChange(parameter);
+            case "info" -> commandInfo();
+            default -> "Invalid command.";
+        };
     }
     
     /**
@@ -370,13 +349,9 @@ public class Addressbook {
      * the Addressbook import file.
      */
     public void enableAutoImport() {
-        FileWatcher.createFileWatcher(Paths.get(importFileName), new FileWatcher.FileChangedListener() {
-
-            @Override
-            public void fileChanged() {
-                LOGGER.info("[AddressbookImport] Detected file change: Auto import..");
-                importFromFile();
-            }
+        FileWatcher.createFileWatcher(Paths.get(importFileName), () -> {
+            LOGGER.info("[AddressbookImport] Detected file change: Auto import..");
+            importFromFile();
         });
     }
     
@@ -677,16 +652,16 @@ public class Addressbook {
         while (m.find()) {
             String action = m.group(1);
             Set<String> categories = getCategoriesFromString(m.group(2));
-            if (action.equals("+")) {
-                result.addAll(categories);
-            } else if (action.equals("-")) {
-                result.removeAll(categories);
-            } else if (action.equals("!")) {
-                for (String cat : categories) {
-                    if (present.contains(cat)) {
-                        result.remove(cat);
-                    } else {
-                        result.add(cat);
+            switch (action) {
+                case "+" -> result.addAll(categories);
+                case "-" -> result.removeAll(categories);
+                case "!" -> {
+                    for (String cat : categories) {
+                        if (present.contains(cat)) {
+                            result.remove(cat);
+                        } else {
+                            result.add(cat);
+                        }
                     }
                 }
             }
@@ -741,7 +716,7 @@ public class Addressbook {
     }
     
     public synchronized boolean loadFromSettings() {
-        if (!settings.isValueSet(SETTING_NAME)) {
+        if (settings.isValueSet(SETTING_NAME)) {
             LOGGER.info("Didn't load addressbook from settings");
             return false;
         }
@@ -763,8 +738,7 @@ public class Addressbook {
     
     private static AddressbookEntry listToEntry(List list) {
         if (list.size() > 1) {
-            if (list.get(0) instanceof String && list.get(1) instanceof List) {
-                String name = (String)list.get(0);
+            if (list.get(0) instanceof String name && list.get(1) instanceof List) {
                 Set<String> cats = new HashSet<>();
                 for (Object catObject : (List)list.get(1)) {
                     if (catObject instanceof String) {
@@ -800,20 +774,10 @@ public class Addressbook {
         }
         scanCategories();
     }
-    
-    public static class AddressbookParsedEntries {
-        
-        public final List<AddressbookEntry> validEntries;
-        public final List<String> invalidEntries;
-        public final List<String> duplicateEntries;
-        
-        public AddressbookParsedEntries(List<AddressbookEntry> validEntries,
-                                        List<String> invalidEntries,
-                                        List<String> duplicateNames) {
-            this.validEntries = validEntries;
-            this.invalidEntries = invalidEntries;
-            this.duplicateEntries = duplicateNames;
-        }
+
+    public record AddressbookParsedEntries(List<AddressbookEntry> validEntries, List<String> invalidEntries,
+                                           List<String> duplicateEntries) {
+
     }
     
     public static AddressbookParsedEntries getParsedEntries(String input) {
@@ -851,7 +815,7 @@ public class Addressbook {
         String[] split = line.trim().split(" ");
         if (split.length == 1) {
             String name = split[0];
-            return new AddressbookEntry(name, new HashSet<String>());
+            return new AddressbookEntry(name, new HashSet<>());
         }
         if (split.length == 2) {
             String name = split[0];

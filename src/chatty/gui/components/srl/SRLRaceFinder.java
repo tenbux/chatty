@@ -3,18 +3,11 @@ package chatty.gui.components.srl;
 
 import chatty.gui.GuiUtil;
 import chatty.util.srl.Race;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.util.Collection;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JScrollPane;
 
 /**
  * Dialog that shows the result of searching for races with a certain entrant
@@ -26,7 +19,6 @@ public class SRLRaceFinder extends JDialog {
     
     private final RacesTable selection;
     private final JLabel infoLabel = new JLabel();
-    private final JButton cancelButton = new JButton("Close");
     private final SRL srl;
     
     private String currentStream;
@@ -40,13 +32,7 @@ public class SRLRaceFinder extends JDialog {
         
         add(infoLabel, GuiUtil.makeGbc(0, 0, 1, 1, GridBagConstraints.CENTER));
 
-        selection = new RacesTable(new RacesTable.RacesTableListener() {
-
-            @Override
-            public void openRace(Race race) {
-                srl.openRaceInfo(race);
-            }
-        });
+        selection = new RacesTable(race -> srl.openRaceInfo(race));
         gbc = GuiUtil.makeGbc(0, 1, 1, 1);
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weightx = 1;
@@ -56,16 +42,11 @@ public class SRLRaceFinder extends JDialog {
         gbc = GuiUtil.makeGbc(0, 2, 1, 1);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1;
+        JButton cancelButton = new JButton("Close");
         add(cancelButton, gbc);
         
         cancelButton.setMnemonic(KeyEvent.VK_C);
-        cancelButton.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                setVisible(false);
-            }
-        });
+        cancelButton.addActionListener(e -> setVisible(false));
         
         Dimension defaultSize = new Dimension(400, 200);
         setPreferredSize(defaultSize);
@@ -103,7 +84,7 @@ public class SRLRaceFinder extends JDialog {
     public void setFoundRaces(Collection<Race> races) {
         String info = "Found "+races.size()+" race"
                 +(races.size() == 1 ? "" : "s")+" with "+currentStream;
-        if (races.size() > 0) {
+        if (!races.isEmpty()) {
             String srlName = SRL.findSrlName(currentStream, races.iterator().next());
             if (srlName != null && !srlName.equalsIgnoreCase(currentStream)) {
                 info += " ("+srlName+")";

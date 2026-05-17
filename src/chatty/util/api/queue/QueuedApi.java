@@ -48,55 +48,57 @@ public class QueuedApi {
      */
     private final Semaphore activeRequests = new Semaphore(10);
     
+    private final ExecutorService executor = Executors.newCachedThreadPool();
+    
     public QueuedApi() {
-        ExecutorService executor = Executors.newCachedThreadPool();
         queue = new PriorityBlockingQueue<>();
         
-        Thread thread = new Thread(new Runnable() {
-            
-            @Override
-            public void run() {
-                while (true) {
-                    try {
-                        if (ratelimitRemaining != -1 && ratelimitRemaining < 60) {
-                            LOGGER.info("Waiting..");
-                            Thread.sleep(10*1000);
-                        }
-                        activeRequests.acquire();
-                        //System.out.println("Waiting for entry.. Permits: "+activeRequests.availablePermits());
-                        Entry entry = queue.take();
-                        //System.out.println("Entry taken: "+entry.request+" Permits: "+activeRequests.availablePermits());
-                        entry.request.setResultListener((result, responseCode, errorResult, ratelimitRemaining) -> {
-                            /**
-                             * Executed in an executor thread.
-                             */
-                            // Get some data from the response and forward to external listener
-                            QueuedApi.this.ratelimitRemaining = ratelimitRemaining;
-                            activeRequests.release();
-                            if (Debugging.isEnabled("requestresponse")) {
-                                if (result != null) {
-                                    LOGGER.info(result);
-                                }
-                                if (errorResult != null) {
-                                    LOGGER.info("E:"+errorResult);
-                                }
-                            }
-                            // This may run a while (e.g. loading images etc.)
-                            entry.listener.result(new ResultListener.Result(result, responseCode, errorResult));
-                            removePending(entry);
-                            //System.out.println("Entry done: "+entry.request+" Permits: "+activeRequests.availablePermits());
-                        });
-                        executor.execute(entry.request);
-                        
-                    } catch (InterruptedException ex) {
-                        // To stop the thread (currently not used)
-                        LOGGER.warning("QueuedApi Thread interrupted");
-                        break;
+        Thread thread = new Thread(() -> {
+            while (true) {
+                try {
+                    if (ratelimitRemaining != -1 && ratelimitRemaining < 60) {
+                        LOGGER.info("Waiting..");
+                        Thread.sleep(10*1000);
                     }
+                    activeRequests.acquire();
+                    //System.out.println("Waiting for entry.. Permits: "+activeRequests.availablePermits());
+                    Entry entry = queue.take();
+                    //System.out.println("Entry taken: "+entry.request+" Permits: "+activeRequests.availablePermits());
+                    entry.request.setResultListener((result, responseCode, errorResult, ratelimitRemaining) -> {
+                        /**
+                         * Executed in an executor thread.
+                         */
+                        // Get some data from the response and forward to external listener
+                        QueuedApi.this.ratelimitRemaining = ratelimitRemaining;
+                        activeRequests.release();
+                        if (Debugging.isEnabled("requestresponse")) {
+                            if (result != null) {
+                                LOGGER.info(result);
+                            }
+                            if (errorResult != null) {
+                                LOGGER.info("E:"+errorResult);
+                            }
+                        }
+                        // This may run a while (e.g. loading images etc.)
+                        entry.listener.result(new ResultListener.Result(result, responseCode, errorResult));
+                        removePending(entry);
+                        //System.out.println("Entry done: "+entry.request+" Permits: "+activeRequests.availablePermits());
+                    });
+                    executor.execute(entry.request);
+
+                } catch (InterruptedException ex) {
+                    // To stop the thread (currently not used)
+                    LOGGER.warning("QueuedApi Thread interrupted");
+                    break;
                 }
             }
         }, "QueuedApi");
+        thread.setDaemon(true);
         thread.start();
+    }
+    
+    public void shutdown() {
+        executor.shutdown();
     }
     
     /**
@@ -171,13 +173,7 @@ public class QueuedApi {
     
     public static void main(String[] args) {
         QueuedApi api = new QueuedApi();
-        ResultListener listener = new ResultListener() {
-
-            @Override
-            public void result(Result r) {
-                System.out.println("Result: "+r.responseCode+" "+r.text);
-            }
-        };
+        ResultListener listener = r -> System.out.println("Result: "+ r.responseCode() +" "+ r.text());
 //        api.add("https://api.twitch.tv/helix/streams", null, null, listener);
 //        api.add("https://api.twitch.tv/helix/streams", null, null, listener);
 //        api.add("https://api.twitch.tv/helix/streams", null, null, listener);

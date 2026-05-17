@@ -20,7 +20,6 @@ public class ListAnimatedImageFrame {
     private final byte[] compressed;
     private final int delay;
     private final int width;
-    private final int height;
     private final int visiblePixelCount;
     
     public ListAnimatedImageFrame(BufferedImage image, int delay) throws IOException {
@@ -30,7 +29,7 @@ public class ListAnimatedImageFrame {
         }
         this.delay = delay;
         this.width = image.getWidth();
-        this.height = image.getHeight();
+        int height = image.getHeight();
         
         // Determine frame "visibility"
         int transparentPixelCount = 0;

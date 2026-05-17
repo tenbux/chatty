@@ -68,10 +68,7 @@ public class Is implements Item {
         if (!Objects.equals(this.item, other.item)) {
             return false;
         }
-        if (this.isRequired != other.isRequired) {
-            return false;
-        }
-        return true;
+        return this.isRequired == other.isRequired;
     }
 
     @Override

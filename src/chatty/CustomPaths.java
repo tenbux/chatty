@@ -46,25 +46,23 @@ public class CustomPaths {
         }
     }
 
-    private synchronized boolean loadFromSettings(Chatty.PathType type) {
+    private synchronized void loadFromSettings(PathType type) {
         if (settings == null || type.settingName == null) {
-            return false;
+            return;
         }
         String value = settings.getString(type.settingName);
         if (value.isEmpty()) {
-            return false;
+            return;
         }
         try {
             Path path = Paths.get(value);
             setCustom(type, path, "setting " + type.settingName, true);
-            return true;
         }
         catch (InvalidPathException ex) {
             ChattyPath p = get(type);
             p.customDir = null;
             p.invalidCustomDir = value;
             p.customInfo = "setting " + type.settingName;
-            return false;
         }
     }
     
@@ -132,7 +130,7 @@ public class CustomPaths {
                 b.append(String.format("[%s] %s\n", type, info));
             }
         }
-        if (b.length() > 0) {
+        if (!b.isEmpty()) {
             b.insert(0, "[Custom Paths]\n");
         }
         return b.toString();
@@ -149,7 +147,7 @@ public class CustomPaths {
                                 type, path.getInvalid(), path.getCustomInfo())));
             }
         }
-        if (b.length() > 0) {
+        if (!b.isEmpty()) {
             b.insert(0, "Invalid custom paths:\n");
         }
         return b.toString();

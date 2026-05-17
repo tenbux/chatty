@@ -2,12 +2,13 @@
 package chatty.lang;
 
 import chatty.gui.components.settings.MainSettings;
+import org.junit.Assert;
+import org.junit.Test;
+
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.ResourceBundle;
-import org.junit.Assert;
-import org.junit.Test;
 
 /**
  * 
@@ -24,10 +25,9 @@ public class LanguageTest {
      * production (including fallbacks), which means that all strings that are
      * actually used in production should be tested.
      *
-     * @throws Exception 
      */
     @Test
-    public void test() throws Exception {
+    public void test() {
         // Get all the languages that can be set in the Settings Dialog
         Collection<String> languages = new HashSet<>(MainSettings.getLanguageOptions().keySet());
         languages.add("asdas");
@@ -49,8 +49,8 @@ public class LanguageTest {
                     // Don't fail immediately, output all errors first
                     // (will output errors in parent strings as well)
                     failed = true;
-                    System.out.println(String.format("Error in '%s' [%s = %s] (%s)",
-                            lang, key, bundle.getString(key), ex.toString()));
+                    System.out.printf("Error in '%s' [%s = %s] (%s)%n",
+                            lang, key, bundle.getString(key), ex);
                 }
             }
         }
@@ -83,8 +83,8 @@ public class LanguageTest {
                     MessageFormat mmf = new MessageFormat(masterItem);
                     MessageFormat mf = new MessageFormat(item);
                     if (mmf.getFormats().length != mf.getFormats().length) {
-                        System.out.println(String.format("Parameter count mismatch: %s\n %s: %s\n %s: %s",
-                                key, masterLang, masterItem, lang, item));
+                        System.out.printf("Parameter count mismatch: %s\n %s: %s\n %s: %s%n",
+                                key, masterLang, masterItem, lang, item);
                     }
                 }
             }

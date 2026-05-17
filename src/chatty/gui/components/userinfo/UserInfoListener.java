@@ -11,6 +11,6 @@ import chatty.util.commands.Parameters;
  */
 public interface UserInfoListener {
 
-    public void anonCustomCommand(Room room, CustomCommand command, Parameters parameters);
+    void anonCustomCommand(Room room, CustomCommand command, Parameters parameters);
     
 }

@@ -7,11 +7,11 @@ package chatty.util.jws;
  */
 public interface MessageHandler {
 
-    public void handleReceived(String text);
+    void handleReceived(String text);
 
-    public void handleSent(String text);
+    void handleSent(String text);
 
-    public void handleConnect(JWSClient c);
+    void handleConnect(JWSClient c);
 
-    public void handleDisconnect(int code);
+    void handleDisconnect(int code);
 }

@@ -5,36 +5,18 @@ import chatty.Helper;
 import chatty.gui.components.SimplePopup;
 import chatty.gui.components.textpane.ChannelTextPane;
 import chatty.gui.laf.LaF;
-import chatty.util.Debugging;
-import chatty.util.MiscUtil;
-import chatty.util.Pair;
-import chatty.util.ProcessManager;
-import chatty.util.StringUtil;
+import chatty.util.*;
 import chatty.util.commands.CustomCommand;
 import chatty.util.commands.Parameters;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.Graphics2D;
-import java.awt.GraphicsConfiguration;
-import java.awt.GraphicsDevice;
-import java.awt.GraphicsEnvironment;
-import java.awt.GridBagConstraints;
-import java.awt.Image;
-import java.awt.Insets;
-import java.awt.KeyboardFocusManager;
-import java.awt.MouseInfo;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.Toolkit;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.WindowEvent;
+
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
+import javax.swing.text.*;
+import java.awt.*;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyVetoException;
@@ -46,40 +28,6 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import javax.swing.AbstractAction;
-import javax.swing.AbstractButton;
-import javax.swing.Action;
-import javax.swing.Icon;
-import javax.swing.ImageIcon;
-import javax.swing.InputMap;
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JDialog;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JRootPane;
-import javax.swing.JTable;
-import javax.swing.JTextArea;
-import javax.swing.KeyStroke;
-import javax.swing.RowSorter;
-import javax.swing.SortOrder;
-import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import javax.swing.WindowConstants;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableColumn;
-import javax.swing.text.AbstractDocument;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultEditorKit;
-import javax.swing.text.Document;
-import javax.swing.text.DocumentFilter;
-import javax.swing.text.JTextComponent;
 
 /**
  * Some Utility functions or constants for GUI related stuff
@@ -164,9 +112,7 @@ public class GuiUtil {
         w.setFocusableWindowState(false);
         // Make focusable after showing the dialog, so that it can be focused
         // by the user, but doesn't steal focus from the user when it opens.
-        SwingUtilities.invokeLater(() -> {
-            w.setFocusableWindowState(true);
-        });
+        SwingUtilities.invokeLater(() -> w.setFocusableWindowState(true));
     }
     
     public static void showNonModalMessage(Component parent, String title, String message, int type) {
@@ -460,7 +406,7 @@ public class GuiUtil {
      */
     public static String getSortingFromTable(JTable table) {
         List<? extends RowSorter.SortKey> keys = table.getRowSorter().getSortKeys();
-        String result = "";
+        StringBuilder result = new StringBuilder();
         for (RowSorter.SortKey key : keys) {
             int order = 0;
             if (key.getSortOrder() == SortOrder.ASCENDING) {
@@ -468,9 +414,9 @@ public class GuiUtil {
             } else if (key.getSortOrder() == SortOrder.DESCENDING) {
                 order = 2;
             }
-            result += String.format("%s:%s;", key.getColumn(), order);
+            result.append(String.format("%s:%s;", key.getColumn(), order));
         }
-        return result;
+        return result.toString();
     }
     
     /**
@@ -492,12 +438,11 @@ public class GuiUtil {
                 try {
                     int rowId = Integer.parseInt(split[0]);
                     int orderId = Integer.parseInt(split[1]);
-                    SortOrder order;
-                    switch (orderId) {
-                        case 1: order = SortOrder.ASCENDING; break;
-                        case 2: order = SortOrder.DESCENDING; break;
-                        default: order = SortOrder.UNSORTED;
-                    }
+                    SortOrder order = switch (orderId) {
+                        case 1 -> SortOrder.ASCENDING;
+                        case 2 -> SortOrder.DESCENDING;
+                        default -> SortOrder.UNSORTED;
+                    };
                     keys.add(new RowSorter.SortKey(rowId, order));
                 } catch (NumberFormatException ex) {
                     // Just don't add anything
@@ -609,8 +554,7 @@ public class GuiUtil {
             public void vetoableChange(PropertyChangeEvent evt) throws PropertyVetoException {
                 if (evt.getNewValue() != null) {
                     if (rejectNext && evt.getPropertyName().equals("focusOwner")) {
-                        if (evt.getNewValue() instanceof JTextComponent) {
-                            JComponent component = (JComponent) evt.getNewValue();
+                        if (evt.getNewValue() instanceof JTextComponent component) {
                             // Move focus up, this usually moves it to the
                             // window itself
                             KeyboardFocusManager.getCurrentKeyboardFocusManager().upFocusCycle(component);
@@ -650,20 +594,16 @@ public class GuiUtil {
     }
     
     public static void focusTest() {
-        KeyboardFocusManager.getCurrentKeyboardFocusManager().addVetoableChangeListener(new VetoableChangeListener() {
-
-            @Override
-            public void vetoableChange(PropertyChangeEvent evt) throws PropertyVetoException {
-                if (evt.getOldValue() != null) {
-                    System.out.println("from: "+evt.getOldValue().getClass().getName()+" ("+evt.getPropertyName()+")");
-                }
-                if (evt.getNewValue() != null) {
-                    System.out.println("to: "+evt.getNewValue().getClass().getName()+" ("+evt.getPropertyName()+")");
-                }
-                if (evt.getNewValue() instanceof ChannelTextPane) {
-                    //System.out.println("prevent");
-                    //throw new PropertyVetoException("abc", evt);
-                }
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addVetoableChangeListener(evt -> {
+            if (evt.getOldValue() != null) {
+                System.out.println("from: "+evt.getOldValue().getClass().getName()+" ("+evt.getPropertyName()+")");
+            }
+            if (evt.getNewValue() != null) {
+                System.out.println("to: "+evt.getNewValue().getClass().getName()+" ("+evt.getPropertyName()+")");
+            }
+            if (evt.getNewValue() instanceof ChannelTextPane) {
+                //System.out.println("prevent");
+                //throw new PropertyVetoException("abc", evt);
             }
         });
     }
@@ -724,20 +664,15 @@ public class GuiUtil {
                 }
                 else {
                     for (Pair<Pattern, Integer> limitEntry : limits) {
-                        if (limitEntry.key != null
-                                && limitEntry.key.matcher(fullText).find()) {
-                            limit = limitEntry.value;
+                        if (limitEntry.key() != null
+                                && limitEntry.key().matcher(fullText).find()) {
+                            limit = limitEntry.value();
                             break;
                         }
                     }
                 }
-                
-                if (text == null || text.isEmpty() || limit <= 0) {
-                    if (!allowNewlines) {
-                        text = StringUtil.removeLinebreakCharacters(text);
-                    }
-                    super.replace(fb, offset, delLength, text, attrs);
-                } else {
+
+                if (text != null && !text.isEmpty() && limit > 0) {
                     int currentLength = fb.getDocument().getLength();
                     int overLimit = (currentLength + text.length()) - limit - delLength;
                     if (overLimit > 0) {
@@ -749,23 +684,21 @@ public class GuiUtil {
                         text = text.substring(0, newLength);
                         if (overLimit == 1) {
                             popup.showPopup("Length limit reached");
-                        }
-                        else {
-                            popup.showPopup("Length limit reached ("+overLimit+" over limit)");
+                        } else {
+                            popup.showPopup("Length limit reached (" + overLimit + " over limit)");
                         }
                     }
-                    if (!allowNewlines) {
-                        text = StringUtil.removeLinebreakCharacters(text);
-                    }
-                    super.replace(fb, offset, delLength, text, attrs);
                 }
+                if (!allowNewlines) {
+                    text = StringUtil.removeLinebreakCharacters(text);
+                }
+                super.replace(fb, offset, delLength, text, attrs);
             }
             
         };
         Document doc = comp.getDocument();
-        if (doc instanceof AbstractDocument) {
-            AbstractDocument ad = (AbstractDocument)doc;
-//            if (ad.getDocumentFilter() != null) {
+        if (doc instanceof AbstractDocument ad) {
+            //            if (ad.getDocumentFilter() != null) {
 //                System.out.println("Filter already installed "+comp);
 //            }
             ad.setDocumentFilter(filter);

@@ -2,7 +2,8 @@
 package chatty.util.gif;
 
 import chatty.util.ElapsedTime;
-import java.awt.Dimension;
+
+import java.awt.*;
 import java.awt.image.ColorModel;
 import java.awt.image.ImageConsumer;
 import java.awt.image.ImageProducer;
@@ -98,19 +99,12 @@ public class AnimatedImageSource implements ImageProducer {
                     }
                     else {
                         // Animation is paused, switch frame if necessary
-                        int pauseFrame = 0;
-                        switch (ANIMATION_PAUSE) {
-                            case 0:
-                                pauseFrame = 0;
-                                break;
-                            case 1:
-                                pauseFrame = currentFrame;
-                                break;
-                            case 2:
-                                pauseFrame = image.getPreferredPauseFrame();
-                                break;
-                        }
-                        
+                        int pauseFrame = switch (ANIMATION_PAUSE) {
+                            case 1 -> currentFrame;
+                            case 2 -> image.getPreferredPauseFrame();
+                            default -> 0;
+                        };
+
                         // If it hadn't played yet could be -1 from currentFrame
                         if (pauseFrame < 0) {
                             pauseFrame = 0;
@@ -141,7 +135,7 @@ public class AnimatedImageSource implements ImageProducer {
     }
     
     private synchronized int getDelay() {
-        return image.getDelay(currentFrame);
+        return Math.max(10, image.getDelay(currentFrame));
     }
     
     private synchronized boolean isActive() {

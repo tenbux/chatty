@@ -38,7 +38,7 @@ import java.util.logging.Logger;
  */
 public class RoutingTargetSettings {
     
-    private static Logger LOGGER = Logger.getLogger(RoutingTargetSettings.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(RoutingTargetSettings.class.getName());
     
     private static final Map<Long, String> openOnMessageValues = new HashMap<>();
     

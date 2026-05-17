@@ -3,15 +3,11 @@ package chatty.gui.components.settings;
 
 import chatty.lang.Language;
 import chatty.util.hotkeys.Hotkey;
-import java.util.HashMap;
+
+import javax.swing.*;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.Objects;
 import java.util.function.Function;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.KeyStroke;
 
 /**
  *
@@ -20,9 +16,7 @@ import javax.swing.KeyStroke;
 public class HotkeyPanel extends JPanel {
 
     private final JTextField hotkeyField = new JTextField(20);
-    
-    private final JButton editButton = new JButton("Edit");
-    
+
     private final JButton removeButton = new JButton("Remove");
     
     private Hotkey currentHotkey;
@@ -33,6 +27,7 @@ public class HotkeyPanel extends JPanel {
         this.currentHotkey = new Hotkey(actionId, null, type, null, 1);
         
         add(hotkeyField);
+        JButton editButton = new JButton("Edit");
         add(editButton);
         add(removeButton);
         
@@ -80,12 +75,7 @@ public class HotkeyPanel extends JPanel {
     }
     
     private void setCurrentHotkey(Hotkey hotkey) {
-        if (hotkey == null) {
-            currentHotkey = new Hotkey(currentHotkey.actionId, null, currentHotkey.type, null, currentHotkey.delay);
-        }
-        else {
-            currentHotkey = hotkey;
-        }
+        currentHotkey = Objects.requireNonNullElseGet(hotkey, () -> new Hotkey(currentHotkey.actionId, null, currentHotkey.type, null, currentHotkey.delay));
         updateState();
     }
     
@@ -100,10 +90,10 @@ public class HotkeyPanel extends JPanel {
         }
     }
     
-    public static interface HotkeyHelperListener {
+    public interface HotkeyHelperListener {
         
-        public void changeHotkey(Hotkey current, Hotkey changed);
-        public void deleteHotkey(Hotkey current);
+        void changeHotkey(Hotkey current, Hotkey changed);
+        void deleteHotkey(Hotkey current);
         
     }
     

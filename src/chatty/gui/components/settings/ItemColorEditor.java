@@ -2,24 +2,16 @@
 package chatty.gui.components.settings;
 
 import chatty.gui.GuiUtil;
-import chatty.util.colors.HtmlColors;
 import chatty.gui.colors.ColorItem;
 import chatty.lang.Language;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JTable;
-import javax.swing.JTextField;
+import chatty.util.colors.HtmlColors;
+
+import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.TableCellRenderer;
+import java.awt.*;
+import java.awt.event.ActionListener;
 
 /**
  *
@@ -28,7 +20,7 @@ import javax.swing.table.TableCellRenderer;
  */
 public class ItemColorEditor<T extends ColorItem> extends TableEditor<T> {
 
-    private final MyTableModel data;
+    private final MyTableModel<T> data;
     private final ItemCreator<T> itemCreator;
     private final ColorRenderer colorRenderer = new ColorRenderer();
     private MyItemEditor<T> editor;
@@ -39,7 +31,7 @@ public class ItemColorEditor<T extends ColorItem> extends TableEditor<T> {
             ItemCreator<T> itemCreator, boolean editBackground, Component info) {
         super(SORTING_MODE_MANUAL, false);
         this.itemCreator = itemCreator;
-        this.data = new MyTableModel(editBackground);
+        this.data = new MyTableModel<>(editBackground);
         
         setModel(data);
         setItemEditor(() -> {
@@ -203,7 +195,6 @@ public class ItemColorEditor<T extends ColorItem> extends TableEditor<T> {
         
         private final JDialog dialog;
         private final JTextField id = new JTextField(10);
-        private final JButton changeColor = new JButton("Select Color");
         private final ColorSetting foreground;
         private final ColorSetting background;
         private final JCheckBox foregroundEnabled;
@@ -241,18 +232,15 @@ public class ItemColorEditor<T extends ColorItem> extends TableEditor<T> {
                 }
             });
             
-            ActionListener listener = new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    if (e.getSource() == ok) {
-                        dialog.setVisible(false);
-                        save = true;
-                    } else if (e.getSource() == cancel) {
-                        dialog.setVisible(false);
-                    }
+            ActionListener listener = e -> {
+                if (e.getSource() == ok) {
+                    dialog.setVisible(false);
+                    save = true;
+                } else if (e.getSource() == cancel) {
+                    dialog.setVisible(false);
                 }
             };
+            JButton changeColor = new JButton("Select Color");
             changeColor.addActionListener(listener);
             ok.addActionListener(listener);
             cancel.addActionListener(listener);
@@ -272,8 +260,8 @@ public class ItemColorEditor<T extends ColorItem> extends TableEditor<T> {
             foregroundEnabled = new JCheckBox("Enabled");
             backgroundEnabled = new JCheckBox("Enabled");
             
-            foreground.addListener(() -> updateColors());
-            background.addListener(() -> updateColors());
+            foreground.addListener(this::updateColors);
+            background.addListener(this::updateColors);
             foregroundEnabled.addItemListener(e -> updateColors());
             backgroundEnabled.addItemListener(e -> updateColors());
             
@@ -391,9 +379,9 @@ public class ItemColorEditor<T extends ColorItem> extends TableEditor<T> {
     }
     
     public interface ItemCreator<T> {
-        public T createItem(String item,
-                Color foreground, boolean foregroundEnabled,
-                Color background, boolean backgroundEnabled);
+        T createItem(String item,
+                     Color foreground, boolean foregroundEnabled,
+                     Color background, boolean backgroundEnabled);
     }
     
 }

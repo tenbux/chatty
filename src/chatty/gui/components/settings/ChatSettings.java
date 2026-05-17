@@ -3,20 +3,14 @@ package chatty.gui.components.settings;
 
 import chatty.gui.GuiUtil;
 import chatty.gui.components.LinkLabel;
-import java.awt.GridBagConstraints;
-import static java.awt.GridBagConstraints.WEST;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
+
+import static java.awt.GridBagConstraints.WEST;
 
 /**
  *
@@ -40,7 +34,7 @@ public class ChatSettings extends SettingsPanel {
         autoScrollPanel.add(d.addSimpleLongSetting("autoScrollTimeout", 3, true));
         autoScrollPanel.add(new JLabel("seconds of inactiviy"));
 
-        gbc = d.makeGbc(0, 0, 3, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(0, 0, 3, 1, GridBagConstraints.WEST);
         gbc.insets = new Insets(4,1,0,5);
         main.add(autoScrollPanel, gbc);
         
@@ -54,14 +48,14 @@ public class ChatSettings extends SettingsPanel {
             bufferSizes.setVisible(true);
         });
         
-        gbc = d.makeGbc(2, 4, 1, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(2, 4, 1, 1, GridBagConstraints.WEST);
         main.add(bufferSizesButton,
                 gbc);
         
-        gbc = d.makeGbc(0, 6, 3, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(0, 6, 3, 1, GridBagConstraints.WEST);
         main.add(d.addSimpleBooleanSetting("showImageTooltips"), gbc);
         
-        gbc = d.makeGbcSub(0, 7, 3, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbcSub(0, 7, 3, 1, GridBagConstraints.WEST);
         main.add(d.addSimpleBooleanSetting("showTooltipImages"), gbc);
         
         gbc = SettingsDialog.makeGbc(0, 8, 3, 1, GridBagConstraints.WEST);
@@ -72,7 +66,7 @@ public class ChatSettings extends SettingsPanel {
         
         JPanel pauseChat = addTitledPanel("Pause Chat", 1);
         
-        gbc = d.makeGbc(0, 0, 3, 1);
+        gbc = SettingsDialog.makeGbc(0, 0, 3, 1);
         gbc.insets.bottom += 1;
         pauseChat.add(new JLabel(PAUSE_CHAT_INFO),
                 gbc);
@@ -86,13 +80,13 @@ public class ChatSettings extends SettingsPanel {
          */
         pause.setSelected(true);
         pauseChat.add(pause,
-                d.makeGbc(0, 1, 3, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 1, 3, 1, GridBagConstraints.WEST));
         
         
         final JCheckBox ctrl = d.addSimpleBooleanSetting("pauseChatOnMouseMoveCtrlRequired",
                 "Require Ctrl being pressed to start pausing chat",
                 "Requires you to have Ctrl pressed when moving the mouse over that to pause chat");
-        gbc = d.makeGbc(0, 2, 3, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(0, 2, 3, 1, GridBagConstraints.WEST);
         gbc.insets.left += 10;
         gbc.insets.top -= 4;
         pauseChat.add(ctrl,
@@ -102,13 +96,7 @@ public class ChatSettings extends SettingsPanel {
          * Enable/disable Ctrl Required setting based on whether pausing on
          * mouseover is enabled at all.
          */
-        pause.addItemListener(new ItemListener() {
-
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                ctrl.setEnabled(pause.isSelected());
-            }
-        });
+        pause.addItemListener(e -> ctrl.setEnabled(pause.isSelected()));
         
         JPanel commandPanel = new JPanel(new GridBagLayout());
         
@@ -120,7 +108,7 @@ public class ChatSettings extends SettingsPanel {
         
         for (Map.Entry<String, String> entry : commandsDef.entrySet()) {
             commandPanel.add(new JLabel(entry.getValue()),
-                    d.makeGbc(0, commandY, 1, 1, GridBagConstraints.WEST));
+                    SettingsDialog.makeGbc(0, commandY, 1, 1, GridBagConstraints.WEST));
 
             Map<String, String> commandChoices = new HashMap<>();
             commandChoices.put("", "Off");
@@ -128,14 +116,14 @@ public class ChatSettings extends SettingsPanel {
             commandChoices.put("/ban", "Ban");
             commandChoices.put("/delete $$(msg-id)", "Delete message");
             ComboStringSetting commandOnCtrlClick = d.addComboStringSetting(entry.getKey(), 100, true, commandChoices);
-            gbc = d.makeGbc(0, commandY+1, 1, 1);
+            gbc = SettingsDialog.makeGbc(0, commandY+1, 1, 1);
             gbc.fill = GridBagConstraints.HORIZONTAL;
             commandPanel.add(commandOnCtrlClick, gbc);
             
             commandY += 2;
         }
         
-        gbc = d.makeGbc(0, commandY, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, commandY, 1, 1);
         commandPanel.add(new LinkLabel(SettingConstants.HTML_PREFIX
                 + "When manually editing the command: If there is only a single "
                 + "word, it will execute the built-in command of that name (username "
@@ -144,7 +132,7 @@ public class ChatSettings extends SettingsPanel {
                 + "such as <code>$1</code> (username) or <code>$(msg-id)</code>.",
                 d.getLinkLabelListener()), gbc);
         
-        gbc = d.makeGbc(0, 3, 3, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(0, 3, 3, 1, GridBagConstraints.WEST);
         gbc.insets = new Insets(0, 0, 0, 0);
         pauseChat.add(commandPanel, gbc);
     }
@@ -161,24 +149,22 @@ public class ChatSettings extends SettingsPanel {
             
             GridBagConstraints gbc;
             
-            gbc = d.makeGbc(0, 0, 1, 1);
+            gbc = SettingsDialog.makeGbc(0, 0, 1, 1);
             add(new JLabel(INFO), gbc);
             
-            gbc = d.makeGbc(0, 1, 1, 1);
+            gbc = SettingsDialog.makeGbc(0, 1, 1, 1);
             gbc.fill = GridBagConstraints.BOTH;
             gbc.weightx = 1;
             gbc.weighty = 1;
             SimpleTableEditor<Long> editor = d.addLongMapSetting("bufferSizes", 300, 200, "Tab Name", "Buffer Size");
             add(editor, gbc);
             
-            gbc = d.makeGbc(0, 2, 1, 1);
+            gbc = SettingsDialog.makeGbc(0, 2, 1, 1);
             gbc.fill = GridBagConstraints.BOTH;
             gbc.weightx = 1;
             JButton closeButton = new JButton("Close");
             add(closeButton, gbc);
-            closeButton.addActionListener(e -> {
-                setVisible(false);
-            });
+            closeButton.addActionListener(e -> setVisible(false));
             
             pack();
             setMinimumSize(getPreferredSize());

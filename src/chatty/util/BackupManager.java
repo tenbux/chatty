@@ -4,14 +4,15 @@ package chatty.util;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
+
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 /**
  * Can perform a backup (used on start) of certain files (settings). It just
@@ -32,7 +33,7 @@ public class BackupManager {
     
     private static final Logger LOGGER = Logger.getLogger(BackupManager.class.getName());
     
-    private static final Charset CHARSET = Charset.forName("UTF-8");
+    private static final java.nio.charset.Charset CHARSET = StandardCharsets.UTF_8;
     
     /**
      * File where some meta information is stored.
@@ -105,7 +106,7 @@ public class BackupManager {
      */
     public void performBackup(int delay, int count) {
         loadMetadata();
-        if (!checkBackupDelay(delay*1000) || count <= 0) {
+        if (!checkBackupDelay(delay* 1000L) || count <= 0) {
             return;
         }
         try {
@@ -174,7 +175,7 @@ public class BackupManager {
     private void saveMetadata() {
         Path f = backupPath.resolve(META_FILE);
         try (BufferedWriter writer = Files.newBufferedWriter(f, CHARSET)) {
-            writer.write(String.valueOf(number)+" "+String.valueOf(lastBackup));
+            writer.write(number +" "+ lastBackup);
         } catch (IOException | NumberFormatException ex) {
             LOGGER.warning("Error writing backup meta file: "+ex);
         }

@@ -10,18 +10,11 @@ import chatty.util.Pronouns;
 import chatty.util.StringUtil;
 import chatty.util.api.TwitchApi;
 import chatty.util.settings.Settings;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Window;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.function.Consumer;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
 
 /**
  * Provides methods to get user notes and a dialog to edit them.
@@ -48,12 +41,10 @@ public class UserNotes {
     public static UserNotes instance() {
         return instance;
     }
-    
-    private final TwitchApi api;
+
     private final Settings settings;
     
     private UserNotes(TwitchApi api, Settings settings) {
-        this.api = api;
         this.settings = settings;
     }
     
@@ -135,8 +126,7 @@ public class UserNotes {
         private final JTextArea notesTextArea = new JTextArea();
         
         private final JButton saveButton = new JButton(Language.getString("dialog.button.save"));
-        private final JButton cancelButton = new JButton(Language.getString("dialog.button.cancel"));
-        
+
         public UserNotesDialog(User user, Window parent, String chatNotes, String notes) {
             super(parent);
             setTitle("User Notes: "+user.toString());
@@ -170,6 +160,7 @@ public class UserNotes {
             gbc.fill = GridBagConstraints.HORIZONTAL;
             add(saveButton,
                     gbc);
+            JButton cancelButton = new JButton(Language.getString("dialog.button.cancel"));
             add(cancelButton,
                     GuiUtil.makeGbc(1, 6, 1, 1, GridBagConstraints.WEST));
             
@@ -208,9 +199,7 @@ public class UserNotes {
         User user = new User("abc", Room.EMPTY);
         
         UserNotesDialog d = new UserNotesDialog(user, null, "chat notes", "regular notes");
-        d.showDialog(e -> {
-            System.out.println("Save");
-        });
+        d.showDialog(e -> System.out.println("Save"));
     }
     
 }

@@ -3,37 +3,16 @@ package chatty.util.dnd;
 
 import chatty.util.dnd.DockContent.DockContentPropertyListener;
 import chatty.util.dnd.DockDropInfo.DropType;
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Image;
-import java.awt.Point;
-import java.awt.Rectangle;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
-import java.awt.event.MouseWheelEvent;
-import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Logger;
-import javax.swing.BorderFactory;
-import javax.swing.Icon;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JTabbedPane;
-import javax.swing.SwingUtilities;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 /**
  * Tab pane that handles dragging tabs.
@@ -57,7 +36,7 @@ public class DockTabs extends JTabbedPane implements DockChild {
     private DockChild parent;
     private DockBase base;
     
-    private LinkedList<DockContent> prevActiveContent = new LinkedList<>();
+    private final LinkedList<DockContent> prevActiveContent = new LinkedList<>();
     
     private boolean sorting;
     
@@ -129,54 +108,42 @@ public class DockTabs extends JTabbedPane implements DockChild {
             
         });
         
-        addMouseWheelListener(new MouseWheelListener() {
-
-            @Override
-            public void mouseWheelMoved(MouseWheelEvent e) {
-                if (mouseWheelScrolling) {
-                    // Only scroll if actually on tabs area
-                    int index = indexAtLocation(e.getX(), e.getY());
-                    if (mouseWheelScrollingAnywhere || index != -1
-                            || isNearLastTab(e.getPoint())) {
-                        if (e.getWheelRotation() < 0) {
-                            setSelectedPrevious();
-                        } else if (e.getWheelRotation() > 0) {
-                            setSelectedNext();
-                        }
+        addMouseWheelListener(e -> {
+            if (mouseWheelScrolling) {
+                // Only scroll if actually on tabs area
+                int index = indexAtLocation(e.getX(), e.getY());
+                if (mouseWheelScrollingAnywhere || index != -1
+                        || isNearLastTab(e.getPoint())) {
+                    if (e.getWheelRotation() < 0) {
+                        setSelectedPrevious();
+                    } else if (e.getWheelRotation() > 0) {
+                        setSelectedNext();
                     }
                 }
             }
         });
         
-        addChangeListener(new ChangeListener() {
-
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                if (!sorting) {
-                    updatedState();
-                }
+        addChangeListener(e -> {
+            if (!sorting) {
+                updatedState();
             }
         });
         
-        dockContentListener = new DockContent.DockContentPropertyListener() {
-
-            @Override
-            public void propertyChanged(DockContentPropertyListener.Property property, DockContent content) {
-                if (property == Property.TITLE) {
-                    int index = getIndexByContent(content);
-                    if (index != -1) {
-                        setTitleAt(index, content.getTitle());
-                    }
+        dockContentListener = (property, content) -> {
+            if (property == DockContentPropertyListener.Property.TITLE) {
+                int index = getIndexByContent(content);
+                if (index != -1) {
+                    setTitleAt(index, content.getTitle());
                 }
-                else if (property == Property.FOREGROUND) {
-                    int index = getIndexByContent(content);
-                    if (index != -1) {
-                        setForegroundAt(index, content.getForegroundColor());
-                    }
+            }
+            else if (property == DockContentPropertyListener.Property.FOREGROUND) {
+                int index = getIndexByContent(content);
+                if (index != -1) {
+                    setForegroundAt(index, content.getForegroundColor());
                 }
-                else if (property == Property.LONG_TITLE) {
-                    updateTitledComponent(content);
-                }
+            }
+            else if (property == DockContentPropertyListener.Property.LONG_TITLE) {
+                updateTitledComponent(content);
             }
         };
     }
@@ -290,7 +257,7 @@ public class DockTabs extends JTabbedPane implements DockChild {
      * Install tab components if necessary and update tab component settings.
      */
     private void updateTabComponents() {
-        assoc.entrySet().forEach(e -> updateTabComponent(e.getValue()));
+        assoc.forEach((key, value) -> updateTabComponent(value));
     }
     
     /**
@@ -380,7 +347,7 @@ public class DockTabs extends JTabbedPane implements DockChild {
     
     public void updateSingleAllowed() {
         // Copy since updating may cause modifications to assoc during iteration
-        new ArrayList<>(assoc.values()).forEach(content -> updateTitledComponent(content));
+        new ArrayList<>(assoc.values()).forEach(this::updateTitledComponent);
     }
     
     private void updateTitledComponent(DockContent content) {
@@ -504,9 +471,8 @@ public class DockTabs extends JTabbedPane implements DockChild {
         return result;
     }
     
-    @SuppressWarnings("element-type-mismatch")
     public DockContent getContent(int index) {
-        return assoc.get(getComponentAt(index));
+        return assoc.get((JComponent) getComponentAt(index));
     }
     
     private JComponent getComponentByContent(DockContent content) {
@@ -559,12 +525,12 @@ public class DockTabs extends JTabbedPane implements DockChild {
                 return new DockDropInfo(this, DockDropInfo.DropType.TAB, getDropRectangle(index), index);
             }
         }
-        if (getTabCount() == 1 && info.tf.source == this) {
+        if (getTabCount() == 1 && info.tf().source() == this) {
             // Can't move a tab within the same tab pane if there is only one
             return null;
         }
         if (DockDropInfo.determineLocation(this, info.getLocation(this), 30, 1400, 20) == DropType.CENTER) {
-            if (info.tf.source != this) {
+            if (info.tf().source() != this) {
                 // Append new tab from other tab pane
                 return new DockDropInfo(this, DockDropInfo.DropType.TAB, DockDropInfo.makeRect(this, DropType.CENTER, 40, 100000), -1);
             }
@@ -586,8 +552,8 @@ public class DockTabs extends JTabbedPane implements DockChild {
      * @return true if it's a valid drop location, false otherwise
      */
     private boolean validDropIndex(DockImportInfo info, int index) {
-        return info.tf.source != this
-                || !(info.tf.sourceIndex == index || info.tf.sourceIndex + 1 == index);
+        return info.tf().source() != this
+                || !(info.tf().sourceIndex() == index || info.tf().sourceIndex() + 1 == index);
     }
     
     /**
@@ -664,34 +630,34 @@ public class DockTabs extends JTabbedPane implements DockChild {
     @Override
     public void drop(DockTransferInfo info) {
         // Once a drop was initiated by the user, should reset target path
-        info.importInfo.content.setTargetPath(null);
+        info.importInfo().content().setTargetPath(null);
         
-        if (info.dropInfo.location != DockDropInfo.DropType.TAB) {
+        if (info.dropInfo().location() != DockDropInfo.DropType.TAB) {
             //--------------------------
             // Splitting
             //--------------------------
 //            System.out.println("ABORT: Can only receive TAB insert");
-            info.importInfo.source.removeContent(info.importInfo.content);
-            split(info.dropInfo, info.importInfo.content);
+            info.importInfo().source().removeContent(info.importInfo().content());
+            split(info.dropInfo(), info.importInfo().content());
             return;
         }
         //--------------------------
         // Moving TAB
         //--------------------------
-        int targetIndex = info.dropInfo.index;
+        int targetIndex = info.dropInfo().index();
         if (targetIndex == -1) {
-            targetIndex = findInsertPosition(info.importInfo.content);
+            targetIndex = findInsertPosition(info.importInfo().content());
         }
-        if (info.importInfo.source == this) {
+        if (info.importInfo().source() == this) {
             // Move within tab pane
-            moveTab(info.importInfo.sourceIndex, targetIndex);
+            moveTab(info.importInfo().sourceIndex(), targetIndex);
         }
         else {
-            DockContent content = info.importInfo.content;
+            DockContent content = info.importInfo().content();
             DockTabsContainer container = (DockTabsContainer)parent;
             container.setSingleAllowedLocked();
             container.switchToTabs();
-            info.importInfo.source.removeContent(content);
+            info.importInfo().source().removeContent(content);
             addContent(content, targetIndex);
             content.setDockParent(parent);
             setSelectedIndex(targetIndex);
@@ -782,7 +748,9 @@ public class DockTabs extends JTabbedPane implements DockChild {
                 order = (DockSetting.TabOrder)value;
                 break;
             case TAB_COMPARATOR:
-                customComparator = (Comparator<DockContent>)value;
+                @SuppressWarnings("unchecked")
+                Comparator<DockContent> comp = (Comparator<DockContent>)value;
+                customComparator = comp;
                 break;
         }
     }
@@ -796,13 +764,7 @@ public class DockTabs extends JTabbedPane implements DockChild {
         return getTabPlacement() == JTabbedPane.TOP || getTabPlacement() == JTabbedPane.BOTTOM;
     }
     
-    private static final Comparator<DockContent> ALPHABETIC_COMPARATOR = new Comparator<DockContent>() {
-        
-        @Override
-        public int compare(DockContent o1, DockContent o2) {
-            return o1.getTitle().compareToIgnoreCase(o2.getTitle());
-        }
-    };
+    private static final Comparator<DockContent> ALPHABETIC_COMPARATOR = (o1, o2) -> o1.getTitle().compareToIgnoreCase(o2.getTitle());
     
     /**
      * Returns the index this tab should be added at, depending on the current

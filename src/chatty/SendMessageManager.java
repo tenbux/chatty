@@ -8,11 +8,8 @@ import chatty.util.SpecialMap;
 import chatty.util.api.TwitchApi;
 import chatty.util.history.QueuedMessage;
 import chatty.util.irc.MsgTags;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+
+import java.util.*;
 
 /**
  * Sending message through the API causes a message to be received back.
@@ -33,7 +30,7 @@ import java.util.Set;
 public class SendMessageManager {
 
     private int sentMessageId = 0;
-    private final SpecialMap<String, Set<String>> sentMessagePending = new SpecialMap<>(new HashMap<>(), () -> new HashSet<>());
+    private final SpecialMap<String, Set<String>> sentMessagePending = new SpecialMap<>(new HashMap<>(), HashSet::new);
     private final Set<String> ignoreByMsgId = new HashSet<>();
     
     private final TwitchApi api;
@@ -41,7 +38,7 @@ public class SendMessageManager {
     
     private final Object LOCK = new Object();
     
-    private final SpecialMap<String, List<QueuedMessage>> queuedMessages = new SpecialMap<>(new HashMap<>(), () -> new ArrayList<>());
+    private final SpecialMap<String, List<QueuedMessage>> queuedMessages = new SpecialMap<>(new HashMap<>(), ArrayList::new);
     
     public SendMessageManager(TwitchApi api, MainGui g) {
         this.api = api;
@@ -103,8 +100,8 @@ public class SendMessageManager {
         List<QueuedMessage> messages = new ArrayList<>();
         synchronized (LOCK) {
             for (QueuedMessage message : queuedMessages.getOptional(channel)) {
-                if (ignoreByMsgId.contains(message.tags.getId())) {
-                    ignoreByMsgId.remove(message.tags.getId());
+                if (ignoreByMsgId.contains(message.tags().getId())) {
+                    ignoreByMsgId.remove(message.tags().getId());
                 }
                 else {
                     messages.add(message);
@@ -113,7 +110,7 @@ public class SendMessageManager {
             queuedMessages.remove(channel);
         }
         for (QueuedMessage message : messages) {
-            g.printMessage(message.user, message.text, message.action, message.tags);
+            g.printMessage(message.user(), message.text(), message.action(), message.tags());
         }
     }
     

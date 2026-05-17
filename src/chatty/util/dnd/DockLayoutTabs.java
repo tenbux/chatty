@@ -9,16 +9,8 @@ import java.util.Objects;
  *
  * @author tduva
  */
-public class DockLayoutTabs implements DockLayoutElement {
-    
-    public final List<String> contents;
-    public final String activeId;
-    
-    public DockLayoutTabs(List<String> contents, String activeId) {
-        this.contents = contents;
-        this.activeId = activeId;
-    }
-    
+public record DockLayoutTabs(List<String> contents, String activeId) implements DockLayoutElement {
+
     @Override
     public String toString() {
         return contents.toString();
@@ -32,7 +24,7 @@ public class DockLayoutTabs implements DockLayoutElement {
         result.add(activeId);
         return result;
     }
-    
+
     public static DockLayoutElement fromList(List<Object> list) {
         if (!Objects.equals(list.get(0), "t")) {
             return null;
@@ -54,7 +46,7 @@ public class DockLayoutTabs implements DockLayoutElement {
     public List<String> getContentIds() {
         return new ArrayList<>(contents);
     }
-    
+
     @Override
     public List<String> getActiveContentIds() {
         List<String> result = new ArrayList<>();
@@ -63,5 +55,5 @@ public class DockLayoutTabs implements DockLayoutElement {
         }
         return result;
     }
-    
+
 }

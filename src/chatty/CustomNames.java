@@ -3,8 +3,8 @@ package chatty;
 
 import chatty.util.Debugging;
 import chatty.util.StringUtil;
-import chatty.util.settings.SettingChangeListener;
 import chatty.util.settings.Settings;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -30,17 +30,13 @@ public class CustomNames {
     public CustomNames(Settings settings) {
         this.settings = settings;
         updateOrigNames();
-        settings.addSettingChangeListener(new SettingChangeListener() {
-
-            @Override
-            public void settingChanged(String setting, int type, Object value) {
-                /**
-                 * This is only called when not changed through command, since
-                 * mapPut() and mapRemove() don't trigger this.
-                 */
-                if (setting.equals(SETTING_NAME)) {
-                    informListenersAllChanged();
-                }
+        settings.addSettingChangeListener((setting, type, value) -> {
+            /**
+             * This is only called when not changed through command, since
+             * mapPut() and mapRemove() don't trigger this.
+             */
+            if (setting.equals(SETTING_NAME)) {
+                informListenersAllChanged();
             }
         });
     }
@@ -150,7 +146,7 @@ public class CustomNames {
      * Listener that can be implemented by classes that want to be informed
      * about changes in custom names.
      */
-    public static interface CustomNamesListener {
+    public interface CustomNamesListener {
         
         /**
          * When a custom name got added, changed or removed.
@@ -158,7 +154,7 @@ public class CustomNames {
          * @param name All lowercase name
          * @param customName The custom name, null if custom name removed
          */
-        public void setName(String name, String customName);
+        void setName(String name, String customName);
     }
     
     

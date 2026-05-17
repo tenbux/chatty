@@ -66,10 +66,7 @@ class Replacement implements Item {
         if (!Objects.equals(identifier, other.identifier)) {
             return false;
         }
-        if (isRequired != other.isRequired) {
-            return false;
-        }
-        return true;
+        return isRequired == other.isRequired;
     }
 
     @Override

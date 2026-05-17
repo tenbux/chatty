@@ -5,21 +5,17 @@ import chatty.util.ImageCache;
 import chatty.util.ImageCache.ImageRequest;
 import chatty.util.ImageCache.ImageResult;
 import chatty.util.gif.AnimatedImageSource;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.RenderingHints;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.Collections;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.logging.Logger;
-import javax.swing.ImageIcon;
-import javax.swing.SwingWorker;
 
 /**
  * Used for loading an image concurrently for Emoticon and Usericon.
@@ -48,7 +44,7 @@ public class CachedImage<T> {
      */
     private static final int CACHE_TIME = 60 * 60 * 24 * 14;
 
-    public static interface CachedImageUser {
+    public interface CachedImageUser {
 
         void iconLoaded(Image oldImage, Image newImage, boolean sizeChanged);
     }
@@ -117,7 +113,7 @@ public class CachedImage<T> {
 
     }
 
-    public static enum ImageType {
+    public enum ImageType {
         STATIC, ANIMATED_DARK, ANIMATED_LIGHT, TEMP
     }
     
@@ -144,7 +140,7 @@ public class CachedImage<T> {
     private boolean loading = false;
     private boolean loadingError = false;
     private boolean isLoaded = false;
-    private volatile int loadingAttempts = 0;
+    private final AtomicInteger loadingAttempts = new AtomicInteger(0);
     private long lastLoadingAttempt;
     private long lastUsed;
     private final String prefix;
@@ -228,11 +224,11 @@ public class CachedImage<T> {
      * @return true if the image will be attempted to be loaded, false otherwise
      */
     private boolean loadImage() {
-        if (!loading && loadingAttempts < MAX_LOADING_ATTEMPTS
+        if (!loading && loadingAttempts.get() < MAX_LOADING_ATTEMPTS
                 && System.currentTimeMillis() - lastLoadingAttempt > LOADING_ATTEMPT_DELAY) {
             loading = true;
             loadingError = false;
-            loadingAttempts++;
+            loadingAttempts.getAndIncrement();
             lastLoadingAttempt = System.currentTimeMillis();
             (new IconLoader(this)).execute();
             return true;
@@ -269,7 +265,7 @@ public class CachedImage<T> {
     }
 
     public boolean isAnimated() {
-        boolean emoteAnimated = object instanceof Emoticon ? ((Emoticon) object).isAnimated() : false;
+        boolean emoteAnimated = object instanceof Emoticon && ((Emoticon) object).isAnimated();
         boolean imageLoadedAsGif = icon != null && icon.getDescription() != null && icon.getDescription().startsWith("GIF");
         boolean imageAnimatedSource = icon.getImage().getSource() instanceof AnimatedImageSource;
         return emoteAnimated || imageLoadedAsGif || imageAnimatedSource;
@@ -287,19 +283,21 @@ public class CachedImage<T> {
     }
 
     public boolean isLoaded() {
-        return isLoaded;
+        return !isLoaded;
     }
 
     public void addUser(CachedImageUser user) {
         if (users == null) {
-            users = Collections.newSetFromMap(new WeakHashMap<CachedImageUser, Boolean>());
+            users = Collections.newSetFromMap(new WeakHashMap<>());
         }
         users.add(user);
     }
 
     private void informUsers(Image oldImage, Image newImage, boolean sizeChanged) {
         for (CachedImageUser user : users) {
-            user.iconLoaded(oldImage, newImage, sizeChanged);
+            if (user != null) {
+                user.iconLoaded(oldImage, newImage, sizeChanged);
+            }
         }
     }
 
@@ -397,7 +395,7 @@ public class CachedImage<T> {
         }
 
         @Override
-        protected ImageIcon doInBackground() throws Exception {
+        protected ImageIcon doInBackground() {
 
             // Get the assumed size or size loaded from the size cache
             Dimension defaultSize = requester.getBaseSize();
@@ -433,13 +431,13 @@ public class CachedImage<T> {
             /**
              * Max size fallback, just in case.
              */
-            if (result.icon.getIconWidth() > ImageRequest.MAX_SCALED_WIDTH
-                    || result.icon.getIconHeight() > ImageRequest.MAX_SCALED_HEIGHT) {
+            if (result.icon().getIconWidth() > ImageRequest.MAX_SCALED_WIDTH
+                    || result.icon().getIconHeight() > ImageRequest.MAX_SCALED_HEIGHT) {
                 return null;
             }
 
             requester.imageLoaded(result);
-            return modifyIconIfNecessary(result.icon);
+            return modifyIconIfNecessary(result.icon());
         }
 
         /**

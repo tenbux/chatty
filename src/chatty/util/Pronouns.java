@@ -4,17 +4,17 @@ package chatty.util;
 import chatty.Chatty;
 import chatty.Helper;
 import chatty.util.api.CachedManager;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
+import javax.swing.*;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.logging.Logger;
-import javax.swing.Timer;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 
 /**
  *
@@ -48,33 +48,29 @@ public class Pronouns {
     private static final Path CACHE_FILE2 = Chatty.getPath(Chatty.PathType.CACHE).resolve("pronouns2");
     
     public Pronouns() {
-        data = new CachedBulkManager<>(new CachedBulkManager.Requester<String, String>() {
-            @Override
-            public void request(CachedBulkManager<String, String> manager, Set<String> asap, Set<String> normal, Set<String> backlog) {
-                String username = manager.makeAndSetRequested(asap, normal, backlog, 1).iterator().next();
-                UrlRequest request = new UrlRequest("https://api.pronouns.alejo.io/v1/users/" + username);
-                request.async((result, responseCode) -> {
-                    if (responseCode == 404) {
-                        // This is a valid response (old API was empty array)
+        data = new CachedBulkManager<>((manager, asap, normal, backlog) -> {
+            String username = manager.makeAndSetRequested(asap, normal, backlog, 1).iterator().next();
+            UrlRequest request = new UrlRequest("https://api.pronouns.alejo.io/v1/users/" + username);
+            request.async((result, responseCode) -> {
+                if (responseCode == 404) {
+                    // This is a valid response (old API was empty array)
+                    manager.setResult(username, NOT_FOUND);
+                } else if (result == null) {
+                    manager.setError(username);
+                } else {
+                    String pronoun_id = parseUser(result);
+                    if (pronoun_id == null) {
+                        /**
+                         * Empty result means it won't overwrite an already
+                         * requested one in getUser2(), but it will not find
+                         * a pronoun for it.
+                         */
                         manager.setResult(username, NOT_FOUND);
-                    } else if (result == null) {
-                        manager.setError(username);
                     } else {
-                        String pronoun_id = parseUser(result);
-                        if (pronoun_id == null) {
-                            /**
-                             * Empty result means it won't overwrite an already
-                             * requested one in getUser2(), but it will not find
-                             * a pronoun for it.
-                             */
-                            manager.setResult(username, NOT_FOUND);
-                        }
-                        else {
-                            manager.setResult(username, pronoun_id);
-                        }
+                        manager.setResult(username, pronoun_id);
                     }
-                });
-            }
+                }
+            });
         }, "[Pronouns] ", CachedBulkManager.DAEMON | CachedBulkManager.UNIQUE);
         
         data.setCacheTimes(1, 14, TimeUnit.DAYS);
@@ -159,11 +155,9 @@ public class Pronouns {
             }
         };
         
-        if (!cache.load()) {
+        if (cache.load()) {
             UrlRequest request = new UrlRequest("https://api.pronouns.alejo.io/v1/pronouns");
-            request.async((result, responseCode) -> {
-                cache.dataReceived(result, false);
-            });
+            request.async((result, responseCode) -> cache.dataReceived(result, false));
         }
     }
     
@@ -186,57 +180,47 @@ public class Pronouns {
         }
         return result;
     }
-    
-    private static class Pronoun {
-        
-        public final String id;
-        public final String subject;
-        public final String object;
-        
-        private Pronoun(String id, String subject, String object) {
-            this.id = id;
-            this.subject = subject;
-            this.object = object;
-        }
-        
+
+    private record Pronoun(String id, String subject, String object) {
+
         public String getDisplay() {
-            if (StringUtil.isNullOrEmpty(object) || subject.equals(object)) {
-                return subject;
+                if (StringUtil.isNullOrEmpty(object) || subject.equals(object)) {
+                    return subject;
+                }
+                return String.format("%s/%s",
+                        subject, object);
             }
-            return String.format("%s/%s",
-                                 subject, object);
-        }
-        
+
         public String getDisplay(Pronoun combineWith) {
-            if (combineWith == null || this.equals(combineWith)) {
-                return getDisplay();
+                if (combineWith == null || this.equals(combineWith)) {
+                    return getDisplay();
+                }
+                return String.format("%s/%s",
+                        subject, combineWith.subject);
             }
-            return String.format("%s/%s",
-                                 subject, combineWith.subject);
-        }
+
+            @Override
+            public boolean equals(Object obj) {
+                if (this == obj) {
+                    return true;
+                }
+                if (obj == null) {
+                    return false;
+                }
+                if (getClass() != obj.getClass()) {
+                    return false;
+                }
+                final Pronoun other = (Pronoun) obj;
+                return Objects.equals(this.id, other.id);
+            }
 
         @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
+            public int hashCode() {
+                int hash = 7;
+                hash = 67 * hash + Objects.hashCode(this.id);
+                return hash;
             }
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final Pronoun other = (Pronoun) obj;
-            return Objects.equals(this.id, other.id);
-        }
-        
-        @Override
-        public int hashCode() {
-            int hash = 7;
-            hash = 67 * hash + Objects.hashCode(this.id);
-            return hash;
-        }
-        
+
     }
     
     private String parseUser(String json) {

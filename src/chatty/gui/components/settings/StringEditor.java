@@ -21,13 +21,13 @@ public interface StringEditor {
      * @return The edited value if dialog was clossed by the OK button, null
      * otherwise
      */
-    public String showDialog(String title, String preset, String info);
+    String showDialog(String title, String preset, String info);
 
     /**
      * Set the listener for links specified in the info text (LinkLabel format).
      * 
      * @param listener 
      */
-    public void setLinkLabelListener(LinkLabelListener listener);
+    void setLinkLabelListener(LinkLabelListener listener);
 
 }

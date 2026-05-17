@@ -58,10 +58,7 @@ public class Rand implements Item {
         if (this.isRequired != other.isRequired) {
             return false;
         }
-        if (!Objects.equals(this.params, other.params)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.params, other.params);
     }
 
     @Override

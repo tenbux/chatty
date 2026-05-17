@@ -6,7 +6,6 @@ import chatty.TwitchClient;
 import chatty.User;
 import chatty.lang.Language;
 import chatty.util.UserRoom;
-import chatty.util.commands.CustomCommand;
 import chatty.util.commands.Parameters;
 import java.awt.event.ActionEvent;
 import java.util.Collections;
@@ -52,18 +51,18 @@ public class UserContextMenu extends ContextMenu {
             else {
                 for (UserRoom userRoom : rooms) {
                     String label;
-                    if (userRoom.user != null && userRoom.user.getNumberOfLines() > 0) {
+                    if (userRoom.user() != null && userRoom.user().getNumberOfLines() > 0) {
                         label = String.format("%s (%s)",
-                                userRoom.room.getDisplayName(),
-                                userRoom.user.getNumberOfLines());
+                                userRoom.room().getDisplayName(),
+                                userRoom.user().getNumberOfLines());
                     }
                     else {
-                        label = userRoom.room.getDisplayName();
+                        label = userRoom.room().getDisplayName();
                     }
-                    if (user.getRoom().equals(userRoom.room)) {
+                    if (user.getRoom().equals(userRoom.room())) {
                         label = ">"+label;
                     }
-                    addItem("userinfo."+userRoom.room.getChannel(), label, ROOMS_MENU);
+                    addItem("userinfo."+ userRoom.room().getChannel(), label, ROOMS_MENU);
                 }
             }
         }
@@ -102,8 +101,7 @@ public class UserContextMenu extends ContextMenu {
             
             // Add all preset categories and select them if the user has them
             for (String presetCategory : presetCategories) {
-                boolean selected = userCategories != null
-                        ? userCategories.contains(presetCategory) : false;
+                boolean selected = userCategories != null && userCategories.contains(presetCategory);
                 addCheckboxItem("cat" + presetCategory, presetCategory,
                         submenu, selected);
             }

@@ -3,33 +3,18 @@ package chatty.util.dnd;
 
 import chatty.util.Debugging;
 import chatty.util.dnd.DockSetting.PopoutType;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Frame;
-import static java.awt.Frame.ICONIFIED;
-import java.awt.Image;
-import java.awt.KeyboardFocusManager;
-import java.awt.MouseInfo;
-import java.awt.Point;
-import java.awt.Window;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
-import javax.swing.JComponent;
-import javax.swing.JFrame;
-import javax.swing.SwingUtilities;
+
+import static java.awt.Frame.ICONIFIED;
 
 /**
  * The main class acting as the interface for external classes to add content,
@@ -85,7 +70,7 @@ public class DockManager {
         // Track focus
         KeyboardFocusManager.getCurrentKeyboardFocusManager().addPropertyChangeListener("focusOwner", e -> {
             Object o = e.getNewValue();
-            if (o != null && o instanceof Component) {
+            if (o instanceof Component) {
                 checkFocus((Component)o);
             }
         });
@@ -105,31 +90,28 @@ public class DockManager {
      */
     private void checkFocus(Component c) {
 //        System.out.println("Focus gain: "+c+" "+c.getClass());
-        if (c instanceof DockContent) {
-            changedActiveContent((DockContent)c, true);
-        }
-        else if (c instanceof DockTabs) {
-            DockTabs t = (DockTabs)c;
-            DockContent content = t.getCurrentContent();
-            if (content != null) {
-                changedActiveContent(content, true);
+        switch (c) {
+            case DockContent dockContent -> changedActiveContent(dockContent, true);
+            case DockTabs t -> {
+                DockContent content = t.getCurrentContent();
+                if (content != null) {
+                    changedActiveContent(content, true);
+                } else if (t.getDockParent() instanceof DockTabsContainer) {
+                    changedActiveContent(((DockTabsContainer) t.getDockParent()).getCurrentContent(), true);
+                }
             }
-            else if (t.getDockParent() instanceof DockTabsContainer) {
-                changedActiveContent(((DockTabsContainer) t.getDockParent()).getCurrentContent(), true);
+            case DockTabsContainer dockTabsContainer ->
+                    changedActiveContent(dockTabsContainer.getCurrentContent(), true);
+            case DockPopout dockPopout -> {
+                List<DockContent> contents = dockPopout.getBase().getContents();
+                if (contents.size() == 1) {
+                    changedActiveContent(contents.getFirst(), true);
+                }
             }
-        }
-        else if (c instanceof DockTabsContainer) {
-            changedActiveContent(((DockTabsContainer) c).getCurrentContent(), true);
-        }
-        else if (c instanceof DockPopout) {
-            List<DockContent> contents = ((DockPopout)c).getBase().getContents();
-            if (contents.size() == 1) {
-                changedActiveContent(contents.get(0), true);
-            }
-        }
-        else {
-            if (c.getParent() != null) {
-                checkFocus(c.getParent());
+            default -> {
+                if (c.getParent() != null) {
+                    checkFocus(c.getParent());
+                }
             }
         }
     }
@@ -156,12 +138,7 @@ public class DockManager {
         if (currentlyActive == content) {
             currentlyActive = null;
         }
-        Iterator<Map.Entry<DockPopout, DockContent>> it = active.entrySet().iterator();
-        while (it.hasNext()) {
-            if (it.next().getValue() == content) {
-                it.remove();
-            }
-        }
+        active.entrySet().removeIf(dockPopoutDockContentEntry -> dockPopoutDockContentEntry.getValue() == content);
     }
     
     /**
@@ -197,7 +174,7 @@ public class DockManager {
         if (result == null) {
             List<DockContent> contents = getContents();
             if (!contents.isEmpty()) {
-                result = contents.iterator().next();
+                result = contents.getFirst();
             }
         }
         return result;
@@ -216,7 +193,7 @@ public class DockManager {
             DockBase base = popout == null ? main : popout.getBase();
             List<DockContent> contents = base.getContents();
             if (!contents.isEmpty()) {
-                result = contents.iterator().next();
+                result = contents.getFirst();
             }
         }
         return result;
@@ -242,8 +219,7 @@ public class DockManager {
     }
     
     public List<DockContent> getContents() {
-        List<DockContent> result = new ArrayList<>();
-        result.addAll(main.getContents());
+        List<DockContent> result = new ArrayList<>(main.getContents());
         popouts.forEach(w -> result.addAll(w.getBase().getContents()));
         return result;
     }
@@ -280,8 +256,7 @@ public class DockManager {
      * center one, or empty if no components are found
      */
     public List<DockContent> getContentsRelativeTo(DockContent content, int direction) {
-        List<DockContent> result = new ArrayList<>();
-        result.addAll(main.getContentsRelativeTo(content, direction));
+        List<DockContent> result = new ArrayList<>(main.getContentsRelativeTo(content, direction));
         popouts.forEach(w -> result.addAll(w.getBase().getContentsRelativeTo(content, direction)));
         return result;
     }
@@ -293,11 +268,10 @@ public class DockManager {
      * @return List of contents, including the given one (never null)
      */
     public List<DockContent> getContentsRelativeTo(DockContent relativeToContent) {
-        List<DockContent> result = new ArrayList<>();
         // Returns the closest tab first, so reverse for -1 (left) direction
         List<DockContent> before = getContentsRelativeTo(relativeToContent, -1);
         Collections.reverse(before);
-        result.addAll(before);
+        List<DockContent> result = new ArrayList<>(before);
         result.add(relativeToContent);
         result.addAll(getContentsRelativeTo(relativeToContent, 1));
         return result;
@@ -314,11 +288,11 @@ public class DockManager {
     public DockContent getContentTabRelative(DockContent content, int direction) {
         List<DockContent> c = getContentsRelativeTo(content, direction);
         if (!c.isEmpty()) {
-            return c.get(0);
+            return c.getFirst();
         }
         c = getContentsRelativeTo(content, -direction);
         if (!c.isEmpty()) {
-            return c.get(c.size() - 1);
+            return c.getLast();
         }
         return null;
     }
@@ -510,12 +484,12 @@ public class DockManager {
         if (!DockUtil.isMouseOverWindow()
                 && popoutTypeDrag != PopoutType.NONE
                 && t != null
-                && t.content != null) {
+                && t.content() != null) {
             // Manually changed location, so reset
-            t.content.setTargetPath(null);
+            t.content().setTargetPath(null);
             // Popout from dragging outside window
             Point location = MouseInfo.getPointerInfo().getLocation();
-            popout(t.content, popoutTypeDrag, new Point(location.x - 80, location.y - 10), null);
+            popout(t.content(), popoutTypeDrag, new Point(location.x - 80, location.y - 10), null);
         }
         main.stopDrag();
         for (DockPopout window : popouts) {
@@ -633,8 +607,7 @@ public class DockManager {
         else {
             window.setLocationByPlatform(true);
         }
-        if (window instanceof Frame) {
-            Frame frame = (Frame) window;
+        if (window instanceof Frame frame) {
             if (state == -1) {
                 // When a popout opens, actually show it, but preserve maximized
                 state = frame.getExtendedState() & ~ICONIFIED;
@@ -784,7 +757,7 @@ public class DockManager {
      * @param child 
      */
     public void applySettings(DockChild child) {
-        settings.forEach((type, value) -> child.setSetting(type, value));
+        settings.forEach(child::setSetting);
     }
     
     public DockLayout getLayout() {
@@ -817,18 +790,18 @@ public class DockManager {
         currentContents.forEach(c -> c.setDockParent(null));
         
         // Close current popouts
-        applyToPopoutsSafe(p -> closePopout(p));
+        applyToPopoutsSafe(this::closePopout);
         
-        for (DockLayoutPopout p : layout.main) {
-            if (p.id == null) {
-                main.createLayout(p.child, main);
+        for (DockLayoutPopout p : layout.main()) {
+            if (p.id() == null) {
+                main.createLayout(p.child(), main);
             }
             else {
-                PopoutType type = p.id.startsWith("d") ? PopoutType.DIALOG : PopoutType.FRAME;
-                DockPopout popout = openPopout(type, p.location, p.size, p.state);
-                popout.setId(p.id);
+                PopoutType type = p.id().startsWith("d") ? PopoutType.DIALOG : PopoutType.FRAME;
+                DockPopout popout = openPopout(type, p.location(), p.size(), p.state());
+                popout.setId(p.id());
                 // Creating the layout should also apply current settings
-                popout.getBase().createLayout(p.child, popout.getBase());
+                popout.getBase().createLayout(p.child(), popout.getBase());
             }
         }
         
@@ -846,8 +819,7 @@ public class DockManager {
     
     public void minimizeWindows() {
         for (DockPopout p : popouts) {
-            if (p.getWindow() instanceof Frame) {
-                Frame frame = (Frame) p.getWindow();
+            if (p.getWindow() instanceof Frame frame) {
                 frame.setExtendedState(frame.getExtendedState() | ICONIFIED);
             }
         }
@@ -855,8 +827,7 @@ public class DockManager {
     
     public void hideWindows() {
         for (DockPopout p : popouts) {
-            if (p.getWindow() instanceof Frame) {
-                Frame frame = (Frame) p.getWindow();
+            if (p.getWindow() instanceof Frame frame) {
                 frame.setVisible(false);
             }
         }
@@ -864,8 +835,7 @@ public class DockManager {
     
     public void showHiddenWindows() {
         for (DockPopout p : popouts) {
-            if (p.getWindow() instanceof Frame && !p.getWindow().isVisible()) {
-                Frame frame = (Frame) p.getWindow();
+            if (p.getWindow() instanceof Frame frame && !p.getWindow().isVisible()) {
                 frame.setVisible(true);
                 frame.setExtendedState(frame.getExtendedState() & ~ICONIFIED);
                 frame.toFront();

@@ -9,14 +9,14 @@ import chatty.util.jws.JWSClient;
  */
 interface ConnectionsMessageHandler {
     
-    public void handleReceived(int connection, String text, Message message);
+    void handleReceived(int connection, String text, Message message);
 
-    public void handleSent(int connection, String text);
+    void handleSent(int connection, String text);
 
-    public void handleConnect(int connection, JWSClient c);
+    void handleConnect(int connection, JWSClient c);
 
-    public void handleDisconnect(int connection);
+    void handleDisconnect(int connection);
     
-    public void handleRegisterError(int responseCode);
+    void handleRegisterError(int responseCode);
     
 }

@@ -71,10 +71,10 @@ public class Livestreamer extends Thread {
         process.destroy();
     }
     
-    public static interface LivestreamerListener {
-        public void processStarted(String command);
-        public void message(String message);
-        public void processFinished(int exitValue);
+    public interface LivestreamerListener {
+        void processStarted(String command);
+        void message(String message);
+        void processFinished(int exitValue);
     }
     
     /**
@@ -138,14 +138,14 @@ public class Livestreamer extends Thread {
             }
         }
         //System.out.println(result);
-        return result.toArray(new String[result.size()]);
+        return result.toArray(new String[0]);
     }
     
     public static String filterToken(String input) {
         return input.replaceAll("--twitch-oauth-token \\w+", "--twitch-oauth-token <token>");
     }
     
-    public static final void main(String[] args) {
+    public static void main(String[] args) {
         //split("\"a b c\" -h   test");
         System.out.println(filterToken("--twitch-oauth-token abcfwf --fwaf"));
     }

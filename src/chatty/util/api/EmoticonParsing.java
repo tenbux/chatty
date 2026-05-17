@@ -6,12 +6,13 @@ import chatty.util.JSONUtil;
 import chatty.util.StringUtil;
 import chatty.util.TwitchEmotesApi.EmotesetInfo;
 import chatty.util.api.EmoticonUpdate.Source;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  *
@@ -52,11 +53,11 @@ public class EmoticonParsing {
                 builder.setStringId(id);
                 builder.setEmoteset(set);
                 builder.setStream(streamName);
-                String info = null;
+                String info;
                 switch (type) {
                     case "subscriptions":
                         if (!StringUtil.isNullOrEmpty(tier)) {
-                            info = "Tier "+tier.substring(0, 1);
+                            info = "Tier "+tier.charAt(0);
                         }
                         else {
                             info = "Subemote";
@@ -74,10 +75,7 @@ public class EmoticonParsing {
                 }
                 builder.setEmotesetInfo(info);
                 
-                boolean add = true;
-                if (type.equals("smilies") && !Debugging.isEnabled("smilies+")) {
-                    add = false;
-                }
+                boolean add = !type.equals("smilies") || Debugging.isEnabled("smilies+");
                 if (add) {
                     emotes.add(builder.build());
                     emotesets.add(set);

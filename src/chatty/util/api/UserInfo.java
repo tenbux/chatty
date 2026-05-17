@@ -4,37 +4,15 @@ package chatty.util.api;
 import chatty.util.DateTime;
 import chatty.util.JSONUtil;
 import chatty.util.StringUtil;
-import java.util.logging.Logger;
 import org.json.simple.JSONObject;
 
 /**
  *
  * @author tduva
  */
-public class UserInfo {
-    
-    public final String id;
-    public final String login;
-    public final String displayName;
-    public final String broadcasterType;
-    public final String description;
-    public final String profileImageUrl;
-    public final long createdAt;
-    public final int views;
-    
-    public UserInfo(String id, String login, String displayName,
-                    String broadcasterType, String description,
-                    String profileImageUrl, long createdAt, int views) {
-        this.id = id;
-        this.login = login;
-        this.displayName = displayName;
-        this.broadcasterType = broadcasterType;
-        this.description = description;
-        this.profileImageUrl = profileImageUrl;
-        this.createdAt = createdAt;
-        this.views = views;
-    }
-    
+public record UserInfo(String id, String login, String displayName, String broadcasterType, String description,
+                       String profileImageUrl, long createdAt, int views) {
+
     public static UserInfo create(JSONObject data) {
         if (data == null) {
             return null;
@@ -52,5 +30,5 @@ public class UserInfo {
         }
         return null;
     }
-    
+
 }

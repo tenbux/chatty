@@ -3,15 +3,16 @@ package chatty.util.settings;
 
 import chatty.Logging;
 import chatty.util.settings.FileManager.SaveResult;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.nio.file.NoSuchFileException;
-import java.util.Map.Entry;
-import java.util.*;
-import java.util.logging.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.NoSuchFileException;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.logging.Logger;
 
 /**
  * Manage (add/change/get/save/load) settings.
@@ -81,10 +82,7 @@ public class Settings {
     }
     
     private boolean isSetting(String settingName) {
-        if (getType(settingName) != Setting.UNDEFINED) {
-            return true;
-        }
-        return false;
+        return getType(settingName) != Setting.UNDEFINED;
     }
     
     /**
@@ -99,15 +97,12 @@ public class Settings {
      */
     private boolean isOfType(String settingName, int type) {
         Setting obj = settings.get(settingName);
-        if (obj != null && obj.isOfType(type)) {
-            return true;
-        }
-        return false;
+        return obj != null && obj.isOfType(type);
     }
     
     private boolean isOfSubtype(String settingName, int type) {
         Setting obj = settings.get(settingName);
-        if (obj != null && obj instanceof SubtypeSetting) {
+        if (obj instanceof SubtypeSetting) {
             return ((SubtypeSetting)obj).isOfSubType(type);
         }
         return false;
@@ -181,9 +176,9 @@ public class Settings {
         return set(settingName, value, Setting.BOOLEAN);
     }
     
-    public int toggleBoolean(String settingName) {
+    public void toggleBoolean(String settingName) {
         boolean currentValue = getBoolean(settingName);
-        return set(settingName, !currentValue, Setting.BOOLEAN);
+        set(settingName, !currentValue, Setting.BOOLEAN);
     }
     
     public int setLong(String settingName, long value) {
@@ -218,7 +213,7 @@ public class Settings {
      * @param type 
      */
     private int set(String settingName, Object value, int type) {
-        boolean changed = false;
+        boolean changed;
         synchronized(LOCK) {
             if (!isOfType(settingName, type)) {
                 throw new SettingNotFoundException("Could not find setting: " + settingName);
@@ -286,7 +281,7 @@ public class Settings {
     
     public boolean isValueSet(String settingName) {
         synchronized(LOCK) {
-            return getSetting(settingName).isValueSet();
+            return !getSetting(settingName).isValueSet();
         }
     }
     
@@ -724,7 +719,7 @@ public class Settings {
         String setting = split[0];
         String parameter = split[1];
         if (isListSetting(setting)) {
-            boolean removed = false;
+            boolean removed;
             if (isOfSubtype(setting, Setting.STRING)) {
                 removed = listRemove(setting, parameter);
                 if (removed) {
@@ -829,11 +824,8 @@ public class Settings {
         String setting = split[0];
         String parameter = split[1];
         if (isBooleanSetting(setting)) {
-            boolean value = false;
-            if (parameter.equals("1") || parameter.equals("true") ||
-                    parameter.equals("on")) {
-                value = true;
-            }
+            boolean value = parameter.equals("1") || parameter.equals("true") ||
+                    parameter.equals("on");
             if (parameter.equals("!")) {
                 value = !getBoolean(setting);
             }
@@ -845,7 +837,7 @@ public class Settings {
             return "Setting '"+setting+"' set to '"+parameter+"'.";
         }
         else if (isLongSetting(setting)) {
-            long value = 0;
+            long value;
             try {
                 value = Long.parseLong(parameter);
             } catch (NumberFormatException ex) {
@@ -1155,8 +1147,7 @@ public class Settings {
     
     private SaveResult saveSettingsToJson(String fileName, boolean force) {
         String json = settingsToJson(fileName);
-        SaveResult result = fileManager.save(fileName, json, force);
-        return result;
+        return fileManager.save(fileName, json, force);
     }
 
     /**
@@ -1216,8 +1207,8 @@ public class Settings {
         int pos = ex.getPosition();
         int start = pos - 10;
         int end = pos + 10;
-        start = start < 0 ? 0 : start;
-        end = end > input.length() ? input.length() : end;
+        start = Math.max(start, 0);
+        end = Math.min(end, input.length());
         String excerpt = input.substring(start, pos) + "@" + input.substring(pos, end);
         LOGGER.warning("Error parsing settings: " + ex + "[" + excerpt + "]");
         LOGGER.log(Logging.USERINFO, String.format("Settings file corrupt, using default settings (%s) [%s]",

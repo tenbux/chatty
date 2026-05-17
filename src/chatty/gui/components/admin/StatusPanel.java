@@ -5,9 +5,6 @@ import chatty.Helper;
 import chatty.Room;
 import chatty.gui.GuiUtil;
 import chatty.gui.MainGui;
-import static chatty.gui.components.admin.AdminDialog.SMALL_BUTTON_INSETS;
-import static chatty.gui.components.admin.AdminDialog.hideableLabel;
-import static chatty.gui.components.admin.AdminDialog.makeGbc;
 import chatty.gui.components.menus.CommandActionEvent;
 import chatty.gui.components.menus.CommandMenuItems;
 import chatty.gui.components.menus.ContextMenu;
@@ -15,42 +12,20 @@ import chatty.gui.components.menus.TextSelectionMenu;
 import chatty.lang.Language;
 import chatty.util.DateTime;
 import chatty.util.StringUtil;
-import chatty.util.api.ChannelStatus;
+import chatty.util.api.*;
 import chatty.util.api.ChannelStatus.StreamTag;
-import chatty.util.api.ResultManager;
-import chatty.util.api.StreamCategory;
-import chatty.util.api.StreamLabels;
 import chatty.util.api.StreamLabels.StreamLabel;
-import chatty.util.api.TwitchApi;
 import chatty.util.commands.Parameters;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.Scrollable;
-import javax.swing.SwingUtilities;
+
+import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
+import java.util.List;
+
+import static chatty.gui.components.admin.AdminDialog.*;
 
 /**
  *
@@ -265,81 +240,77 @@ public class StatusPanel extends JPanel implements Scrollable {
         gbc = makeGbc(0,7,3,1);
         add(putResult,gbc);
         
-        ActionListener actionListener = new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (e.getSource() == update) {
-                    if (currentChannel != null && !currentChannel.isEmpty()) {
-                        loadingStatus = true;
-                        setLoading(true);
-                        ChannelStatus putStatus = ChannelStatus.createPut(
-                                currentChannel,
-                                status.getText(),
-                                currentStreamCategory,
-                                currentStreamTags,
-                                currentStreamLabels);
-                        channelStatusToCheck = putStatus;
-                        main.putChannelInfo(putStatus);
-                        addCurrentToHistory();
-                    }
-                } else if (e.getSource() == reloadButton) {
-                    getChannelInfo();
-                } else if (e.getSource() == selectGame) {
-                    selectGameDialog.setLocationRelativeTo(StatusPanel.this);
-                    StreamCategory result = selectGameDialog.open(currentStreamCategory);
-                    if (result != null) {
-                        currentStreamCategory = result;
-                        game.setText(result.name);
-                        statusEdited();
-                    }
-                } else if (e.getSource() == removeGame) {
-                    currentStreamCategory = StreamCategory.EMPTY;
-                    game.setText("");
-                    statusEdited();
-                } else if (e.getSource() == selectTags) {
-                    selectTagsDialog.setLocationRelativeTo(StatusPanel.this);
-                    List<StreamTag> result = selectTagsDialog.open(currentStreamTags);
-                    if (result != null) {
-                        setTags(result);
-                        statusEdited();
-                    }
-                } else if (e.getSource() == removeTags) {
-                    setTags(null);
-                    statusEdited();
-                } else if (e.getSource() == selectLabels) {
-                    SelectLabelsDialog dialog = new SelectLabelsDialog(main);
-                    dialog.setLocationRelativeTo(StatusPanel.this);
-                    List<StreamLabel> result = dialog.open(currentStreamLabels);
-                    if (result != null) {
-                        setLabels(result);
-                        statusEdited();
-                    }
-                } else if (e.getSource() == removeLabels) {
-                    setLabels(StreamLabels.copyAutoLabelsOnly(currentStreamLabels));
-                } else if (e.getSource() == historyButton) {
-                    statusHistoryDialog.setLocationRelativeTo(StatusPanel.this);
-                    StatusHistoryEntry result = statusHistoryDialog.showDialog(currentStreamCategory);
-                    if (result != null) {
-                        // A null value means that value shouldn't be used to
-                        // change the info, it would be empty otherwise
-                        if (result.title != null) {
-                            status.setText(result.title);
-                        }
-                        if (result.game != null) {
-                            currentStreamCategory = result.game;
-                            game.setText(result.game.name);
-                        }
-                        if (result.tags != null) {
-                            setTags(result.tags);
-                        }
-                        if (result.labels != null) {
-                            setLabels(result.labels);
-                        }
-                    }
-                } else if (e.getSource() == addToHistoryButton) {
-                    addCurrentToFavorites();
+        ActionListener actionListener = e -> {
+            if (e.getSource() == update) {
+                if (currentChannel != null && !currentChannel.isEmpty()) {
+                    loadingStatus = true;
+                    setLoading(true);
+                    ChannelStatus putStatus = ChannelStatus.createPut(
+                            currentChannel,
+                            status.getText(),
+                            currentStreamCategory,
+                            currentStreamTags,
+                            currentStreamLabels);
+                    channelStatusToCheck = putStatus;
+                    main.putChannelInfo(putStatus);
+                    addCurrentToHistory();
                 }
+            } else if (e.getSource() == reloadButton) {
+                getChannelInfo();
+            } else if (e.getSource() == selectGame) {
+                selectGameDialog.setLocationRelativeTo(StatusPanel.this);
+                StreamCategory result = selectGameDialog.open(currentStreamCategory);
+                if (result != null) {
+                    currentStreamCategory = result;
+                    game.setText(result.name());
+                    statusEdited();
+                }
+            } else if (e.getSource() == removeGame) {
+                currentStreamCategory = StreamCategory.EMPTY;
+                game.setText("");
+                statusEdited();
+            } else if (e.getSource() == selectTags) {
+                selectTagsDialog.setLocationRelativeTo(StatusPanel.this);
+                List<StreamTag> result = selectTagsDialog.open(currentStreamTags);
+                if (result != null) {
+                    setTags(result);
+                    statusEdited();
+                }
+            } else if (e.getSource() == removeTags) {
+                setTags(null);
+                statusEdited();
+            } else if (e.getSource() == selectLabels) {
+                SelectLabelsDialog dialog = new SelectLabelsDialog(main);
+                dialog.setLocationRelativeTo(StatusPanel.this);
+                List<StreamLabel> result = dialog.open(currentStreamLabels);
+                if (result != null) {
+                    setLabels(result);
+                    statusEdited();
+                }
+            } else if (e.getSource() == removeLabels) {
+                setLabels(StreamLabels.copyAutoLabelsOnly(currentStreamLabels));
+            } else if (e.getSource() == historyButton) {
+                statusHistoryDialog.setLocationRelativeTo(StatusPanel.this);
+                StatusHistoryEntry result = statusHistoryDialog.showDialog(currentStreamCategory);
+                if (result != null) {
+                    // A null value means that value shouldn't be used to
+                    // change the info, it would be empty otherwise
+                    if (result.title() != null) {
+                        status.setText(result.title());
+                    }
+                    if (result.game() != null) {
+                        currentStreamCategory = result.game();
+                        game.setText(result.game().name());
+                    }
+                    if (result.tags() != null) {
+                        setTags(result.tags());
+                    }
+                    if (result.labels() != null) {
+                        setLabels(result.labels());
+                    }
+                }
+            } else if (e.getSource() == addToHistoryButton) {
+                addCurrentToFavorites();
             }
         };
         
@@ -364,24 +335,22 @@ public class StatusPanel extends JPanel implements Scrollable {
          * Update category ids and names if necessary. Category favorites get
          * updated in SelectGameDialog.
          */
-        api.subscribe(ResultManager.Type.CATEGORY_RESULT, (ResultManager.CategoryResult) categories -> {
-            SwingUtilities.invokeLater(() -> {
-                if (categories != null) {
-                    // Update status history
+        api.subscribe(ResultManager.Type.CATEGORY_RESULT, (ResultManager.CategoryResult) categories -> SwingUtilities.invokeLater(() -> {
+            if (categories != null) {
+                // Update status history
+                for (StreamCategory category : categories) {
+                    main.getStatusHistory().updateCategory(category);
+                }
+                // Update currently selected category
+                if (!currentStreamCategory.hasId()) {
                     for (StreamCategory category : categories) {
-                        main.getStatusHistory().updateCategory(category);
-                    }
-                    // Update currently selected category
-                    if (!currentStreamCategory.hasId()) {
-                        for (StreamCategory category : categories) {
-                            if (currentStreamCategory.nameMatches(category)) {
-                                currentStreamCategory = category;
-                            }
+                        if (currentStreamCategory.nameMatches(category)) {
+                            currentStreamCategory = category;
                         }
                     }
                 }
-            });
-        });
+            }
+        }));
     }
     
     private void addContextMenu(JComponent comp) {
@@ -402,21 +371,16 @@ public class StatusPanel extends JPanel implements Scrollable {
                     Parameters params = Parameters.create("");
                     params.put("title", status.getText());
                     params.put("game", game.getText());
-                    params.put("tag-ids", StringUtil.join(currentStreamTags, ",", o -> {
-                        return ((StreamTag) o).getName();
-                    }));
-                    params.put("tag-names", StringUtil.join(currentStreamTags, ",", o -> {
-                        return ((StreamTag) o).getDisplayName();
-                    }));
+                    params.put("tag-ids", StringUtil.join(currentStreamTags, ",", o -> ((StreamTag) o).name()));
+                    params.put("tag-names", StringUtil.join(currentStreamTags, ",", o -> ((StreamTag) o).getDisplayName()));
                     Room room = Room.createRegular(Helper.toChannel(currentChannel));
                     
                     ContextMenu m = new ContextMenu() {
 
                         @Override
                         public void actionPerformed(ActionEvent e) {
-                            if (e instanceof CommandActionEvent) {
+                            if (e instanceof CommandActionEvent c) {
                                 // Command Context Menu
-                                CommandActionEvent c = (CommandActionEvent)e;
                                 main.anonCustomCommand(room, c.getCommand(), params);
                                 addCurrentToHistory();
                             }
@@ -478,10 +442,10 @@ public class StatusPanel extends JPanel implements Scrollable {
             currentStreamLabels.addAll(labels);
             StringBuilder b = new StringBuilder();
             for (StreamLabel label : labels) {
-                if (b.length() != 0) {
+                if (!b.isEmpty()) {
                     b.append(", ");
                 }
-                b.append(label.getId());
+                b.append(label.id());
                 if (!label.isEditable()) {
                     b.append(" (auto)");
                 }
@@ -491,35 +455,38 @@ public class StatusPanel extends JPanel implements Scrollable {
     }
     
     public void channelStatusReceived(ChannelStatus channelStatus, TwitchApi.RequestResultCode result) {
-        if (channelStatus.channelLogin.equals(currentChannel)) {
+        if (channelStatus.channelLogin().equals(currentChannel)) {
             if (channelStatusToCheck != null
-                    && channelStatusToCheck.channelLogin.equals(currentChannel)) {
+                    && channelStatusToCheck.channelLogin().equals(currentChannel)) {
                 String difference = channelStatusToCheck.getStatusDifference(channelStatus);
                 if (!difference.isEmpty()) {
                     JOptionPane.showMessageDialog(this,
-                            String.format("Stream Status may not have been updated, "
-                                    + "possibly due to an invalid title (e.g. swear words) or tags (setting no tags at all may not work). "
-                                    + "You can use the reload button to load the current Status, overwriting what you changed.\n\n"
-                                    + "Not updated: %s\n\n"
-                                    + "[Current Status]\n"
-                                    + "Title: '%s'\n"
-                                    + "Category: '%s'\n"
-                                    + "Tags: %s\n"
-                                    + "Labels: %s", difference, channelStatus.title, channelStatus.category, channelStatus.tags, channelStatus.labels),
+                            String.format("""
+                                    Stream Status may not have been updated, \
+                                    possibly due to an invalid title (e.g. swear words) or tags (setting no tags at all may not work). \
+                                    You can use the reload button to load the current Status, overwriting what you changed.
+                                    
+                                    Not updated: %s
+                                    
+                                    [Current Status]
+                                    Title: '%s'
+                                    Category: '%s'
+                                    Tags: %s
+                                    Labels: %s""", difference, channelStatus.title(), channelStatus.category(), channelStatus.tags(), channelStatus.labels()),
                             "Update failed", JOptionPane.WARNING_MESSAGE);
                 }
                 else {
-                    setLabels(channelStatus.labels);
+                    setLabels(channelStatus.labels());
                 }
             }
             channelStatusToCheck = null;
             if (result == TwitchApi.RequestResultCode.SUCCESS) {
                 if (updateStatusAfterLoad) {
-                    status.setText(channelStatus.title);
-                    currentStreamCategory = channelStatus.category;
-                    game.setText(channelStatus.category.name);
-                    setTags(channelStatus.tags);
-                    setLabels(channelStatus.labels);
+                    status.setText(channelStatus.title());
+                    currentStreamCategory = channelStatus.category();
+                    game.setText(channelStatus.category().name());
+                    setTags(channelStatus.tags());
+                    setLabels(channelStatus.labels());
                 }
             }
             else {
@@ -737,27 +704,20 @@ public class StatusPanel extends JPanel implements Scrollable {
     public boolean getScrollableTracksViewportHeight() {
         return false;
     }
-    
-    private static class CacheItem {
-        
-        public final String channel;
-        public final String title;
-        public final StreamCategory category;
-        public final List<StreamTag> tags;
-        public final List<StreamLabel> labels;
-        public final boolean statusEdited;
-        public final long lastLoaded;
-        
-        public CacheItem(String channel, String title, StreamCategory category, List<StreamTag> tags, List<StreamLabel> labels, boolean statusEdited, long lastLoaded) {
-            this.channel = channel;
-            this.title = title;
-            this.category = category;
-            this.tags = new ArrayList<>(tags);
-            this.labels = new ArrayList<>(labels);
-            this.statusEdited = statusEdited;
-            this.lastLoaded = lastLoaded;
-        }
-        
+
+    private record CacheItem(String channel, String title, StreamCategory category, List<StreamTag> tags,
+                             List<StreamLabel> labels, boolean statusEdited, long lastLoaded) {
+
+        private CacheItem(String channel, String title, StreamCategory category, List<StreamTag> tags, List<StreamLabel> labels, boolean statusEdited, long lastLoaded) {
+                this.channel = channel;
+                this.title = title;
+                this.category = category;
+                this.tags = new ArrayList<>(tags);
+                this.labels = new ArrayList<>(labels);
+                this.statusEdited = statusEdited;
+                this.lastLoaded = lastLoaded;
+            }
+
     }
     
     private void saveToCache() {
@@ -773,7 +733,7 @@ public class StatusPanel extends JPanel implements Scrollable {
             if (item != null) {
                 status.setText(item.title);
                 currentStreamCategory = item.category;
-                game.setText(item.category.name);
+                game.setText(item.category.name());
                 setTags(item.tags);
                 setLabels(item.labels);
                 statusEdited = item.statusEdited;

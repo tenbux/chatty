@@ -1,10 +1,10 @@
 
 package chatty.gui.components.settings;
 
+import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import javax.swing.table.AbstractTableModel;
 
 /**
  * A table model backed by a list. This supports one object per row. The
@@ -72,14 +72,12 @@ public abstract class ListTableModel<T> extends AbstractTableModel {
 
     /**
      * Adds the given item to the end.
-     * 
+     *
      * @param item
-     * @return 
      */
-    public int add(T item) {
+    public void add(T item) {
         data.add(item);
         fireTableRowsInserted(data.size() - 1, data.size() - 1);
-        return data.size();
     }
     
     public void remove(T item) {

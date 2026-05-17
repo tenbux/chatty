@@ -80,13 +80,7 @@ public class ConnectionDialog extends JDialog {
         gbc.insets = new Insets(5, -7, 0, 5);
         add(rejoinOpenChannels, gbc);
         
-        rejoinOpenChannels.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                updateChannels();
-            }
-        });
+        rejoinOpenChannels.addActionListener(e -> updateChannels());
         
         // Channels and Favorites
         final JLabel channelLabel = new JLabel(Language.getString("connect.channel"));

@@ -9,6 +9,6 @@ import java.util.List;
  * @param <T>
  */
 public interface ListSetting<T> {
-    public List<T> getSettingValue();
-    public void setSettingValue(List<T> value);
+    List<T> getSettingValue();
+    void setSettingValue(List<T> value);
 }

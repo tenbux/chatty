@@ -2,23 +2,15 @@
 package chatty.util.api.eventsub;
 
 import chatty.util.Debugging;
+import chatty.util.api.TwitchApi;
 import chatty.util.api.eventsub.payloads.SessionPayload;
 import chatty.util.api.eventsub.payloads.SubscriptionPayload;
-import chatty.util.api.TwitchApi;
 import chatty.util.jws.JWSClient;
 import chatty.util.jws.MessageHandler;
+
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -164,11 +156,10 @@ public class Connections {
     /**
      * Called when the topic is not registered with the connection, for example
      * because it has been unregistered or access revoked.
-     * 
+     *
      * @param topic
-     * @return 
      */
-    private synchronized boolean removeTopicInternal(Topic topic) {
+    private synchronized void removeTopicInternal(Topic topic) {
         Debugging.println("es", "Remove Topic: %s (internal)", topic);
         toRemove.remove(topic);
         for (Connection c : connections.values()) {
@@ -176,10 +167,9 @@ public class Connections {
                 if (c.numTopics() == 0) {
                     disconnect(c);
                 }
-                return true;
+                return;
             }
         }
-        return false;
     }
     
     private void retryFailedTopic(boolean withCost) {
@@ -381,62 +371,60 @@ public class Connections {
         if (msg == null) {
             return;
         }
-        if (msg.type.equals("session_welcome")) {
-            SessionPayload session = (SessionPayload) msg.data;
-            c.setSessionId(session.id);
-            c.setConnectionTimeout(session.keepAliveTimeout + 4);
-            if (c.getReplacedConnection() != null) {
-                disconnect(c.getReplacedConnection());
-            }
-            else {
-                for (Topic topic : c.getTopics()) {
-                    registerTopic(c, topic);
-                }
-            }
-        }
-        else if (msg.type.equals("session_reconnect")) {
-            SessionPayload session = (SessionPayload) msg.data;
-            String reconnectUrl = session.reconnectUrl;
-            if (reconnectUrl != null) {
-                try {
-                    Connection c2 = addConnection(new URI(reconnectUrl));
-                    c2.setReplacedConnection(c);
+        switch (msg.type()) {
+            case "session_welcome" -> {
+                SessionPayload session = (SessionPayload) msg.data();
+                c.setSessionId(session.id);
+                c.setConnectionTimeout(session.keepAliveTimeout + 4);
+                if (c.getReplacedConnection() != null) {
+                    disconnect(c.getReplacedConnection());
+                } else {
                     for (Topic topic : c.getTopics()) {
-                        // Make a copy so that previous connection doesn't
-                        // affect them, but retain id and cost, which should in
-                        // this case still be the same
-                        Topic newTopic = topic.copy();
-                        newTopic.setCost(topic.getCost());
-                        newTopic.setId(topic.getId());
-                        c2.addTopic(newTopic);
+                        registerTopic(c, topic);
                     }
-                    c2.init();
-                }
-                catch (URISyntaxException ex) {
-                    LOGGER.warning("[EventSub] Invalid reconnect URL: " + reconnectUrl);
                 }
             }
-        }
-        else if (msg.type.equals("revocation")) {
-            SubscriptionPayload subscription = (SubscriptionPayload) msg.data;
-            Topic topic = removeTopicById(subscription.id);
-            
-            // Topic is now removed, check if it should be tried again
-            if (topic != null) {
-                // Topic is no longer registered, so reset associated stuff
-                topic.setId(null);
-                topic.setCost(0);
-                if ("authorization_revoked".equals(subscription.status)) {
-                    if (!toRemove.contains(topic)) {
-                        removedAuthTopics.add(topic);
+            case "session_reconnect" -> {
+                SessionPayload session = (SessionPayload) msg.data();
+                String reconnectUrl = session.reconnectUrl;
+                if (reconnectUrl != null) {
+                    try {
+                        Connection c2 = addConnection(new URI(reconnectUrl));
+                        c2.setReplacedConnection(c);
+                        for (Topic topic : c.getTopics()) {
+                            // Make a copy so that previous connection doesn't
+                            // affect them, but retain id and cost, which should in
+                            // this case still be the same
+                            Topic newTopic = topic.copy();
+                            newTopic.setCost(topic.getCost());
+                            newTopic.setId(topic.getId());
+                            c2.addTopic(newTopic);
+                        }
+                        c2.init();
+                    } catch (URISyntaxException ex) {
+                        LOGGER.warning("[EventSub] Invalid reconnect URL: " + reconnectUrl);
                     }
                 }
-                else if ("moderator_removed".equals(subscription.status)) {
-                    // Don't add to a set to try to register again
-                }
-                else {
-                    if (!toRemove.contains(topic)) {
-                        errorTopics.add(topic);
+            }
+            case "revocation" -> {
+                SubscriptionPayload subscription = (SubscriptionPayload) msg.data();
+                Topic topic = removeTopicById(subscription.id);
+
+                // Topic is now removed, check if it should be tried again
+                if (topic != null) {
+                    // Topic is no longer registered, so reset associated stuff
+                    topic.setId(null);
+                    topic.setCost(0);
+                    if ("authorization_revoked".equals(subscription.status)) {
+                        if (!toRemove.contains(topic)) {
+                            removedAuthTopics.add(topic);
+                        }
+                    } else if ("moderator_removed".equals(subscription.status)) {
+                        // Don't add to a set to try to register again
+                    } else {
+                        if (!toRemove.contains(topic)) {
+                            errorTopics.add(topic);
+                        }
                     }
                 }
             }
@@ -460,13 +448,12 @@ public class Connections {
             }
         }
 
-        switch (code) {
-            case 4007: // The reconnect URL is invalid.
-                disconnect(c);
-                Connection c2 = addConnection(server);
-                // Previous connection may still affect topics
-                c.getTopics().forEach(topic -> c2.addTopic(topic.copy()));
-                c2.init();
+        if (code == 4007) { // The reconnect URL is invalid.
+            disconnect(c);
+            Connection c2 = addConnection(server);
+            // Previous connection may still affect topics
+            c.getTopics().forEach(topic -> c2.addTopic(topic.copy()));
+            c2.init();
         }
     }
     
@@ -563,14 +550,14 @@ public class Connections {
         }
     }
     
-    private boolean unregisterTopic(Topic topic) {
+    private void unregisterTopic(Topic topic) {
         if (topic.getId() == null) {
             Debugging.println("es", "Unregister %s (no id)", topic);
-            return false;
+            return;
         }
         if (!topic.shouldRequest()) {
             Debugging.println("es", "Unregister %s (wait)", topic);
-            return false;
+            return;
         }
         Debugging.println("es", "Unregister %s", topic);
         requestPending.add(topic);
@@ -595,7 +582,6 @@ public class Connections {
                 }
             }
         });
-        return true;
     }
     
     private void log(String event, int connectionId) {
@@ -628,8 +614,7 @@ public class Connections {
     public Map<String, List<Topic>> getTopics() {
         Map<String, List<Topic>> result = new HashMap<>();
         for (Connection c : connections.values()) {
-            List<Topic> topics = new ArrayList<>();
-            topics.addAll(c.getTopics());
+            List<Topic> topics = new ArrayList<>(c.getTopics());
             result.put(c.getSessionId(), topics);
         }
         return result;

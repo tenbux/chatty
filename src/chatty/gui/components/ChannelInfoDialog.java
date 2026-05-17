@@ -2,43 +2,22 @@
 package chatty.gui.components;
 
 import chatty.Chatty;
-import chatty.gui.DockedDialogHelper;
-import chatty.gui.DockedDialogManager;
-import chatty.gui.GuiUtil;
-import chatty.gui.LinkListener;
-import chatty.gui.UrlOpener;
-import chatty.gui.components.admin.StatusHistoryEntry;
+import chatty.gui.*;
 import chatty.gui.components.menus.ContextMenuAdapter;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.lang.Language;
 import chatty.util.DateTime;
-import static chatty.util.DateTime.H;
-import static chatty.util.DateTime.S;
-import chatty.util.MiscUtil;
-import chatty.util.StringUtil;
 import chatty.util.api.StreamInfo;
 import chatty.util.api.StreamInfo.StreamType;
 import chatty.util.api.StreamInfoHistoryItem;
 import chatty.util.dnd.DockContent;
-import chatty.util.dnd.DockContentContainer;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Frame;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.List;
+
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+
+import static chatty.util.DateTime.H;
+import static chatty.util.DateTime.S;
 
 /**
  *
@@ -64,11 +43,9 @@ public class ChannelInfoDialog extends JDialog implements ViewerHistoryListener 
     
     private final JLabel gameLabel = new JLabel(GAME_LABEL_TEXT);
     private final JTextField game = new JTextField();
-    
+
 //    private final LinkLabel communityLabel;
-    private final LinkLabel testLabel = new LinkLabel(null, null);
-    
-    private final JLabel historyLabel = new JLabel(Language.getString("channelInfo.viewers")+":");
+
     private final ViewerHistory history = new ViewerHistory();
     
     private StreamInfo currentStreamInfo;
@@ -178,6 +155,7 @@ public class ChannelInfoDialog extends JDialog implements ViewerHistoryListener 
         gbc = makeGbc(0,4,1,1);
         gbc.insets = new Insets(3,5,3,3);
         gbc.anchor = GridBagConstraints.WEST;
+        JLabel historyLabel = new JLabel(Language.getString("channelInfo.viewers") + ":");
         mainPanel.add(historyLabel,gbc);
         
         history.setListener(this);
@@ -238,13 +216,7 @@ public class ChannelInfoDialog extends JDialog implements ViewerHistoryListener 
             helper = null;
         }
         
-        Timer timer = new Timer(30000, new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                updateOnlineTime(currentStreamInfo);
-            }
-        });
+        Timer timer = new Timer(30000, e -> updateOnlineTime(currentStreamInfo));
         timer.setRepeats(true);
         timer.start();
         

@@ -3,20 +3,15 @@ package chatty.gui.components.settings;
 
 import chatty.gui.GuiUtil;
 import chatty.lang.Language;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Window;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.WindowConstants;
 
 /**
  * The combo box is in an extra dialog, which allows the combo items to be
@@ -43,9 +38,7 @@ public class DialogComboSetting extends JPanel implements StringSetting {
 
         JButton changeButton = new JButton(Language.getString("dialog.button.change"));
         GuiUtil.smallButtonInsets(changeButton);
-        changeButton.addActionListener(e -> {
-            change(parent);
-        });
+        changeButton.addActionListener(e -> change(parent));
 
         setLayout(new GridBagLayout());
 
@@ -75,9 +68,7 @@ public class DialogComboSetting extends JPanel implements StringSetting {
         });
 
         JButton cancel = new JButton(Language.getString("dialog.button.cancel"));
-        cancel.addActionListener(e -> {
-            dialog.setVisible(false);
-        });
+        cancel.addActionListener(e -> dialog.setVisible(false));
 
         dialog.add(list, GuiUtil.makeGbc(0, 0, 2, 1));
         GridBagConstraints gbc = GuiUtil.makeGbc(0, 1, 1, 1);

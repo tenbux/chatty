@@ -8,11 +8,11 @@ import chatty.util.DelayedActionQueue.DelayedActionListener;
 import chatty.util.irc.MsgParameters;
 import chatty.util.irc.MsgTags;
 import chatty.util.irc.ParsedMsg;
+
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 /**
  *
@@ -37,9 +37,7 @@ public abstract class Irc {
     private volatile String pass;
     
     private volatile Connection connection;
-    
-    private String quitmessage = "Quit";
-    
+
     private volatile String connectedIp = "";
     private volatile int connectedPort;
     private volatile long connectedSince = -1;
@@ -220,11 +218,11 @@ public abstract class Irc {
             try {
                 Thread.sleep(3000);
             }
-            catch (InterruptedException ex) {
+            catch (InterruptedException ignored) {
             }
         }
         
-        InetSocketAddress address = null;
+        InetSocketAddress address;
         try {
             address = addressManager.getAddress(server, port);
         } catch (UnknownHostException ex) {
@@ -281,7 +279,8 @@ public abstract class Irc {
      * connection.
      */
     private void quit() {
-        sendCommand("QUIT",quitmessage);
+        String quitmessage = "Quit";
+        sendCommand("QUIT", quitmessage);
     }
     
     public void simulate(String data) {
@@ -335,128 +334,126 @@ public abstract class Irc {
                 onCommand(nick, command, parameters.get(0), parameters.getOrEmpty(1), tags);
             }
         }
-        
-        if (command.equals("PING")) {
-            sendCommand("PONG", parameters.getOrEmpty(0));
-        }
-        else if (command.equals("PRIVMSG")) {
-            if (parameters.has(1)) {
-                String channel = parameters.get(0);
-                String message = parameters.get(1);
-                if (parameters.get(0).startsWith("#")) {
-                    if (message.charAt(0) == (char) 1 && message.startsWith("ACTION", 1)) {
-                        onChannelMessage(channel, nick, prefix, message.substring(7).trim(), tags, true);
-                    } else {
-                        onChannelMessage(channel, nick, prefix, message, tags, false);
+
+        switch (command) {
+            case "PING" -> sendCommand("PONG", parameters.getOrEmpty(0));
+            case "PRIVMSG" -> {
+                if (parameters.has(1)) {
+                    String channel = parameters.get(0);
+                    String message = parameters.get(1);
+                    if (parameters.get(0).startsWith("#")) {
+                        if (message.charAt(0) == (char) 1 && message.startsWith("ACTION", 1)) {
+                            onChannelMessage(channel, nick, prefix, message.substring(7).trim(), tags, true);
+                        } else {
+                            onChannelMessage(channel, nick, prefix, message, tags, false);
+                        }
+                    } else if (channel.equalsIgnoreCase(this.nick)) {
+                        onQueryMessage(nick, prefix, message);
                     }
-                } else if (channel.equalsIgnoreCase(this.nick)) {
+                } else if (parameters.has(0)) {
+                    /**
+                     * For hosting message, which is as follows (no channel/name as
+                     * PRIVMSG target): :jtv!jtv@jtv.tmi.twitch.tv PRIVMSG
+                     * :tduvatest is now hosting you for 0 viewers. [0]
+                     */
+                    String message = parameters.get(0);
                     onQueryMessage(nick, prefix, message);
                 }
-            } else if (parameters.has(0)) {
-                /**
-                 * For hosting message, which is as follows (no channel/name as
-                 * PRIVMSG target): :jtv!jtv@jtv.tmi.twitch.tv PRIVMSG
-                 * :tduvatest is now hosting you for 0 viewers. [0]
-                 */
-                String message = parameters.get(0);
-                onQueryMessage(nick, prefix, message);
             }
-        }
-        else if (command.equals("NOTICE")) {
-            if (parameters.has(1)) {
-                String channel = parameters.get(0);
-                String message = parameters.get(1);
-                if (!channel.startsWith("#")) {
-                    onNotice(nick, prefix, message);
-                } else {
-                    onNotice(channel, message, tags);
+            case "NOTICE" -> {
+                if (parameters.has(1)) {
+                    String channel = parameters.get(0);
+                    String message = parameters.get(1);
+                    if (!channel.startsWith("#")) {
+                        onNotice(nick, prefix, message);
+                    } else {
+                        onNotice(channel, message, tags);
+                    }
                 }
             }
-        }
-        else if (command.equals("USERNOTICE")) {
-            if (parameters.isChan(0)) {
-                String channel = parameters.get(0);
-                String message = parameters.getOrEmpty(1);
-                onUsernotice(channel, message, tags);
-            }
-        }
-        else if (command.equals("JOIN")) {
-            if (parameters.has(0)) {
-                String channel = parameters.get(0);
-                onJoin(channel, nick);
-            }
-        }
-        else if (command.equals("PART")) {
-            if (parameters.has(0)) {
-                String channel = parameters.get(0);
-                onPart(channel, nick);
-            }
-        }
-        else if (command.equals("MODE")) {
-            if (parameters.size() == 3) {
-                String chan = parameters.get(0);
-                String mode = parameters.get(1);
-                String name = parameters.get(2);
-                
-                if (mode.length() == 2) {
-                    String modeChar = mode.substring(1, 2);
-                    if (mode.startsWith("+")) {
-                        onModeChange(chan,name,true,modeChar, prefix);
-                    }
-                    else if (mode.startsWith("-")) {
-                        onModeChange(chan,name,false,modeChar, prefix);
-                    }
-                    
+            case "USERNOTICE" -> {
+                if (parameters.isChan(0)) {
+                    String channel = parameters.get(0);
+                    String message = parameters.getOrEmpty(1);
+                    onUsernotice(channel, message, tags);
                 }
             }
-        }
-        // Now the connection is really going.. ;)
-        else if (command.equals("004")) {
-            setState(STATE_REGISTERED);
-            onRegistered();
-        }
-        // Nick list, usually on channel join
-        else if (command.equals("353")) {
-            if (parameters.size() == 4 && parameters.get(1).equals("=") && parameters.isChan(2)) {
-                String[] names = parameters.get(3).split(" ");
-                onUserlist(parameters.get(2), names);
+            case "JOIN" -> {
+                if (parameters.has(0)) {
+                    String channel = parameters.get(0);
+                    onJoin(channel, nick);
+                }
             }
-            
-        }
-        // WHO response not really correct now
-        else if (command.equals("352")) {
-            //String[] parts = trailing.split(" ");
-            //if (parts.length > 1) {
+            case "PART" -> {
+                if (parameters.has(0)) {
+                    String channel = parameters.get(0);
+                    onPart(channel, nick);
+                }
+            }
+            case "MODE" -> {
+                if (parameters.size() == 3) {
+                    String chan = parameters.get(0);
+                    String mode = parameters.get(1);
+                    String name = parameters.get(2);
+
+                    if (mode.length() == 2) {
+                        String modeChar = mode.substring(1, 2);
+                        if (mode.startsWith("+")) {
+                            onModeChange(chan, name, true, modeChar, prefix);
+                        } else if (mode.startsWith("-")) {
+                            onModeChange(chan, name, false, modeChar, prefix);
+                        }
+
+                    }
+                }
+            }
+            // Now the connection is really going.. ;)
+            case "004" -> {
+                setState(STATE_REGISTERED);
+                onRegistered();
+            }
+            // Nick list, usually on channel join
+            case "353" -> {
+                if (parameters.size() == 4 && parameters.get(1).equals("=") && parameters.isChan(2)) {
+                    String[] names = parameters.get(3).split(" ");
+                    onUserlist(parameters.get(2), names);
+                }
+            }
+            // WHO response not really correct now
+            case "352" -> {
+                //String[] parts = trailing.split(" ");
+                //if (parts.length > 1) {
                 //onWhoResponse(parts[0],parts[1]);
-            //}
-        }
-        else if (command.equals("USERSTATE")) {
-            if (tags != null && parameters.isChan(0)) {
-                String channel = parameters.get(0);
-                onUserstate(channel, tags);
+                //}
             }
-        }
-        else if (command.equals("GLOBALUSERSTATE")) {
-            if (tags != null) {
-                onGlobalUserstate(tags);
-            }
-        }
-        else if (command.equals("CLEARCHAT")) {
-            if (parameters.isChan(0)) {
-                String channel = parameters.get(0);
-                String message = parameters.getOrEmpty(1);
-                if (message.isEmpty()) {
-                    onClearChat(tags, channel, null);
-                } else {
-                    onClearChat(tags, channel, message);
+            case "USERSTATE" -> {
+                if (tags != null && parameters.isChan(0)) {
+                    String channel = parameters.get(0);
+                    onUserstate(channel, tags);
                 }
             }
-        }
-        else if (command.equals("CLEARMSG")) {
-            if (parameters.isChan(0)) {
-                String channel = parameters.get(0);
-                String message = parameters.getOrEmpty(1);
-                onClearMsg(tags, channel, message);
+            case "GLOBALUSERSTATE" -> {
+                if (tags != null) {
+                    onGlobalUserstate(tags);
+                }
+            }
+            case "CLEARCHAT" -> {
+                if (parameters.isChan(0)) {
+                    String channel = parameters.get(0);
+                    String message = parameters.getOrEmpty(1);
+                    if (message.isEmpty()) {
+                        onClearChat(tags, channel, null);
+                    } else {
+                        onClearChat(tags, channel, message);
+                    }
+                }
+            }
+            case "CLEARMSG" -> {
+                if (parameters.isChan(0)) {
+                    String channel = parameters.get(0);
+                    String message = parameters.getOrEmpty(1);
+                    onClearMsg(tags, channel, message);
+                }
             }
         }
     }

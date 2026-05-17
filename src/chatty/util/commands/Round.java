@@ -77,20 +77,14 @@ public class Round implements Item {
     }
     
     private static RoundingMode getRoundingMode(String input) {
-        switch (input) {
-            case "floor":
-                return RoundingMode.FLOOR;
-            case "ceil":
-                return RoundingMode.CEILING;
-            case "up":
-                return RoundingMode.UP;
-            case "down":
-                return RoundingMode.DOWN;
-            case "half-down":
-                return RoundingMode.HALF_DOWN;
-            default:
-                return RoundingMode.HALF_UP;
-        }
+        return switch (input) {
+            case "floor" -> RoundingMode.FLOOR;
+            case "ceil" -> RoundingMode.CEILING;
+            case "up" -> RoundingMode.UP;
+            case "down" -> RoundingMode.DOWN;
+            case "half-down" -> RoundingMode.HALF_DOWN;
+            default -> RoundingMode.HALF_UP;
+        };
     }
     
     public static String round(double input, int decimals, RoundingMode mode, int minDecials) {

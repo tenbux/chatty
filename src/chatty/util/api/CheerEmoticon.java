@@ -3,7 +3,8 @@ package chatty.util.api;
 
 import chatty.Helper;
 import chatty.util.api.CachedImage.ImageType;
-import java.awt.Color;
+
+import java.awt.*;
 import java.util.Objects;
 import java.util.Set;
 
@@ -12,20 +13,9 @@ import java.util.Set;
  * @author tduva
  */
 public class CheerEmoticon extends Emoticon {
-    
-    public static class CheerEmoticonUrl {
-        
-        public final String url;
-        public final String background;
-        public final String type;
-        public final String scale;
-        
-        public CheerEmoticonUrl(String url, String background, String type, String scale) {
-            this.url = url;
-            this.background = background;
-            this.type = type;
-            this.scale = scale;
-        }
+
+    public record CheerEmoticonUrl(String url, String background, String type, String scale) {
+
     }
     
     public final String prefix;
@@ -102,10 +92,7 @@ public class CheerEmoticon extends Emoticon {
         if (!Objects.equals(this.prefix, other.prefix)) {
             return false;
         }
-        if (this.min_bits != other.min_bits) {
-            return false;
-        }
-        return true;
+        return this.min_bits == other.min_bits;
     }
     
     @Override

@@ -7,32 +7,22 @@ import chatty.gui.components.LinkLabel;
 import chatty.gui.components.LinkLabelListener;
 import chatty.gui.components.settings.SettingsUtil;
 import chatty.lang.Language;
-import chatty.util.DateTime;
-import chatty.util.Debugging;
-import chatty.util.GitHub;
+import chatty.util.*;
 import chatty.util.GitHub.Asset;
 import chatty.util.GitHub.Release;
 import chatty.util.GitHub.Releases;
-import chatty.util.MiscUtil;
-import chatty.util.StringUtil;
 import chatty.util.settings.Settings;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Window;
+
+import javax.swing.*;
+import java.awt.*;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
 
 /**
  *
@@ -65,7 +55,6 @@ public class UpdateDialog extends JDialog {
     
     private final JCheckBox enableCheckBeta;
     private final JCheckBox enableUpdateJar;
-    private final JButton closeButton;
     private final JButton downloadButton;
     
     public UpdateDialog(Window owner, LinkLabelListener linkLabelListener,
@@ -145,7 +134,7 @@ public class UpdateDialog extends JDialog {
         gbc.insets = new Insets(0, 5, 5, 5);
         add(enableUpdateJar, gbc);
 
-        closeButton = new JButton(Language.getString("dialog.button.close"));
+        JButton closeButton = new JButton(Language.getString("dialog.button.close"));
         gbc = GuiUtil.makeGbc(0, 7, 1, 1);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1;
@@ -156,11 +145,7 @@ public class UpdateDialog extends JDialog {
     
     public void showDialog() {
         if (releases == null) {
-            Version.request(settings, (v, r) -> {
-                SwingUtilities.invokeLater(() -> {
-                    setInfo(r);
-                });
-            });
+            Version.request(settings, (v, r) -> SwingUtilities.invokeLater(() -> setInfo(r)));
         }
         updateDisplay();
         setVisible(true);
@@ -255,7 +240,7 @@ public class UpdateDialog extends JDialog {
                 + "<div style='font-size:1.2em;'>Installed: <span style='font-family:monospaced;'>%1$s</span> <small>%3$s</small></div>"
                 + "<div style='padding:5px;'><span style='font-size:1.2em;'>↓</span> [changelog:b View Changes]</div>"
                 + "<div style='font-size:1.2em;'>Latest: <span style='font-family:monospaced;'>%2$s</span> <small>%4$s</small></div>"
-                + "</div>".replaceAll(" ", "&nbsp;");
+                + "</div>";
 
         String currentAge = "(?)";
         if (current != null) {
@@ -327,7 +312,7 @@ public class UpdateDialog extends JDialog {
     private void download(Asset asset) {
         try {
             Path installerPath = Stuff.getTempFilePath(asset.getName());
-            URL downloadUrl = new URL(asset.getUrl());
+            URL downloadUrl = URI.create(asset.getUrl()).toURL();
             if (FileDownloaderDialog.downloadFile(this, downloadUrl, installerPath, "Download update")) {
 //                int result = JOptionPane.showConfirmDialog(this, "Running the installer will close Chatty, continue?", "Install Update", JOptionPane.YES_NO_OPTION);
 //                if (result == JOptionPane.YES_OPTION) {
@@ -355,10 +340,10 @@ public class UpdateDialog extends JDialog {
     }
     
     public interface InstallListener {
-        public void installing();
+        void installing();
     }
     
-    public static final void main(String[] args) {
+    public static void main(String[] args) {
         Debugging.command("+update");
         Stuff.init(Paths.get("H:\\chatty_install\\Param Test.jar"));
         
@@ -367,9 +352,7 @@ public class UpdateDialog extends JDialog {
         settings.addBoolean("updateJar", false);
         settings.addLong("versionLastChecked", 0L);
         
-        LinkLabelListener linkLabelListener = (type, ref) -> {
-            System.out.println("Link clicked: " + type + ":" + ref);
-        };
+        LinkLabelListener linkLabelListener = (type, ref) -> System.out.println("Link clicked: " + type + ":" + ref);
         
         Releases data = testReleases();
         //data = GitHub.getReleases();
@@ -394,12 +377,13 @@ public class UpdateDialog extends JDialog {
     }
     
     private static Release testRelease(String version, boolean beta, long datetime) {
-        String description = "Changes [compared to previous version](https://github.com/chatty/chatty/compare/v0.9...v0.9.1) (v0.9):\n"
-                + "\n"
-                + "### Main Features\n"
-                + "- Added basic support for Rooms (join via Channels-menu and Favorites/History)\n"
-                + "- Added initial support for translating the Chatty GUI to other languages,\n"
-                + "  added some partial translations (thanks to volunteers translating)";
+        String description = """
+                Changes [compared to previous version](https://github.com/chatty/chatty/compare/v0.9...v0.9.1) (v0.9):
+                
+                ### Main Features
+                - Added basic support for Rooms (join via Channels-menu and Favorites/History)
+                - Added initial support for translating the Chatty GUI to other languages,
+                  added some partial translations (thanks to volunteers translating)""";
         
         List<Asset> assets = new ArrayList<>();
         assets.add(new Asset("Chatty_"+version+".zip", "http://example.com/"));

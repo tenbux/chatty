@@ -1,20 +1,15 @@
 
 package chatty.util;
 
-import chatty.util.api.Emoticon;
 import chatty.util.api.CachedImage;
-import chatty.util.api.CachedImage.ImageType;
-import java.awt.Image;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Logger;
-import javax.swing.ImageIcon;
-import javax.swing.SwingUtilities;
 import chatty.util.api.CachedImage.CachedImageUser;
-import java.util.ArrayList;
+import chatty.util.api.CachedImage.ImageType;
+import chatty.util.api.Emoticon;
+
+import javax.swing.*;
 import javax.swing.Timer;
+import java.util.*;
+import java.util.logging.Logger;
 
 /**
  * This does currently not support proper cleanup of images (e.g. references in
@@ -39,7 +34,7 @@ public class CombinedEmoticon extends Emoticon {
     public static String getCode(List<Emoticon> emotes) {
         StringBuilder result = new StringBuilder();
         for (Emoticon emote : emotes) {
-            if (result.length() > 0) {
+            if (!result.isEmpty()) {
                 result.append(" ");
             }
             result.append(emote.code);
@@ -58,7 +53,7 @@ public class CombinedEmoticon extends Emoticon {
      */
     public static CombinedEmoticon create(List<Emoticon> emotes, String code, ImageType imageType) {
         Debugging.println("combinedemotes", "Create: %s", emotes);
-        Emoticon base = emotes.get(0);
+        Emoticon base = emotes.getFirst();
         Emoticon.Builder b = new Emoticon.Builder(base.type, code);
         b.setImageUrl(base.url);
         b.setStringId(base.stringId);
@@ -118,25 +113,17 @@ public class CombinedEmoticon extends Emoticon {
          * since it only happens sometimes and adding debug messages appeared to
          * change the behaviour.
          */
-        Timer timer = new Timer(2000, e -> {
-            makeImage(scaleFactor, maxHeight, user);
-        });
+        Timer timer = new Timer(2000, e -> makeImage(scaleFactor, maxHeight, user));
         timer.setRepeats(false);
         timer.start();
         
         boolean allLoaded = true;
         for (Emoticon emote : emotes) {
-            CachedImage<Emoticon> image = emote.getIcon(scaleFactor, maxHeight, imageType, new CachedImageUser() {
-
-                @Override
-                public void iconLoaded(Image oldImage, Image newImage, boolean sizeChanged) {
-                    Debugging.println("combinedemotes", "iconLoaded: %s [%s]", emotes, System.identityHashCode(CombinedEmoticon.this));
-                    SwingUtilities.invokeLater(() -> {
-                        makeImage(scaleFactor, maxHeight, user);
-                    });
-                }
+            CachedImage<Emoticon> image = emote.getIcon(scaleFactor, maxHeight, imageType, (oldImage, newImage, sizeChanged) -> {
+                Debugging.println("combinedemotes", "iconLoaded: %s [%s]", emotes, System.identityHashCode(CombinedEmoticon.this));
+                SwingUtilities.invokeLater(() -> makeImage(scaleFactor, maxHeight, user));
             });
-            if (!image.isLoaded()) {
+            if (image.isLoaded()) {
                 allLoaded = false;
                 image.getImageIcon();
             }
@@ -165,7 +152,7 @@ public class CombinedEmoticon extends Emoticon {
         // Build list images and offsets
         for (Emoticon emote : emotes) {
             CachedImage<Emoticon> image = emote.getIcon(scaleFactor, maxHeight, imageType, null);
-            if (!image.isLoaded()) {
+            if (image.isLoaded()) {
                 LOGGER.warning(image.getObject()+" not loaded for "+emotes);
                 return;
             }

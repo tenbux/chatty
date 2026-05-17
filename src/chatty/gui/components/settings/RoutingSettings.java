@@ -36,7 +36,7 @@ public class RoutingSettings extends SettingsPanel {
             tester.setLinkLabelListener(d.getLinkLabelListener());
             return tester;
         });
-        items.setDataFormatter(input -> input.trim());
+        items.setDataFormatter(String::trim);
         
         GridBagConstraints gbc;
         

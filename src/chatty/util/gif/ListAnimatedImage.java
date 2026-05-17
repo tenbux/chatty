@@ -1,9 +1,7 @@
 
 package chatty.util.gif;
 
-import java.awt.Dimension;
-import java.awt.Image;
-import java.awt.Toolkit;
+import java.awt.*;
 import java.util.List;
 
 /**
@@ -35,7 +33,7 @@ public class ListAnimatedImage implements AnimatedImage {
             }
         }
         if (highestVisiblePixelCount == 0
-                || (frames.get(0).getVisiblePixelCount() * 10) / highestVisiblePixelCount > 7) {
+                || (frames.getFirst().getVisiblePixelCount() * 10) / highestVisiblePixelCount > 7) {
             // Prefer first frame if it's visibility isn't much lower
             this.preferredPauseFrame = 0;
         }

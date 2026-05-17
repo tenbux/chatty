@@ -32,8 +32,8 @@ public class Speedruncom {
     }
     
     private static String replaceForUrl(String game) {
-        return game.replaceAll(" ", "_").replaceAll(":", "").replaceAll("'", "")
-                .replaceAll("&", "and");
+        return game.replace(" ", "_").replace(":", "").replace("'", "")
+                .replace("&", "and");
     }
     
 }

@@ -5,26 +5,14 @@ import chatty.gui.components.LinkLabelListener;
 import chatty.gui.components.settings.Editor.Tester;
 import chatty.lang.Language;
 import chatty.util.SyntaxHighlighter;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 
 /**
  * A simple panel to edit (add/remove Strings) a list.
@@ -68,31 +56,27 @@ public class ListSelector extends JPanel implements ListSetting<String> {
         this.title = title;
         
         // Button actions
-        ActionListener buttonAction = new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (e.getSource() == add || e.getSource() == input) {
-                    addItem();
-                }
-                else if (e.getSource() == remove) {
-                    removeItem();
-                }
-                else if (e.getSource() == change) {
-                    changeItem();
-                }
-                else if (e.getSource() == moveUp) {
-                    moveUp();
-                }
-                else if (e.getSource() == moveDown) {
-                    moveDown();
-                }
-                else if (e.getSource() == sort) {
-                    sort();
-                }
-                else if (e.getSource() == editAll) {
-                    editAll();
-                }
+        ActionListener buttonAction = e -> {
+            if (e.getSource() == add || e.getSource() == input) {
+                addItem();
+            }
+            else if (e.getSource() == remove) {
+                removeItem();
+            }
+            else if (e.getSource() == change) {
+                changeItem();
+            }
+            else if (e.getSource() == moveUp) {
+                moveUp();
+            }
+            else if (e.getSource() == moveDown) {
+                moveDown();
+            }
+            else if (e.getSource() == sort) {
+                sort();
+            }
+            else if (e.getSource() == editAll) {
+                editAll();
             }
         };
         
@@ -126,13 +110,7 @@ public class ListSelector extends JPanel implements ListSetting<String> {
         });
         
         // List selection changes
-        list.addListSelectionListener(new ListSelectionListener() {
-
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                updateEditButtons();
-            }
-        });
+        list.addListSelectionListener(e -> updateEditButtons());
         
         // Buttons
         configureButton(add, "list-add.png", Language.getString("settings.listSelector.button.add.tip"));
@@ -161,7 +139,6 @@ public class ListSelector extends JPanel implements ListSetting<String> {
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1;
         //add(input, gbc);
         
         gbc.weightx = 0;

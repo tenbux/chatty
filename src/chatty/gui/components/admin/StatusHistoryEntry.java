@@ -12,28 +12,18 @@ import java.util.Objects;
  * Immutable object presenting a single entry of a status preset, containing
  * title and game, when it was last touched, how often it was used and whether
  * it is a favorite.
- * 
+ *
+ * @param tags A list of StreamTag objects. May be null (meaning tags should be entirely
+ *             disregarded) or empty (meaning no tags set).
  * @author tduva
  */
-public class StatusHistoryEntry {
-    
-    public final String title;
-    public final StreamCategory game;
-    
-    /**
-     * A list of StreamTag objects. May be null (meaning tags should be entirely
-     * disregarded) or empty (meaning no tags set).
-     */
-    public final List<StreamTag> tags;
-    public final List<StreamLabel> labels;
-    public final long lastActivity;
-    public final int timesUsed;
-    public final boolean favorite;
-    
-    public StatusHistoryEntry(String title, StreamCategory game, List<StreamTag> tags, List<StreamLabel> labels, long lastSet, int timesUsed, boolean favorite) {
+public record StatusHistoryEntry(String title, StreamCategory game, List<StreamTag> tags, List<StreamLabel> labels,
+                                 long lastActivity, int timesUsed, boolean favorite) {
+
+    public StatusHistoryEntry(String title, StreamCategory game, List<StreamTag> tags, List<StreamLabel> labels, long lastActivity, int timesUsed, boolean favorite) {
         this.title = title;
         this.game = game;
-        this.lastActivity = lastSet;
+        this.lastActivity = lastActivity;
         this.timesUsed = timesUsed;
         this.favorite = favorite;
         if (tags == null) {
@@ -47,22 +37,22 @@ public class StatusHistoryEntry {
             this.labels = new ArrayList<>(labels);
         }
     }
-    
+
     public StatusHistoryEntry(String title, StreamCategory game, List<StreamTag> tags, List<StreamLabel> labels) {
         this(title, game, tags, labels, -1, -1, false);
     }
-    
+
     /**
      * Returns a new identical {@code StatusHistoryEntry}, except that the times
      * used is increased by one and the last activity attribute is updated with
      * the current time.
-     * 
+     *
      * @return The new {@code StatusHistoryEntry}.
      */
     public StatusHistoryEntry increaseUsed() {
-        return new StatusHistoryEntry(title, game, tags, labels, System.currentTimeMillis(), timesUsed+1, favorite);
+        return new StatusHistoryEntry(title, game, tags, labels, System.currentTimeMillis(), timesUsed + 1, favorite);
     }
-    
+
     /**
      * Returns a new identical {@code StatusHistoryEntry} that has the
      * {@code favorite} attribute set to the given value and the last activity
@@ -74,7 +64,7 @@ public class StatusHistoryEntry {
     public StatusHistoryEntry setFavorite(boolean favorite) {
         return new StatusHistoryEntry(title, game, tags, labels, lastActivity, timesUsed, favorite);
     }
-    
+
     public StatusHistoryEntry updateTagName(StreamTag o) {
         if (tags != null) {
             for (StreamTag tag : tags) {
@@ -93,11 +83,11 @@ public class StatusHistoryEntry {
         }
         return this;
     }
-    
+
     /**
      * Update the game (category) id or name, if the given category matches and
      * a change is needed.
-     * 
+     *
      * @param updatedCategory The up-to-date category, probably from the API
      * @return A new entry with the category changed, or the same entry if
      * nothing changed
@@ -111,12 +101,12 @@ public class StatusHistoryEntry {
             return new StatusHistoryEntry(title, updatedCategory, tags, labels, lastActivity, timesUsed, favorite);
         }
         // Change name
-        if (game.hasId() && updatedCategory.id.equals(game.id) && !updatedCategory.name.equals(game.name)) {
+        if (game.hasId() && updatedCategory.id().equals(game.id()) && !updatedCategory.name().equals(game.name())) {
             return new StatusHistoryEntry(title, updatedCategory, tags, labels, lastActivity, timesUsed, favorite);
         }
         return this;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (obj == null) {
@@ -135,10 +125,7 @@ public class StatusHistoryEntry {
         if (!Objects.equals(this.tags, other.tags)) {
             return false;
         }
-        if (!Objects.equals(this.labels, other.labels)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.labels, other.labels);
     }
 
     @Override
@@ -153,12 +140,12 @@ public class StatusHistoryEntry {
 
     /**
      * A simple String representation, mainly for debugging.
-     * 
-     * @return 
+     *
+     * @return
      */
     @Override
     public String toString() {
-        return title+" "+game+" "+lastActivity+" "+timesUsed+" "+favorite+" "+tags+" "+labels;
+        return title + " " + game + " " + lastActivity + " " + timesUsed + " " + favorite + " " + tags + " " + labels;
     }
-    
+
 }

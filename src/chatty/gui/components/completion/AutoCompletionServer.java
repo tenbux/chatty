@@ -1,11 +1,11 @@
 
 package chatty.gui.components.completion;
 
-import java.awt.Component;
+import javax.swing.*;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import javax.swing.ImageIcon;
 
 /**
  * Defines the CompletionServer, which creates the actual search result used
@@ -37,8 +37,8 @@ public interface AutoCompletionServer {
      * @param search The search item, will never be null or empty
      * @return A CompletionItems object containing the result
      */
-    public CompletionItems getCompletionItems(String type, String prefix,
-            String search);
+    CompletionItems getCompletionItems(String type, String prefix,
+                                       String search);
     
     /**
      * Decide if the prefix should auto-start the completion (i.e. show the
@@ -54,75 +54,69 @@ public interface AutoCompletionServer {
      * @param prefix The prefix to check
      * @return true for auto-start, false to take no action
      */
-    public boolean isAutostartPrefix(String prefix);
-    
-    /**
-     * A container for the data the CompletionServer returns.
-     */
-    public static class CompletionItems {
+    boolean isAutostartPrefix(String prefix);
 
-        public final List<CompletionItem> items;
-        public final String prefixToRemove;
+    /**
+         * A container for the data the CompletionServer returns.
+         */
+        record CompletionItems(List<CompletionItem> items, String prefixToRemove) {
 
         /**
          * Should contain a sorted list of Strings, containing only of word
          * characters, unless only one String is contained in the list, then
          * any character is allowed.
-         * 
+         * <p>
          * The prefixToRemove denotes the prefix String that shouldn't actually
          * be part of the resulting completed String, but is only used to
          * determine what type of items should be returned for completion. It
          * will thus be removed. Only the length of the prefixToRemove may
          * actually matter. It must not be longer than the actual prefix was.
          *
-         * @param items Some HTML characters will be escaped
-         * @param prefixToRemove 
+         * @param items          Some HTML characters will be escaped
+         * @param prefixToRemove
          */
-        public CompletionItems(List<CompletionItem> items, String prefixToRemove) {
-            this.items = items;
-            this.prefixToRemove = prefixToRemove;
+        public CompletionItems {
         }
-        
+
         public static CompletionItems createFromStrings(List<String> items,
-                                                        String prefixToRemove) {
-            return createFromStrings(items, prefixToRemove, null);
-        }
-        
-        public static CompletionItems createFromStrings(List<String> items,
-                                                        String prefixToRemove,
-                                                        Map<String, String> info) {
-            List<CompletionItem> result = new ArrayList<>();
-            for (String item : items) {
-                result.add(new CompletionItem(item, info != null ? info.get(item) : null));
+                                                            String prefixToRemove) {
+                return createFromStrings(items, prefixToRemove, null);
             }
-            return new CompletionItems(result, prefixToRemove);
-        }
-        
+
+        public static CompletionItems createFromStrings(List<String> items,
+                                                            String prefixToRemove,
+                                                            Map<String, String> info) {
+                List<CompletionItem> result = new ArrayList<>();
+                for (String item : items) {
+                    result.add(new CompletionItem(item, info != null ? info.get(item) : null));
+                }
+                return new CompletionItems(result, prefixToRemove);
+            }
+
         /**
-         * Creates an object for an empty result.
-         */
-        public CompletionItems() {
-            this.items = new ArrayList<>();
-            this.prefixToRemove = "";
-        }
-        
+             * Creates an object for an empty result.
+             */
+            public CompletionItems() {
+                this(new ArrayList<>(), "");
+            }
+
         /**
          * Add the items and info of the given CompletionItems object to the end
          * of this one.
-         * 
-         * @param other 
+         *
+         * @param other
          */
-        public void append(CompletionItems other) {
-            items.addAll(other.items);
-        }
-        
+            public void append(CompletionItems other) {
+                items.addAll(other.items);
+            }
+
         public boolean isEmpty() {
-            return items == null || items.isEmpty();
-        }
-        
+                return items == null || items.isEmpty();
+            }
+
     }
     
-    public static class CompletionItem implements Comparable<CompletionItem> {
+    class CompletionItem implements Comparable<CompletionItem> {
         
         private final String code;
         private final String info;

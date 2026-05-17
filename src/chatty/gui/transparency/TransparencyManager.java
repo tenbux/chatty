@@ -2,23 +2,21 @@
 package chatty.gui.transparency;
 
 import chatty.gui.Channels;
+import chatty.util.MiscUtil;
 import chatty.util.dnd.DockContent;
 import chatty.util.dnd.DockPopout;
-import chatty.util.MiscUtil;
 import chatty.util.settings.Settings;
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinUser;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Container;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import javax.swing.JComponent;
-import javax.swing.JFrame;
 
 /**
  *
@@ -89,10 +87,10 @@ public class TransparencyManager {
         if (current != content) {
             undoTransparent(current);
         }
-        if (!isInPopout(content)) {
+        if (isInPopout(content)) {
             channels.popout(content, true);
         }
-        if (!isInPopout(content)) {
+        if (isInPopout(content)) {
             return;
         }
         TransparencyComponent t = findTransparencyComponent(content.getComponent());
@@ -198,8 +196,7 @@ public class TransparencyManager {
     private static void setNotOpaque(Component container, Set<JComponent> notOpaque) {
         Container parent = container.getParent();
 //        System.out.println(container.isOpaque() + " " + container + " -> " + parent);
-        if (container instanceof JComponent) {
-            JComponent comp = ((JComponent) container);
+        if (container instanceof JComponent comp) {
             if (parent != null && comp.isOpaque()) {
                 comp.setOpaque(false);
                 notOpaque.add(comp);
@@ -265,7 +262,7 @@ public class TransparencyManager {
     }
     
     private static boolean isInPopout(DockContent content) {
-        return getPopoutFrame(content) != null;
+        return getPopoutFrame(content) == null;
     }
 
     /**

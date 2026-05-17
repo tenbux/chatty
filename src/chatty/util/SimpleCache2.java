@@ -2,8 +2,8 @@
 package chatty.util;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,8 +22,7 @@ public class SimpleCache2 {
     private static final Logger LOGGER = Logger.getLogger(SimpleCache2.class.getName());
    
     private final String debugPrefix;
-    
-    private final String id;
+
     private final long expireTime;
     private final Path file;
     
@@ -35,7 +34,6 @@ public class SimpleCache2 {
     private volatile boolean pendingRefresh;
     
     public SimpleCache2(String id, String file, long expireTime) {
-        this.id = id;
         this.file = Paths.get(file);
         this.expireTime = expireTime;
         this.debugPrefix = "C["+id+"] Cache: ";
@@ -85,13 +83,9 @@ public class SimpleCache2 {
      * @see load()
      */
     public void asyncLoad() {
-        new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                load();
-            }
-        }).start();
+        Thread t = new Thread(this::load, "SimpleCache2-load");
+        t.setDaemon(true);
+        t.start();
     }
     
     /**
@@ -148,13 +142,9 @@ public class SimpleCache2 {
      * @see refresh()
      */
     public void asyncRefresh() {
-        new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                refresh();
-            }
-        }).start();
+        Thread t = new Thread(this::refresh, "SimpleCache2-refresh");
+        t.setDaemon(true);
+        t.start();
     }
     
     /**
@@ -203,14 +193,15 @@ public class SimpleCache2 {
      */
     private synchronized void saveToFile(List<String> lines) {
         LOGGER.info(debugPrefix+"Trying to save..");
-        try (BufferedWriter writer = Files.newBufferedWriter(file)) {
-            writer.write(Long.toString(System.currentTimeMillis() / 1000));
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append(System.currentTimeMillis() / 1000);
             for (String line : lines) {
-                // Use this rather than writer.newLine() to keep it consistent
-                // between different OS (only Chatty needs to read the file)
-                writer.write("\n");
-                writer.write(line);
+                // Use "\n" rather than system line separator to keep it
+                // consistent between different OS (only Chatty reads the file)
+                sb.append("\n").append(line);
             }
+            Files.writeString(file, sb, StandardCharsets.UTF_8);
             LOGGER.info(debugPrefix+"Saved.");
         }
         catch (IOException ex) {

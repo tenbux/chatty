@@ -6,6 +6,10 @@ import chatty.gui.LinkListener;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.textpane.LinkController;
 import chatty.gui.components.textpane.WrapLabelView;
+
+import javax.swing.*;
+import javax.swing.text.*;
+import javax.swing.text.html.HTML;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -15,24 +19,6 @@ import java.util.TreeMap;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.swing.JTextPane;
-import javax.swing.text.AbstractDocument;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.BoxView;
-import javax.swing.text.ComponentView;
-import javax.swing.text.Element;
-import javax.swing.text.IconView;
-import javax.swing.text.LabelView;
-import javax.swing.text.MutableAttributeSet;
-import javax.swing.text.ParagraphView;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
-import javax.swing.text.StyledEditorKit;
-import javax.swing.text.View;
-import javax.swing.text.ViewFactory;
-import javax.swing.text.html.HTML;
 
 /**
  * Simple text pane that turns URLs and SRL channels into clickable links.
@@ -153,7 +139,7 @@ public class ExtendedTextPane extends JTextPane {
         while (urlMatcher.find()) {
             int start = urlMatcher.start();
             int end = urlMatcher.end() - 1;
-            if (!inRanges(start, ranges) && !inRanges(end,ranges)) {
+            if (inRanges(start, ranges) && inRanges(end, ranges)) {
                 String foundUrl = urlMatcher.group();
                 
                 if (foundUrl.contains("..")) {
@@ -193,7 +179,7 @@ public class ExtendedTextPane extends JTextPane {
         while (srlMatcher.find()) {
             int start = srlMatcher.start();
             int end = srlMatcher.end() - 1;
-            if (!inRanges(start, ranges) && !inRanges(end, ranges)) {
+            if (inRanges(start, ranges) && inRanges(end, ranges)) {
                 String foundSrl = srlMatcher.group();
                 String url = SRL_URL+foundSrl;
                 ranges.put(start, end);
@@ -230,10 +216,10 @@ public class ExtendedTextPane extends JTextPane {
         while (rangesIt.hasNext()) {
             Map.Entry<Integer, Integer> range = rangesIt.next();
             if (i >= range.getKey() && i <= range.getValue()) {
-                return true;
+                return false;
             }
         }
-        return false;
+        return true;
     }
     
     /**
@@ -280,16 +266,22 @@ public class ExtendedTextPane extends JTextPane {
             public View create(Element elem) {
                 String kind = elem.getName();
                 if (kind != null) {
-                    if (kind.equals(AbstractDocument.ContentElementName)) {
-                        return new WrapLabelView(elem);
-                    } else if (kind.equals(AbstractDocument.ParagraphElementName)) {
-                        return new ParagraphView(elem);
-                    } else if (kind.equals(AbstractDocument.SectionElementName)) {
-                        return new BoxView(elem, View.Y_AXIS);
-                    } else if (kind.equals(StyleConstants.ComponentElementName)) {
-                        return new ComponentView(elem);
-                    } else if (kind.equals(StyleConstants.IconElementName)) {
-                        return new IconView(elem);
+                    switch (kind) {
+                        case AbstractDocument.ContentElementName -> {
+                            return new WrapLabelView(elem);
+                        }
+                        case AbstractDocument.ParagraphElementName -> {
+                            return new ParagraphView(elem);
+                        }
+                        case AbstractDocument.SectionElementName -> {
+                            return new BoxView(elem, View.Y_AXIS);
+                        }
+                        case StyleConstants.ComponentElementName -> {
+                            return new ComponentView(elem);
+                        }
+                        case StyleConstants.IconElementName -> {
+                            return new IconView(elem);
+                        }
                     }
                 }
                 return new LabelView(elem);

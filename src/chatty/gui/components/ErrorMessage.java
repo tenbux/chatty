@@ -8,27 +8,15 @@ import chatty.util.DateTime;
 import chatty.util.ElapsedTime;
 import chatty.util.LogUtil;
 import chatty.util.MiscUtil;
-import java.awt.Dimension;
-import java.awt.Frame;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.LinkedList;
 import java.util.Locale;
 import java.util.logging.LogRecord;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
 
 /**
  *
@@ -66,8 +54,6 @@ public class ErrorMessage extends JDialog {
     private final GridBagConstraints contentGbc;
     
     private final LinkLabel topMessage;
-    private final LinkLabel message;
-    private final LinkLabel minimizedMessage;
     private final JButton continueProgram = new JButton("Continue");
     private final JButton quitProgram = new JButton("Quit Program");
     private final JButton copyText = new JButton("Copy to clipboard");
@@ -91,25 +77,15 @@ public class ErrorMessage extends JDialog {
         setModal(true);
         debugMessage.setLineWrap(false);
         debugMessage.setEditable(false);
-        message = new LinkLabel(MESSAGE, linkLabelListener);
+        LinkLabel message = new LinkLabel(MESSAGE, linkLabelListener);
         
-        minimizeTimer = new Timer(5000, new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                update();
-            }
-        });
+        minimizeTimer = new Timer(5000, e -> update());
         
-        LinkLabelListener localListener = new LinkLabelListener() {
-
-            @Override
-            public void linkClicked(String type, String ref) {
-                if (ref.equals("minimize")) {
-                    minimize();
-                } else if (ref.equals("maximize")) {
-                    maximize();
-                }
+        LinkLabelListener localListener = (type, ref) -> {
+            if (ref.equals("minimize")) {
+                minimize();
+            } else if (ref.equals("maximize")) {
+                maximize();
             }
         };
         topMessage = new LinkLabel(TOP_MESSAGE, localListener);
@@ -130,7 +106,7 @@ public class ErrorMessage extends JDialog {
         
         
         minimized = new JPanel();
-        minimizedMessage = new LinkLabel(MINIMIZED_MESSAGE, localListener);
+        LinkLabel minimizedMessage = new LinkLabel(MINIMIZED_MESSAGE, localListener);
         minimized.add(minimizedMessage);
         
         normal = new JPanel(new GridBagLayout());
@@ -173,17 +149,13 @@ public class ErrorMessage extends JDialog {
         gbc.weightx = 0.5;
         add(quitProgram, gbc);
         
-        ActionListener actionListener = new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (e.getSource() == continueProgram) {
-                    close(CONTINUE);
-                } else if (e.getSource() == quitProgram) {
-                    close(QUIT);
-                } else if (e.getSource() == copyText) {
-                    MiscUtil.copyToClipboard(debugMessage.getText());
-                }
+        ActionListener actionListener = e -> {
+            if (e.getSource() == continueProgram) {
+                close(CONTINUE);
+            } else if (e.getSource() == quitProgram) {
+                close(QUIT);
+            } else if (e.getSource() == copyText) {
+                MiscUtil.copyToClipboard(debugMessage.getText());
             }
         };
         
@@ -209,13 +181,9 @@ public class ErrorMessage extends JDialog {
         }
         
         result = CONTINUE;
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                setFocusableWindowState(true);
-                debugMessage.scrollRectToVisible(new Rectangle());
-            }
+        SwingUtilities.invokeLater(() -> {
+            setFocusableWindowState(true);
+            debugMessage.scrollRectToVisible(new Rectangle());
         });
         openedET.set();
         if (!isFocused()) {

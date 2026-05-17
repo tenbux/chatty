@@ -6,16 +6,15 @@ import chatty.lang.Language;
 import chatty.util.MiscUtil;
 import chatty.util.ProcessManager;
 import chatty.util.settings.Settings;
-import java.awt.Component;
-import java.awt.Desktop;
+
+import javax.swing.*;
+import java.awt.*;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
-import javax.swing.JCheckBox;
-import javax.swing.JOptionPane;
 
 /**
  * Opens the given URL in the default browser, with or without prompt.
@@ -54,13 +53,12 @@ public class UrlOpener {
     
     /**
      * Open a single URL with a prompt if enabled.
-     * 
+     *
      * @param parent The Component that will be used as parent for the prompt.
-     * @param url The URL as a String.
-     * @return true if the given url was opened successfully, false otherwise
+     * @param url    The URL as a String.
      */
-    public static boolean openUrlPrompt(Component parent, String url) {
-        return openUrlPrompt(parent, url, false);
+    public static void openUrlPrompt(Component parent, String url) {
+        openUrlPrompt(parent, url, false);
     }
     
     /**
@@ -167,7 +165,7 @@ public class UrlOpener {
         }
         switch (showUrlsPrompt(parent, urls, forcePrompt)) {
             case 0: return openUrls(urls);
-            case 1: MiscUtil.copyToClipboard(urls.get(0).trim());
+            case 1: MiscUtil.copyToClipboard(urls.getFirst().trim());
         }
         return true;
     }
@@ -201,10 +199,10 @@ public class UrlOpener {
      */
     private static int showUrlsPrompt(Component parent, List<String> urls, boolean forced) {
         // Make text
-        String text = "<html><body style='width: 100px;'>";
+        StringBuilder text = new StringBuilder("<html><body style='width: 100px;'>");
         for (String url : urls) {
             url = splitUrl(url).trim();
-            text += url + "<br />";
+            text.append(url).append("<br />");
         }
         // Make options
         String okOption = Language.getString("openUrl.button.open", urls.size());
@@ -219,7 +217,7 @@ public class UrlOpener {
         
         JCheckBox setting = new JCheckBox(Language.getString("openUrl.setting"));
         setting.setToolTipText(SettingsUtil.addTooltipLinebreaks(Language.getString("openUrl.setting.tip")));
-        Object[] content = {text};
+        Object[] content = {text.toString()};
         if (!forced) {
             content = new Object[]{text+"<br />", setting};
         }

@@ -1,10 +1,12 @@
 
 package chatty;
 
+import org.junit.Test;
+
 import java.util.Arrays;
 import java.util.HashSet;
+
 import static org.junit.Assert.*;
-import org.junit.Test;
 
 /**
  *
@@ -58,8 +60,8 @@ public class CommandsTest {
     
     private static void testParsedArgs(String input, int num, int numRequired, String[] args, String options) {
         Commands.CommandParsedArgs parsed = Commands.CommandParsedArgs.parse(input, num, numRequired);
-        assertArrayEquals(args, parsed.args);
-        assertEquals(options, parsed.options);
+        assertArrayEquals(args, parsed.args());
+        assertEquals(options, parsed.options());
     }
     
     @Test

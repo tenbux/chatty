@@ -4,12 +4,12 @@ package chatty.gui.components.menus;
 import chatty.TwitchClient;
 import chatty.lang.Language;
 import chatty.util.StringUtil;
+
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import javax.swing.JOptionPane;
 
 /**
  *
@@ -25,11 +25,10 @@ public class StreamChatContextMenu extends ContextMenu {
     public StreamChatContextMenu(boolean isDocked) {
         addItem("clearHighlights", Language.getString("highlightedDialog.cm.clear"));
         addSeparator();
-        List<String> channels = new ArrayList<>();
         List<String> enabledChannels = client.settings.getList(CHANNEL_SETTING);
         
         // Add enabled first
-        channels.addAll(enabledChannels);
+        List<String> channels = new ArrayList<>(enabledChannels);
         // Add open, if not added yet
         addChans(channels, client.getOpenChannels());
         

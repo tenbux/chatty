@@ -1,12 +1,14 @@
 
 package chatty.util;
 
+import org.junit.Test;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import static org.junit.Assert.*;
-import org.junit.Test;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  *
@@ -17,9 +19,9 @@ public class HalfWeakSet2Test {
     @Test
     public void test() {
         // Using constructor to create objects that can be gargabe collected
-        Object a = new String("a");
-        Object b = new String("b");
-        Object c = new String("c");
+        Object a = "a";
+        Object b = "b";
+        Object c = "c";
         
         HalfWeakSet2<Object> s = new HalfWeakSet2<>();
         s.add(a);

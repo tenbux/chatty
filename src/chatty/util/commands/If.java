@@ -77,10 +77,7 @@ class If implements Item {
         if (!Objects.equals(this.output1, other.output1)) {
             return false;
         }
-        if (!Objects.equals(this.output2, other.output2)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.output2, other.output2);
     }
 
     @Override

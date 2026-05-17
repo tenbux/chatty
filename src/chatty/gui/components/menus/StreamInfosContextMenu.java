@@ -7,11 +7,11 @@ import chatty.lang.Language;
 import chatty.util.StringUtil;
 import chatty.util.api.StreamInfo;
 import chatty.util.commands.Parameters;
+
+import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.ImageIcon;
-import javax.swing.JMenuItem;
 
 /**
  *
@@ -37,7 +37,7 @@ public class StreamInfosContextMenu extends ContextMenu {
         }
         
         if (!selected.isEmpty()) {
-            addItem("openChannelInfo", "Info: "+selected.get(0).getStream());
+            addItem("openChannelInfo", "Info: "+selected.getFirst().getStream());
             addSeparator();
             
             ContextMenuHelper.addStreamsOptions(this, streams.size(), Parameters.create(StringUtil.join(streams, " ")));

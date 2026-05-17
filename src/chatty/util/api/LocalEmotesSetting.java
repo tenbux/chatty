@@ -5,13 +5,9 @@ import chatty.gui.MainGui;
 import chatty.gui.components.LinkLabel;
 import chatty.util.settings.AdvancedSetting;
 import chatty.util.settings.Settings;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import javax.swing.JOptionPane;
+
+import javax.swing.*;
+import java.util.*;
 
 /**
  *
@@ -50,12 +46,12 @@ public class LocalEmotesSetting extends AdvancedSetting<Emoticon> {
     
     @Override
     public void add(Emoticon emote) {
-        add(new HashSet<>(Arrays.asList(new Emoticon[]{emote})));
+        add(new HashSet<>(Collections.singletonList(emote)));
     }
     
     @Override
     public void remove(Emoticon emote) {
-        remove(new HashSet<>(Arrays.asList(new Emoticon[]{emote})));
+        remove(new HashSet<>(Collections.singletonList(emote)));
     }
     
     public void add(Set<Emoticon> emotes) {

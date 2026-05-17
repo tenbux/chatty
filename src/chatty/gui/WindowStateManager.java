@@ -4,15 +4,14 @@ package chatty.gui;
 import chatty.Helper;
 import chatty.Helper.IntegerPair;
 import chatty.util.settings.Settings;
-import java.awt.Dimension;
-import java.awt.Frame;
-import static java.awt.Frame.MAXIMIZED_BOTH;
-import java.awt.Point;
-import java.awt.Window;
+
+import java.awt.*;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
+
+import static java.awt.Frame.MAXIMIZED_BOTH;
 
 /**
  * Allows you to add windows that you can then save the position and size for
@@ -170,14 +169,14 @@ public class WindowStateManager {
             // Set size first, so width is set already for checking position
             IntegerPair sizeTemp = Helper.getNumbersFromString(states[1]);
             if (sizeTemp != null && item.saveSize) {
-                Dimension size = new Dimension(sizeTemp.a, sizeTemp.b);
+                Dimension size = new Dimension(sizeTemp.a(), sizeTemp.b());
                 window.setSize(size);
             }
             
             // Set position
             IntegerPair locationTemp = Helper.getNumbersFromString(states[0]);
             if (locationTemp != null) {
-                Point location = new Point(locationTemp.a, locationTemp.b);
+                Point location = new Point(locationTemp.a(), locationTemp.b());
                 if (!settings.getBoolean(CHECK_ON_SCREEN_SETTING)
                         || isOnScreen(location, window.getWidth())) {
                     // If this is the window the others are attached to, ignore

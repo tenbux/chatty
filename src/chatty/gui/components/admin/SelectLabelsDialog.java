@@ -4,18 +4,14 @@ package chatty.gui.components.admin;
 import chatty.lang.Language;
 import chatty.util.api.StreamLabels;
 import chatty.util.api.StreamLabels.StreamLabel;
-import java.awt.Frame;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
 
 /**
  *
@@ -25,8 +21,7 @@ public class SelectLabelsDialog extends JDialog {
     
     // General Buttons
     private final JButton ok = new JButton(Language.getString("dialog.button.save"));
-    private final JButton cancel = new JButton(Language.getString("dialog.button.cancel"));
-    
+
     private final Map<StreamLabel, JCheckBox> checkboxes = new HashMap<>();
     private final List<StreamLabel> preset = new ArrayList<>();
     private boolean save;
@@ -38,10 +33,9 @@ public class SelectLabelsDialog extends JDialog {
             save = true;
             dispose();
         });
-        
-        cancel.addActionListener(e -> {
-            dispose();
-        });
+
+        JButton cancel = new JButton(Language.getString("dialog.button.cancel"));
+        cancel.addActionListener(e -> dispose());
         
         //========
         // Layout
@@ -54,9 +48,7 @@ public class SelectLabelsDialog extends JDialog {
         
         for (StreamLabel label : StreamLabels.getAvailableLabels()) {
             JCheckBox checkbox = new JCheckBox(label.getDisplayName());
-            checkbox.addItemListener(e -> {
-                updateOkButton();
-            });
+            checkbox.addItemListener(e -> updateOkButton());
             checkbox.setEnabled(label.isEditable());
             if (label.getDescription() != null) {
                 checkbox.setToolTipText(label.getDescription());

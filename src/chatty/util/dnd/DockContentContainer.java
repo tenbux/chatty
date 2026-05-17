@@ -2,13 +2,12 @@
 package chatty.util.dnd;
 
 import chatty.util.dnd.DockContent.DockContentPropertyListener.Property;
-import java.awt.Color;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import javax.swing.JComponent;
-import javax.swing.JMenuItem;
-import javax.swing.JPopupMenu;
 
 /**
  *
@@ -70,19 +69,13 @@ public class DockContentContainer<T extends JComponent> implements DockContent {
     public JPopupMenu getContextMenu() {
         JPopupMenu menu = new JPopupMenu();
         JMenuItem item = new JMenuItem("Popout "+title);
-        item.addActionListener(e -> {
-            m.popout(this, DockSetting.PopoutType.DIALOG, null, null);
-        });
+        item.addActionListener(e -> m.popout(this, DockSetting.PopoutType.DIALOG, null, null));
         menu.add(item);
         JMenuItem item2 = new JMenuItem("Popout as window");
-        item2.addActionListener(e -> {
-            m.popout(this, DockSetting.PopoutType.FRAME, null, null);
-        });
+        item2.addActionListener(e -> m.popout(this, DockSetting.PopoutType.FRAME, null, null));
         menu.add(item2);
         JMenuItem closeItem = new JMenuItem("Close");
-        closeItem.addActionListener(e -> {
-            remove();
-        });
+        closeItem.addActionListener(e -> remove());
         menu.add(closeItem);
         return menu;
     }

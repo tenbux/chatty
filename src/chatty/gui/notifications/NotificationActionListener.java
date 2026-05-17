@@ -10,5 +10,5 @@ package chatty.gui.notifications;
  *  with when the action is invoked.
  */
 public interface NotificationActionListener<T> {
-    public void notificationAction(T data);
+    void notificationAction(T data);
 }

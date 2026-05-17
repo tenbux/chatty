@@ -13,9 +13,9 @@ import javax.swing.text.MutableAttributeSet;
  * @author tduva
  */
 public interface StyleServer {
-    public Color getColor(String type);
-    public MutableAttributeSet getStyle(String type);
-    public Font getFont(String type);
-    public Timestamp getTimestampFormat();
-    public ColorCorrector getColorCorrector();
+    Color getColor(String type);
+    MutableAttributeSet getStyle(String type);
+    Font getFont(String type);
+    Timestamp getTimestampFormat();
+    ColorCorrector getColorCorrector();
 }

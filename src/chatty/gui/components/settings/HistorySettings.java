@@ -34,7 +34,7 @@ public class HistorySettings extends SettingsPanel implements ActionListener {
 
         GridBagConstraints gbc;
 
-        gbc = d.makeGbc(0, 0, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 0, 1, 1);
         gbc.anchor = GridBagConstraints.WEST;
         main.add(d.addSimpleBooleanSetting("saveChannelHistory", "Enable History", "If enabled, automatically add joined channels to the history"), gbc);
 
@@ -44,19 +44,19 @@ public class HistorySettings extends SettingsPanel implements ActionListener {
         days.add(d.addSimpleLongSetting("channelHistoryKeepDays", 3, true));
         days.add(new JLabel("days"));
 
-        gbc = d.makeGbc(0, 2, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 2, 1, 1);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(0,20,5,5);
         main.add(days, gbc);
 
-        gbc = d.makeGbc(0, 3, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 3, 1, 1);
         gbc.insets = new Insets(5, 20, 10, 5);
         main.add(new JLabel("<html><body style='width: 280px'>"
                 + "Expired entries (defined as per the setting above) "
                 + "are automatically deleted from the history "
                 + "when you start Chatty."), gbc);
 
-        gbc = d.makeGbc(0, 4, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 4, 1, 1);
         gbc.anchor = GridBagConstraints.WEST;
         main.add(clearHistory, gbc);
 
@@ -64,7 +64,7 @@ public class HistorySettings extends SettingsPanel implements ActionListener {
 
         JPanel presets = addTitledPanel("Status Presets (shown in the Presets in the Admin Dialog)", 1);
 
-        gbc = d.makeGbc(0, 0, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 0, 1, 1);
         gbc.anchor = GridBagConstraints.WEST;
         presets.add(d.addSimpleBooleanSetting("saveStatusHistory", "Enable History",
                 "If enabled, automatically add used status (title/game) to the history"), gbc);
@@ -77,7 +77,7 @@ public class HistorySettings extends SettingsPanel implements ActionListener {
         daysPresets.add(d.addSimpleLongSetting("statusHistoryKeepDays", 3, true));
         daysPresets.add(new JLabel("days"));
 
-        gbc = d.makeGbc(0, 2, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 2, 1, 1);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(0,20,5,5);
         presets.add(daysPresets, gbc);

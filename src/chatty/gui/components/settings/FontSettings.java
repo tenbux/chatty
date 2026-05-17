@@ -32,10 +32,10 @@ public class FontSettings extends SettingsPanel {
         //---------------
         // Messages Font
         //---------------
-        gbc = d.makeGbc(0, 0, 1, 1, GridBagConstraints.EAST);
+        gbc = SettingsDialog.makeGbc(0, 0, 1, 1, GridBagConstraints.EAST);
         chatFontsPanel.add(new JLabel(Language.getString("settings.chatFont.chatFont")), gbc);
         
-        gbc = d.makeGbc(1, 0, 1, 1);
+        gbc = SettingsDialog.makeGbc(1, 0, 1, 1);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         FontSetting chatFont = new FontSetting(d,
                 FontSetting.SettingType.STRING_INT,
@@ -47,28 +47,28 @@ public class FontSettings extends SettingsPanel {
         //------------
         // Input Font
         //------------
-        gbc = d.makeGbc(0, 20, 1, 1, GridBagConstraints.EAST);
+        gbc = SettingsDialog.makeGbc(0, 20, 1, 1, GridBagConstraints.EAST);
         chatFontsPanel.add(new JLabel(Language.getString("settings.otherFonts.inputFont")), gbc);
 
         FontSetting inputFont = new FontSetting(d,
                 FontSetting.SettingType.STRING,
                 FontSetting.RESTRICTED_FONTS);
         d.addStringSetting("inputFont", inputFont.getFontSetting());
-        gbc = d.makeGbc(1, 20, 1, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(1, 20, 1, 1, GridBagConstraints.WEST);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         chatFontsPanel.add(inputFont, gbc);
         
         //---------------
         // Userlist Font
         //---------------
-        gbc = d.makeGbc(0, 21, 1, 1, GridBagConstraints.EAST);
+        gbc = SettingsDialog.makeGbc(0, 21, 1, 1, GridBagConstraints.EAST);
         chatFontsPanel.add(new JLabel(Language.getString("settings.otherFonts.userlistFont")), gbc);
         
         FontSetting userlistFont = new FontSetting(d,
                 FontSetting.SettingType.STRING,
                 FontSetting.RESTRICTED_FONTS);
         d.addStringSetting("userlistFont", userlistFont.getFontSetting());
-        gbc = d.makeGbc(1, 21, 1, 1);
+        gbc = SettingsDialog.makeGbc(1, 21, 1, 1);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         chatFontsPanel.add(userlistFont, gbc);
         
@@ -77,21 +77,21 @@ public class FontSettings extends SettingsPanel {
         //----------------
         // Boolean
         SimpleBooleanSetting customTimestampFont = d.addSimpleBooleanSetting("timestampFontEnabled");
-        gbc = d.makeGbc(0, 30, 2, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(0, 30, 2, 1, GridBagConstraints.WEST);
         chatFontsPanel.add(customTimestampFont, gbc);
         
         // Font
-        gbc = d.makeGbcSub(0, 31, 1, 1, GridBagConstraints.EAST);
+        gbc = SettingsDialog.makeGbcSub(0, 31, 1, 1, GridBagConstraints.EAST);
         chatFontsPanel.add(new JLabel(Language.getString("settings.chatFont.timestampFont")), gbc);
         
-        gbc = d.makeGbc(1, 31, 1, 1);
+        gbc = SettingsDialog.makeGbc(1, 31, 1, 1);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         FontSetting timestampFont = new FontSetting(d,
                 FontSetting.SettingType.STRING);
         d.addStringSetting("timestampFont", timestampFont.getFontSetting());
         chatFontsPanel.add(timestampFont, gbc);
         
-        gbc = d.makeGbc(0, 32, 2, 1);
+        gbc = SettingsDialog.makeGbc(0, 32, 2, 1);
         chatFontsPanel.add(new JLabel(SettingConstants.HTML_PREFIX
                 +Language.getString("settings.chatFont.timestampFont.info")), gbc);
         
@@ -105,7 +105,7 @@ public class FontSettings extends SettingsPanel {
         //--------------
         // Line Spacing
         //--------------
-        gbc = d.makeGbc(0, 3, 1, 1, GridBagConstraints.EAST);
+        gbc = SettingsDialog.makeGbc(0, 3, 1, 1, GridBagConstraints.EAST);
         chatMarginsPanel.add(new JLabel(Language.getString("settings.chatFont.lineSpacing")), gbc);
         
         Map<Long, String> lineSpacingDef = new HashMap<>();
@@ -118,7 +118,7 @@ public class FontSettings extends SettingsPanel {
         lineSpacingDef.put((long)6, Language.getString("settings.chatFont.option.biggest"));
         ComboLongSetting lineSpacing = new ComboLongSetting(lineSpacingDef);
         d.addLongSetting("lineSpacing", lineSpacing);
-        gbc = d.makeGbc(1, 3, 1, 1);
+        gbc = SettingsDialog.makeGbc(1, 3, 1, 1);
         gbc.anchor = GridBagConstraints.WEST;
         chatMarginsPanel.add(lineSpacing, gbc);
         
@@ -126,37 +126,37 @@ public class FontSettings extends SettingsPanel {
         // Message Spacing
         //-----------------
         chatMarginsPanel.add(new JLabel(Language.getString("settings.chatFont.messageSpacing")),
-                d.makeGbc(0, 4, 1, 1, GridBagConstraints.EAST));
+                SettingsDialog.makeGbc(0, 4, 1, 1, GridBagConstraints.EAST));
         
         Map<Long, String> paragraphSpacingDef = new LinkedHashMap<>();
         for (int i=0;i<=20;i+=2) {
-            paragraphSpacingDef.put((long)i, String.valueOf(i)+" px");
+            paragraphSpacingDef.put((long)i, i +" px");
         }
         ComboLongSetting paragraphSpacing = new ComboLongSetting(paragraphSpacingDef);
         d.addLongSetting("paragraphSpacing", paragraphSpacing);
-        gbc = d.makeGbc(1, 4, 1, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(1, 4, 1, 1, GridBagConstraints.WEST);
         chatMarginsPanel.add(paragraphSpacing, gbc);
         
         //---------------
         // Bottom Margin
         //---------------
         chatMarginsPanel.add(new JLabel(Language.getString("settings.chatFont.bottomMargin")),
-            d.makeGbc(0, 5, 1, 1, GridBagConstraints.EAST));
+            SettingsDialog.makeGbc(0, 5, 1, 1, GridBagConstraints.EAST));
         
         Map<Long, String> bottomMarginDef = new LinkedHashMap<>();
         bottomMarginDef.put((long)-1, "Auto");
         for (int i=0;i<=20;i+=1) {
-            bottomMarginDef.put((long)i, String.valueOf(i)+" px");
+            bottomMarginDef.put((long)i, i +" px");
         }
         ComboLongSetting bottomMargin = new ComboLongSetting(bottomMarginDef);
         d.addLongSetting("bottomMargin", bottomMargin);
-        gbc = d.makeGbc(1, 5, 1, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(1, 5, 1, 1, GridBagConstraints.WEST);
         chatMarginsPanel.add(bottomMargin, gbc);
         
         //============
         // Note Panel
         //============
-        gbc = d.makeGbc(0, 0, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 0, 1, 1);
         notePanel.add(new JLabel(HTML_PREFIX+Language.getString("settings.otherFonts.info")), gbc);
     }
     

@@ -2,28 +2,30 @@
 package chatty;
 
 import chatty.Chatty.PathType;
-import chatty.gui.components.updating.Version;
-import chatty.util.colors.HtmlColors;
 import chatty.gui.WindowStateManager;
 import chatty.gui.components.eventlog.EventLog;
 import chatty.gui.components.settings.NotificationSettings;
+import chatty.gui.components.updating.Version;
 import chatty.gui.notifications.Notification;
 import chatty.util.DateTime;
 import chatty.util.ElapsedTime;
 import chatty.util.StringUtil;
 import chatty.util.colors.ColorCorrection;
+import chatty.util.colors.HtmlColors;
 import chatty.util.hotkeys.Hotkey;
 import chatty.util.settings.FileManager;
 import chatty.util.settings.Setting;
 import chatty.util.settings.Settings;
-import java.awt.Color;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.*;
-import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+
+import java.awt.*;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.*;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
  *
@@ -67,20 +69,16 @@ public class SettingsManager {
         fileManager = new FileManager(
                 Chatty.getPathCreate(PathType.SETTINGS),
                 Chatty.getPathCreate(PathType.BACKUP));
-        FileManager.FileContentInfoProvider fileInfoProvider = new FileManager.FileContentInfoProvider() {
-
-            @Override
-            public FileManager.FileContentInfo getInfo(String content) {
-                try {
-                    JSONParser parser = new JSONParser();
-                    JSONObject root = (JSONObject)parser.parse(content);
-                    JSONArray ab = (JSONArray)root.get("abEntries");
-                    return new FileManager.FileContentInfo(true, String.format(Locale.ROOT, "%d settings, %d addressbook entries",
-                            root.size(), ab != null ? ab.size() : 0));
-                }
-                catch (Exception ex) {
-                    return new FileManager.FileContentInfo(false, "Error parsing: "+ex.toString());
-                }
+        FileManager.FileContentInfoProvider fileInfoProvider = content -> {
+            try {
+                JSONParser parser = new JSONParser();
+                JSONObject root = (JSONObject)parser.parse(content);
+                JSONArray ab = (JSONArray)root.get("abEntries");
+                return new FileManager.FileContentInfo(true, String.format(Locale.ROOT, "%d settings, %d addressbook entries",
+                        root.size(), ab != null ? ab.size() : 0));
+            }
+            catch (Exception ex) {
+                return new FileManager.FileContentInfo(false, "Error parsing: "+ ex);
             }
         };
         fileManager.add("settings", "settings", true, fileInfoProvider);
@@ -361,15 +359,20 @@ public class SettingsManager {
         settings.addList("timers", new ArrayList<>(), Setting.LIST);
 
         // Menu Entries
-        settings.addString("timeoutButtons","/Ban[B], /Unban[U], 5s[1], 2m[2], 10m[3], 30m[4], /ModUnmod"
-                + "\n\n"
-                + "@AutoMod\n"
-                + ".Approve=/Automod_approve\n"
-                + ".Deny=/Automod_deny\n"
-                + "\n"
-                + "Delete=/delete $$(msg-id)");
-        settings.addString("banReasons", "Spam\nPosting Bad Links\nBan Evasion\n"
-                                + "Hate / Harassment\nSpoilers / Backseat Gaming");
+        settings.addString("timeoutButtons", """
+                /Ban[B], /Unban[U], 5s[1], 2m[2], 10m[3], 30m[4], /ModUnmod
+                
+                @AutoMod
+                .Approve=/Automod_approve
+                .Deny=/Automod_deny
+                
+                Delete=/delete $$(msg-id)""");
+        settings.addString("banReasons", """
+                Spam
+                Posting Bad Links
+                Ban Evasion
+                Hate / Harassment
+                Spoilers / Backseat Gaming""");
         settings.addString("banReasonsHotkey", "");
         settings.addString("userContextMenu", "");
         settings.addString("channelContextMenu", "");
@@ -844,12 +847,9 @@ public class SettingsManager {
     
     /**
      * Tries to load the settings from file.
-     * 
-     * @return 
      */
-    public boolean loadSettingsFromFile() {
+    public void loadSettingsFromFile() {
         loadSuccess = settings.loadSettingsFromJson();
-        return loadSuccess;
     }
     
     public boolean getLoadSuccess() {
@@ -1047,7 +1047,7 @@ public class SettingsManager {
         // Turn off Highlight Background if using dark background (if not loaded
         // from the settings yet)
         Color bgColor = HtmlColors.decode(settings.getString("backgroundColor"));
-        if (ColorCorrection.isDarkColor(bgColor) && !settings.isValueSet("highlightBackground")) {
+        if (ColorCorrection.isDarkColor(bgColor) && settings.isValueSet("highlightBackground")) {
             settings.setBoolean("highlightBackground", false);
         }
         
@@ -1121,12 +1121,12 @@ public class SettingsManager {
     
     private void addDefaultHotkey(String version, String id, String hotkey) {
         defaultHotkeys.add(new DefaultHotkey(version,
-                Arrays.asList(new Object[]{id, hotkey})));
+                Arrays.asList(id, hotkey)));
     }
     
     private void addDefaultHotkeyAppWide(String version, String id, String hotkey) {
         defaultHotkeys.add(new DefaultHotkey(version,
-                Arrays.asList(new Object[]{id, hotkey, Hotkey.Type.APPLICATION.id})));
+                Arrays.asList(id, hotkey, Hotkey.Type.APPLICATION.id)));
     }
     
     private List<List> getDefaultHotkeySettingValue() {
@@ -1147,14 +1147,9 @@ public class SettingsManager {
             if (switchedFromVersionBefore(hotkey.version)) {
                 @SuppressWarnings("unchecked") // Setting
                 List<List> setting = settings.getList("hotkeys");
-                Iterator<List> it = setting.iterator();
                 // Remove hotkey if already in setting
-                while (it.hasNext()) {
-                    // Compare hotkey ids
-                    if (it.next().get(0).equals(hotkey.data.get(0))) {
-                        it.remove();
-                    }
-                }
+                // Compare hotkey ids
+                setting.removeIf(list -> list.getFirst().equals(hotkey.data.getFirst()));
                 // Add hotkey with default settings
                 setting.add(hotkey.data);
                 LOGGER.info("Overriding hotkey setting: "+hotkey.data);
@@ -1194,17 +1189,9 @@ public class SettingsManager {
             }
         }, 30*1000, 30*1000);
     }
-    
-    private static class DefaultHotkey {
-        
-        String version;
-        List data;
 
-        DefaultHotkey(String version, List data) {
-            this.version = version;
-            this.data = data;
-        }
-        
+    private record DefaultHotkey(String version, List data) {
+
     }
     
     /**
@@ -1236,16 +1223,15 @@ public class SettingsManager {
     }
     
     private static Notification.State convertOldState(String input) {
-        switch (input) {
-            case "off": return Notification.State.OFF;
-            case "both": return Notification.State.CHANNEL_AND_APP_NOT_ACTIVE;
-            case "either": return Notification.State.CHANNEL_OR_APP_NOT_ACTIVE;
-            case "app": return Notification.State.APP_NOT_ACTIVE;
-            case "channel": return Notification.State.CHANNEL_NOT_ACTIVE;
-            case "channelActive": return Notification.State.CHANNEL_ACTIVE;
-            case "always": return Notification.State.ALWAYS;
-        }
-        return Notification.State.OFF;
+        return switch (input) {
+            case "both" -> Notification.State.CHANNEL_AND_APP_NOT_ACTIVE;
+            case "either" -> Notification.State.CHANNEL_OR_APP_NOT_ACTIVE;
+            case "app" -> Notification.State.APP_NOT_ACTIVE;
+            case "channel" -> Notification.State.CHANNEL_NOT_ACTIVE;
+            case "channelActive" -> Notification.State.CHANNEL_ACTIVE;
+            case "always" -> Notification.State.ALWAYS;
+            default -> Notification.State.OFF;
+        };
     }
     
 }

@@ -2,8 +2,7 @@
 package chatty;
 
 import chatty.util.TimedCounter;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.logging.Logger;
 
@@ -26,7 +25,7 @@ public class ErrorHandler implements UncaughtExceptionHandler {
             System.exit(1);
         }
         if (e == null && t != null) {
-            LOGGER.severe("Unknown exception in thread "+t.toString());
+            LOGGER.severe("Unknown exception in thread "+ t);
             return;
         }
         if (e == null && t == null) {

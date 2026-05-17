@@ -5,32 +5,22 @@ import chatty.Helper;
 import chatty.User;
 import chatty.gui.components.menus.ContextMenu;
 import chatty.gui.components.menus.ContextMenuListener;
-import chatty.util.colors.HtmlColors;
 import chatty.lang.Language;
 import chatty.util.DateTime;
 import chatty.util.Debugging;
 import chatty.util.StringUtil;
-import chatty.util.api.BadgeManager;
-import chatty.util.api.Follower;
-import chatty.util.api.FollowerInfo;
-import chatty.util.api.TwitchApi;
-import chatty.util.api.UserInfo;
+import chatty.util.api.*;
+import chatty.util.colors.HtmlColors;
 import chatty.util.commands.CustomCommand;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.FlowLayout;
-import java.awt.GridBagLayout;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
 
 /**
  *
@@ -40,7 +30,6 @@ public class InfoPanel extends JPanel {
     
     private final UserInfoDialog owner;
 
-    private final JPanel panel1 = new JPanel();
     private final JPanel panel2 = new JPanel();
 
     private final SizeMagicLabel numberOfLines = new SizeMagicLabel();
@@ -59,7 +48,8 @@ public class InfoPanel extends JPanel {
     
     public InfoPanel(UserInfoDialog owner, ContextMenuListener listener) {
         this.owner = owner;
-        
+
+        JPanel panel1 = new JPanel();
         panel1.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 2));
         panel2.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 1));
         
@@ -89,9 +79,7 @@ public class InfoPanel extends JPanel {
             @Override
             public void componentResized(ComponentEvent e) {
                 // invokeLater so that size is properly updated?
-                SwingUtilities.invokeLater(() -> {
-                    infoLabelSize.check();
-                });
+                SwingUtilities.invokeLater(infoLabelSize::check);
             }
             
         });
@@ -196,14 +184,11 @@ public class InfoPanel extends JPanel {
                 for (int i=0;i<user.getTwitchBadges().size();i++) {
                     String id = user.getTwitchBadges().getId(i);
                     String version = user.getTwitchBadges().getVersion(i);
-                    switch (id) {
-                        case "founder":
-                            info = "Founder";
-                            break;
-                        case "subscriber":
-                            info = BadgeManager.makeSubscriberTitle(version);
-                            break;
-                    }
+                    info = switch (id) {
+                        case "founder" -> "Founder";
+                        case "subscriber" -> BadgeManager.makeSubscriberTitle(version);
+                        default -> info;
+                    };
                 }
                 subscribed.setToolTipText(String.format("<html>%s Badge, %d total months<br /><br />(All subscriber info depends on the sub badge attached to a chat message.)",
                         info,
@@ -250,9 +235,9 @@ public class InfoPanel extends JPanel {
         if (info != null) {
             currentUserInfo = info;
             createdAt.setText(new String[]{
-                Language.getString("userDialog.registered",formatAgoTime(info.createdAt, false)),
-                Language.getString("userDialog.registered",formatAgoTime(info.createdAt, true)),
-                "Reg. "+formatAgoTime(info.createdAt, true)
+                Language.getString("userDialog.registered",formatAgoTime(info.createdAt(), false)),
+                Language.getString("userDialog.registered",formatAgoTime(info.createdAt(), true)),
+                "Reg. "+formatAgoTime(info.createdAt(), true)
             });
     //        createdAt.setToolTipText(Language.getString("userDialog.registered.tip",
     //                DateTime.formatFullDatetime(info.createdAt)));
@@ -266,21 +251,21 @@ public class InfoPanel extends JPanel {
                     + "%1$s<br />"
                     + "<br />"
                     + "(Info may not be entirely up-to-date)",
-                    !StringUtil.isNullOrEmpty(info.description)
-                            ? StringUtil.addLinebreaks(Helper.htmlspecialchars_encode(info.description), 70, true)
+                    !StringUtil.isNullOrEmpty(info.description())
+                            ? StringUtil.addLinebreaks(Helper.htmlspecialchars_encode(info.description()), 70, true)
                             : "No description",
-                    Helper.formatViewerCount(info.views),
-                    formatAgoTimeVerbose(info.createdAt),
-                    DateTime.formatFullDatetime(info.createdAt),
-                    info.id,
-                    !StringUtil.isNullOrEmpty(info.broadcasterType)
-                            ? StringUtil.firstToUpperCase(info.broadcasterType)
+                    Helper.formatViewerCount(info.views()),
+                    formatAgoTimeVerbose(info.createdAt()),
+                    DateTime.formatFullDatetime(info.createdAt()),
+                    info.id(),
+                    !StringUtil.isNullOrEmpty(info.broadcasterType())
+                            ? StringUtil.firstToUpperCase(info.broadcasterType())
                             : "Regular");
             createdAt.setToolTipText(tooltip);
 
             // Should mostly already be set, but just in case
             if (currentUser.getId() == null) {
-                currentUser.setId(info.id);
+                currentUser.setId(info.id());
             }
             // For button containing $(followage) and such
             owner.updateButtons();
@@ -342,14 +327,14 @@ public class InfoPanel extends JPanel {
     
     protected String getAccountAge() {
         if (currentUserInfo != null) {
-            return formatAgoTimeVerbose(currentUserInfo.createdAt);
+            return formatAgoTimeVerbose(currentUserInfo.createdAt());
         }
         return null;
     }
     
     protected String getAccountDate() {
         if (currentUserInfo != null) {
-            return DateTime.formatFullDatetime(currentUserInfo.createdAt);
+            return DateTime.formatFullDatetime(currentUserInfo.createdAt());
         }
         return null;
     }
@@ -374,20 +359,22 @@ public class InfoPanel extends JPanel {
         
         public DataContextMenu(String type, ContextMenuListener listener) {
             this.listener = listener;
-            
-            if (type.equals("userid")) {
-                addItem("copyUserId", "Copy User ID");
-            } else if (type.equals("following")) {
-                addItem("sendFollowAge", "Send Follow Age message");
-                addItem("copyFollowAge", "Copy Follow Age");
-                addSeparator();
-                addItem("refresh", "Refresh");
-            } else if (type.equals("account")) {
-                addItem("sendAccountAge", "Send Account Age message");
-                addItem("copyAccountAge", "Copy Account Age");
-                addSeparator();
-                addItem("copyUserId", "Copy ID");
-                addItem("copyChannelInfo", "Copy Full Info (Tooltip)");
+
+            switch (type) {
+                case "userid" -> addItem("copyUserId", "Copy User ID");
+                case "following" -> {
+                    addItem("sendFollowAge", "Send Follow Age message");
+                    addItem("copyFollowAge", "Copy Follow Age");
+                    addSeparator();
+                    addItem("refresh", "Refresh");
+                }
+                case "account" -> {
+                    addItem("sendAccountAge", "Send Account Age message");
+                    addItem("copyAccountAge", "Copy Account Age");
+                    addSeparator();
+                    addItem("copyUserId", "Copy ID");
+                    addItem("copyChannelInfo", "Copy Full Info (Tooltip)");
+                }
             }
         }
         
@@ -433,7 +420,7 @@ public class InfoPanel extends JPanel {
                 do {
                     currentSize++;
                     Debugging.println("sizemagic", "- -> "+currentSize);
-                    if (!isValidSize(currentSize)) {
+                    if (isValidSize(currentSize)) {
                         Debugging.println("sizemagic", "invalid size");
                         currentSize--;
                         break;
@@ -453,7 +440,7 @@ public class InfoPanel extends JPanel {
                 do {
                     currentSize--;
                     Debugging.println("sizemagic", "+ -> "+currentSize);
-                    if (!isValidSize(currentSize)) {
+                    if (isValidSize(currentSize)) {
                         Debugging.println("sizemagic", "invalid size");
                         currentSize++;
                         break;
@@ -493,10 +480,10 @@ public class InfoPanel extends JPanel {
         private boolean isValidSize(int size) {
             for (SizeMagicLabel label : components) {
                 if (label.isValidSize(size)) {
-                    return true;
+                    return false;
                 }
             }
-            return false;
+            return true;
         }
         
         private boolean enoughSpace() {

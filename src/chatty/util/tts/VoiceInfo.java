@@ -7,17 +7,7 @@ import java.util.Objects;
  *
  * @author tduva
  */
-public class VoiceInfo {
-
-    public final String name;
-    public final String gender;
-    public final String locale;
-
-    public VoiceInfo(String name, String gender, String locale) {
-        this.name = name;
-        this.gender = gender;
-        this.locale = locale;
-    }
+public record VoiceInfo(String name, String gender, String locale) {
 
     @Override
     public boolean equals(Object obj) {
@@ -40,15 +30,15 @@ public class VoiceInfo {
         hash = 67 * hash + Objects.hashCode(this.name);
         return hash;
     }
-    
+
     @Override
     public String toString() {
         if (gender == null && locale == null) {
             return name;
         }
         return String.format("%s (%s, %s)",
-                             name,
-                             gender != null ? gender : "n/a",
-                             locale != null ? locale : "n/a");
+                name,
+                gender != null ? gender : "n/a",
+                locale != null ? locale : "n/a");
     }
 }

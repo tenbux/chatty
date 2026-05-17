@@ -3,38 +3,27 @@ package chatty.util;
 
 import chatty.Chatty;
 import chatty.Chatty.PathType;
-import java.awt.Component;
-import java.awt.Desktop;
-import java.awt.Graphics;
-import java.awt.Image;
-import java.awt.Toolkit;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.nio.charset.Charset;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
-import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-import javax.swing.JOptionPane;
+
+import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 /**
  * General purpose static methods.
@@ -55,8 +44,8 @@ public class MiscUtil {
         c.setContents(new StringSelection(text), null);
     }
     
-    public static boolean openFile(Path folder, Component parent) {
-        return openFile(folder.toString(), parent);
+    public static void openFile(Path folder, Component parent) {
+        openFile(folder.toString(), parent);
     }
     
     public static boolean openFile(File file, Component parent) {
@@ -75,16 +64,15 @@ public class MiscUtil {
         return true;
     }
     
-    public static boolean openFilePrompt(String path, Component parent) {
+    public static void openFilePrompt(String path, Component parent) {
         int chosenOption = JOptionPane.showOptionDialog(parent,
                 path,
                 "Open in default application?",
                 JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.QUESTION_MESSAGE, null, new String[]{"Open File", "Cancel"}, 0);
         if (chosenOption == 0) {
-            return MiscUtil.openFile(path, parent);
+            MiscUtil.openFile(path, parent);
         }
-        return false;
     }
     
     /**
@@ -171,12 +159,11 @@ public class MiscUtil {
         if (dir.isDirectory()) {
             File[] files = dir.listFiles();
             if (null != files) {
-                for (int i = 0; i < files.length; i++) {
-                    File file = files[i];
+                for (File file : files) {
                     if (file.isDirectory()) {
                         count += deleteInDir(file, prefix, true);
                     } else if (file.getName().startsWith(prefix)) {
-                        if (files[i].delete()) {
+                        if (file.delete()) {
                             count++;
                         }
                     }
@@ -334,7 +321,7 @@ public class MiscUtil {
                     StandardOpenOption.APPEND
                 };
             }
-            try (BufferedWriter writer = Files.newBufferedWriter(file, Charset.forName("UTF-8"), options)) {
+            try (BufferedWriter writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8, options)) {
                 writer.write(text);
             }
             LOGGER.info(String.format("Written text to file: %s [%s]",

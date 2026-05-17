@@ -15,13 +15,13 @@ public interface SpeedrunsLiveListener {
      * 
      * @param races The {@code List} of updated {@code Race} objects
      */
-    public void racesReceived(List<Race> races);
+    void racesReceived(List<Race> races);
     
     /**
      * When an error occured, e.g. the API couldn't be reached.
      * 
      * @param description A short description of the error.
      */
-    public void error(String description);
+    void error(String description);
     
 }

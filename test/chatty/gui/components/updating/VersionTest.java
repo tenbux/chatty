@@ -2,7 +2,9 @@
 package chatty.gui.components.updating;
 
 import org.junit.Test;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -33,30 +35,30 @@ public class VersionTest {
     
     @Test
     public void testCompareVersions() {
-        assertEquals(Version.compareVersions("0.8.1", "0.8.1"), 0);
-        assertEquals(Version.compareVersions("0.8.1", "0.8.2"), 1);
-        assertEquals(Version.compareVersions("0.8.2", "0.8.1"), -1);
-        assertEquals(Version.compareVersions("0.8.1b1", "0.8.1"), 1);
-        assertEquals(Version.compareVersions("0.8.1b4", "0.8.1"), 1);
-        assertEquals(Version.compareVersions("0.8.1b1", "0.8.1b1"), 0);
-        assertEquals(Version.compareVersions("0.8.1b1", "0.8.1b2"), 1);
-        assertEquals(Version.compareVersions("0.8.1b1", "0.8.1.1.1"), 1);
-        assertEquals(Version.compareVersions("0.8.1b1", "0.8.1.1"), 1);
-        assertEquals(Version.compareVersions("0.8.1b1", "0.8.1.-1.1"), 0);
-        assertEquals(Version.compareVersions("0.8.1b2", "0.8.1.-1.1"), -1);
-        assertEquals(Version.compareVersions("0.8.4.1b3", "0.8.4.1"), 1);
-        assertEquals(Version.compareVersions("0.8.4.1-b3", "0.8.4.1"), 1);
-        assertEquals(Version.compareVersions("0.8.4.1beta3", "0.8.4.1"), 1);
-        assertEquals(Version.compareVersions("0.8.4.1-beta3", "0.8.4.1"), 1);
-        assertEquals(Version.compareVersions("0.8.10", "0.8.9"), -1);
-        assertEquals(Version.compareVersions("0.12", "0.10.9"), -1);
-        assertEquals(Version.compareVersions("0.22", "0.10.9"), -1);
-        assertEquals(Version.compareVersions("0.9", "0.10.9"), 1);
-        assertEquals(Version.compareVersions("0.10.0", "0.10"), 0);
+        assertEquals(0, Version.compareVersions("0.8.1", "0.8.1"));
+        assertEquals(1, Version.compareVersions("0.8.1", "0.8.2"));
+        assertEquals(-1, Version.compareVersions("0.8.2", "0.8.1"));
+        assertEquals(1, Version.compareVersions("0.8.1b1", "0.8.1"));
+        assertEquals(1, Version.compareVersions("0.8.1b4", "0.8.1"));
+        assertEquals(0, Version.compareVersions("0.8.1b1", "0.8.1b1"));
+        assertEquals(1, Version.compareVersions("0.8.1b1", "0.8.1b2"));
+        assertEquals(1, Version.compareVersions("0.8.1b1", "0.8.1.1.1"));
+        assertEquals(1, Version.compareVersions("0.8.1b1", "0.8.1.1"));
+        assertEquals(0, Version.compareVersions("0.8.1b1", "0.8.1.-1.1"));
+        assertEquals(-1, Version.compareVersions("0.8.1b2", "0.8.1.-1.1"));
+        assertEquals(1, Version.compareVersions("0.8.4.1b3", "0.8.4.1"));
+        assertEquals(1, Version.compareVersions("0.8.4.1-b3", "0.8.4.1"));
+        assertEquals(1, Version.compareVersions("0.8.4.1beta3", "0.8.4.1"));
+        assertEquals(1, Version.compareVersions("0.8.4.1-beta3", "0.8.4.1"));
+        assertEquals(-1, Version.compareVersions("0.8.10", "0.8.9"));
+        assertEquals(-1, Version.compareVersions("0.12", "0.10.9"));
+        assertEquals(-1, Version.compareVersions("0.22", "0.10.9"));
+        assertEquals(1, Version.compareVersions("0.9", "0.10.9"));
+        assertEquals(0, Version.compareVersions("0.10.0", "0.10"));
         
         // Invalid versions
-        assertEquals(Version.compareVersions("a", "0.1"), 1);
-        assertEquals(Version.compareVersions("a", "b"), 0);
+        assertEquals(1, Version.compareVersions("a", "0.1"));
+        assertEquals(0, Version.compareVersions("a", "b"));
     }
     
 }

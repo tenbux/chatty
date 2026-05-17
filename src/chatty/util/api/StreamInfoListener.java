@@ -10,7 +10,7 @@ package chatty.util.api;
  */
 public interface StreamInfoListener {
     
-    public void streamInfoUpdated(StreamInfo info);
-    public void streamInfoStatusChanged(StreamInfo info, String newStatus);
+    void streamInfoUpdated(StreamInfo info);
+    void streamInfoStatusChanged(StreamInfo info, String newStatus);
     
 }

@@ -1,9 +1,8 @@
 
 package chatty.util.gif;
 
-import java.awt.Dimension;
-import java.awt.Image;
-import java.awt.Toolkit;
+import java.awt.*;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -17,7 +16,6 @@ import java.util.List;
 public class OverlayListAnimatedImage implements AnimatedImage {
     
     private final List<ListAnimatedImage> images;
-    private final Dimension size;
     private final String name;
     private final ListAnimatedImage mainImage;
     private final int numFrames;
@@ -30,9 +28,9 @@ public class OverlayListAnimatedImage implements AnimatedImage {
     
     public OverlayListAnimatedImage(List<ListAnimatedImage> images, int width, int height, String name) {
         this.images = images;
-        this.size = new Dimension(width, height);
+        Dimension size = new Dimension(width, height);
         this.name = name;
-        mainImage = images.get(0);
+        mainImage = images.getFirst();
         
         /**
          * Use the main image frame count, which might be useful for the
@@ -77,9 +75,7 @@ public class OverlayListAnimatedImage implements AnimatedImage {
             for (int i = 1; i < atFrame.length; i++) {
                 atFrame[i] = 0;
             }
-            for (int i = 0; i < delays.length; i++) {
-                delays[i] = 0;
-            }
+            Arrays.fill(delays, 0);
         }
         /**
          * The lowest delay out of all images are the frames that the requester

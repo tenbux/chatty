@@ -1,30 +1,23 @@
 
 package chatty.util.history;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-
 import chatty.Room;
 import chatty.User;
 import chatty.gui.components.settings.ChannelFormatter;
 import chatty.util.SpecialMap;
 import chatty.util.UrlRequest;
 import chatty.util.api.Requests;
-
 import chatty.util.irc.MsgTags;
 import chatty.util.irc.ParsedMsg;
 import chatty.util.settings.Settings;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
-import org.json.simple.parser.ParseException;
 
 /**
  * History Manager which should be the entry point for getting historic Chat messages from external services.
@@ -45,7 +38,7 @@ public class HistoryManager {
     private final Map<String, Long> latestMessageSeen = new HashMap<>();
     
     private final Set<String> requestPendingChannels = new HashSet<>();
-    private final SpecialMap<String, List<QueuedMessage>> queuedMessages = new SpecialMap<>(new HashMap<>(), () -> new ArrayList<>());
+    private final SpecialMap<String, List<QueuedMessage>> queuedMessages = new SpecialMap<>(new HashMap<>(), ArrayList::new);
     
     /**
      * Default Constructor
@@ -167,8 +160,8 @@ public class HistoryManager {
                     JSONParser parser = new JSONParser();
                     JSONObject root = (JSONObject) parser.parse(resultText);
                     JSONArray jsArray = (JSONArray) root.get("messages");
-                    for (int i = 0; i < jsArray.size(); i++) {
-                        HistoryMessage historyMsg = this.transformStringToMessage((String) jsArray.get(i));
+                    for (Object o : jsArray) {
+                        HistoryMessage historyMsg = this.transformStringToMessage((String) o);
                         if (historyMsg != null) {
                             result.add(historyMsg);
                         }

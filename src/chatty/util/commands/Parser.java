@@ -19,14 +19,12 @@ import java.util.regex.Pattern;
  */
 public class Parser {
 
-    private final String input;
     private final StringReader reader;
     
-    private String escape = "\\";
-    private String special = "$";
+    private String escape;
+    private final String special;
     
     public Parser(String text, String special, String escape) {
-        input = text;
         reader = new StringReader(text);
         this.special = special;
         this.escape = escape;
@@ -34,9 +32,9 @@ public class Parser {
     
     private SyntaxHighlighter syntaxHighlighter;
     
-    Items parse(SyntaxHighlighter syntaxHighlighter) throws ParseException {
+    void parse(SyntaxHighlighter syntaxHighlighter) throws ParseException {
         this.syntaxHighlighter = syntaxHighlighter;
-        return parse();
+        parse();
     }
     
     /**
@@ -221,84 +219,86 @@ public class Parser {
         boolean isRequired = accept(special);
         String type = functionName();
         endHl();
-        if (type.isEmpty()) {
-            return replacement(isRequired);
-        }
-        else if (type.equals("if")) {
-            return condition(isRequired);
-        }
-        else if (type.equals("join")) {
-            return join(isRequired);
-        }
-        else if (type.equals("ifeq")) {
-            return ifEq(isRequired);
-        }
-        else if (type.equals("switch")) {
-            return switchFunc(isRequired);
-        }
-        else if (type.equals("lower")) {
-            return lower(isRequired);
-        }
-        else if (type.equals("upper")) {
-            return upper(isRequired);
-        }
-        else if (type.equals("trim")) {
-            return trim(isRequired);
-        }
-        else if (type.equals("rand")) {
-            return rand(isRequired);
-        }
-        else if (type.equals("randnum")) {
-            return randNum(isRequired);
-        }
-        else if (type.equals("datetime")) {
-            return datetime(isRequired);
-        }
-        else if (type.equals("urlencode")) {
-            return urlencode(isRequired);
-        }
-        else if (type.equals("cs")) {
-            return escape(Escape.Type.CHAIN, isRequired);
-        }
-        else if (type.equals("fs")) {
-            return escape(Escape.Type.FOREACH, isRequired);
-        }
-        else if (type.equals("sort")) {
-            return sort(isRequired);
-        }
-        else if (type.equals("replace")) {
-            return replace(isRequired);
-        }
-        else if (type.equals("is")) {
-            return is(isRequired);
-        }
-        else if (type.equals("get")) {
-            return get(isRequired);
-        }
-        else if (type.equals("calc")) {
-            return calc(isRequired);
-        }
-        else if (type.equals("round")) {
-            return round(isRequired);
-        }
-        else if (type.equals("input")) {
-            return input(isRequired);
-        }
-        else if (type.equals("request")) {
-            return request(isRequired);
-        }
-        else if (type.equals("json")) {
-            return json(isRequired);
-        }
-        else if (type.equals("j")) {
-            return jsonPath(isRequired);
-        }
-        else if (type.equals("quote")) {
-            return quote(isRequired);
-        }
-        else {
-            error("Invalid function '"+type+"'", 0);
-            return null;
+        switch (type) {
+            case "" -> {
+                return replacement(isRequired);
+            }
+            case "if" -> {
+                return condition(isRequired);
+            }
+            case "join" -> {
+                return join(isRequired);
+            }
+            case "ifeq" -> {
+                return ifEq(isRequired);
+            }
+            case "switch" -> {
+                return switchFunc(isRequired);
+            }
+            case "lower" -> {
+                return lower(isRequired);
+            }
+            case "upper" -> {
+                return upper(isRequired);
+            }
+            case "trim" -> {
+                return trim(isRequired);
+            }
+            case "rand" -> {
+                return rand(isRequired);
+            }
+            case "randnum" -> {
+                return randNum(isRequired);
+            }
+            case "datetime" -> {
+                return datetime(isRequired);
+            }
+            case "urlencode" -> {
+                return urlencode(isRequired);
+            }
+            case "cs" -> {
+                return escape(Escape.Type.CHAIN, isRequired);
+            }
+            case "fs" -> {
+                return escape(Escape.Type.FOREACH, isRequired);
+            }
+            case "sort" -> {
+                return sort(isRequired);
+            }
+            case "replace" -> {
+                return replace(isRequired);
+            }
+            case "is" -> {
+                return is(isRequired);
+            }
+            case "get" -> {
+                return get(isRequired);
+            }
+            case "calc" -> {
+                return calc(isRequired);
+            }
+            case "round" -> {
+                return round(isRequired);
+            }
+            case "input" -> {
+                return input(isRequired);
+            }
+            case "request" -> {
+                return request(isRequired);
+            }
+            case "json" -> {
+                return json(isRequired);
+            }
+            case "j" -> {
+                return jsonPath(isRequired);
+            }
+            case "quote" -> {
+                return quote(isRequired);
+            }
+            default -> {
+                error("Invalid function '" + type + "'", 0);
+                return null;
+            }
         }
     }
     
@@ -339,10 +339,7 @@ public class Parser {
         if (index == 0) {
             error("Invalid numeric identifer 0", 0);
         }
-        boolean toEnd = false;
-        if (accept("-")) {
-            toEnd = true;
-        }
+        boolean toEnd = accept("-");
         return new RangeIdentifier(index, toEnd);
     }
 
@@ -608,10 +605,7 @@ public class Parser {
         }
         List<Pair<Item, Boolean>> subItems = new ArrayList<>();
         while (accept(",")) {
-            boolean each = false;
-            if (reader.accept("each:")) {
-                each = true;
-            }
+            boolean each = reader.accept("each:");
             subItems.add(new Pair<>(param(), each));
         }
         expect(")");
@@ -645,7 +639,7 @@ public class Parser {
         }
     }
     
-    private Item literal(String quote) throws ParseException {
+    private Item literal(String quote) {
         StringBuilder b = new StringBuilder();
         endHl();
         while (reader.hasNext()) {

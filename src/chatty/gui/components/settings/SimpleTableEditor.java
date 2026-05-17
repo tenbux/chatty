@@ -5,26 +5,17 @@ import chatty.gui.GuiUtil;
 import chatty.gui.RegexDocumentFilter;
 import chatty.gui.components.settings.SimpleTableEditor.MapItem;
 import chatty.lang.Language;
-import java.awt.Component;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JTextField;
+
+import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.DocumentFilter;
+import java.awt.*;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.util.*;
+import java.util.List;
 
 /**
  * A map setting with a String as key/value. Implement the abstract method to
@@ -115,49 +106,39 @@ public abstract class SimpleTableEditor<T> extends TableEditor<MapItem<T>> imple
         }
         return false;
     }
-    
+
     /**
-     * Simple key/value String pair. Counts as equal if the key is equal
-     * (intended to be used in the context of a table where each key should only
-     * occur once).
-     */
-    static class MapItem<T> {
-        public final String key;
-        public final T value;
-        
-        public MapItem(String key, T value) {
-            this.key = key;
-            this.value = value;
-        }
-        
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final MapItem other = (MapItem) obj;
-            if (!Objects.equals(this.key, other.key)) {
-                return false;
-            }
-            return true;
-        }
+         * Simple key/value String pair. Counts as equal if the key is equal
+         * (intended to be used in the context of a table where each key should only
+         * occur once).
+         */
+        record MapItem<T>(String key, T value) {
 
         @Override
-        public int hashCode() {
-            int hash = 7;
-            hash = 79 * hash + Objects.hashCode(this.key);
-            return hash;
+            public boolean equals(Object obj) {
+                if (obj == null) {
+                    return false;
+                }
+                if (getClass() != obj.getClass()) {
+                    return false;
+                }
+                final MapItem other = (MapItem) obj;
+                return Objects.equals(this.key, other.key);
+            }
+
+            @Override
+            public int hashCode() {
+                int hash = 7;
+                hash = 79 * hash + Objects.hashCode(this.key);
+                return hash;
+            }
         }
-    }
     
     
 
     private static class MyTableModel<T> extends ListTableModel<MapItem<T>> {
 
-        private Class<T> valueClass;
+        private final Class<T> valueClass;
         
         public MyTableModel(Class<T> valueClass, String keyLabel, String valueLabel) {
             super(new String[]{keyLabel, valueLabel});
@@ -222,15 +203,11 @@ public abstract class SimpleTableEditor<T> extends TableEditor<MapItem<T>> imple
             key.addActionListener(e -> save());
             value.addActionListener(e -> save());
             
-            ActionListener listener = new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    if (e.getSource() == ok) {
-                        save();
-                    } else if (e.getSource() == cancel) {
-                        dialog.setVisible(false);
-                    }
+            ActionListener listener = e -> {
+                if (e.getSource() == ok) {
+                    save();
+                } else if (e.getSource() == cancel) {
+                    dialog.setVisible(false);
                 }
             };
             ok.addActionListener(listener);

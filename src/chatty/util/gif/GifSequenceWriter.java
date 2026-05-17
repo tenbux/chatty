@@ -30,10 +30,12 @@ package chatty.util.gif;
  */
 
 import javax.imageio.*;
-import javax.imageio.metadata.*;
-import javax.imageio.stream.*;
-import java.awt.image.*;
-import java.io.*;
+import javax.imageio.metadata.IIOMetadata;
+import javax.imageio.metadata.IIOMetadataNode;
+import javax.imageio.stream.ImageOutputStream;
+import java.awt.image.BufferedImage;
+import java.awt.image.RenderedImage;
+import java.io.IOException;
 import java.util.Iterator;
 
 public class GifSequenceWriter {
@@ -58,7 +60,7 @@ public class GifSequenceWriter {
       ImageOutputStream outputStream,
       int imageType,
       boolean loopContinuously,
-      boolean hasTransparency) throws IIOException, IOException {
+      boolean hasTransparency) throws IOException {
     // my method to create a writer
     gifWriter = getWriter(); 
     imageWriteParam = gifWriter.getDefaultWriteParam();

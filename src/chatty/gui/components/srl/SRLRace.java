@@ -2,45 +2,31 @@
 package chatty.gui.components.srl;
 
 import chatty.gui.GuiUtil;
-import chatty.util.colors.HtmlColors;
 import chatty.gui.LinkListener;
 import chatty.gui.TwitchUrl;
 import chatty.gui.UrlOpener;
 import chatty.gui.components.ExtendedTextPane;
 import chatty.gui.components.LinkLabel;
 import chatty.gui.components.LinkLabelListener;
-import chatty.gui.components.menus.ContextMenu;
-import chatty.gui.components.menus.ContextMenuAdapter;
-import chatty.gui.components.menus.ContextMenuListener;
-import chatty.gui.components.menus.RaceContextMenu;
-import chatty.gui.components.menus.RaceEntrantContextMenu;
+import chatty.gui.components.menus.*;
 import chatty.gui.components.settings.ListTableModel;
 import chatty.util.DateTime;
+import chatty.util.colors.HtmlColors;
 import chatty.util.srl.Race;
 import chatty.util.srl.Race.Entrant;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Window;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableColumnModel;
+import javax.swing.table.TableRowSorter;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.Timer;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.TableColumnModel;
-import javax.swing.table.TableRowSorter;
 
 /**
  *
@@ -222,15 +208,19 @@ public class SRLRace extends JDialog {
             if (selectedRace == null) {
                 return;
             }
-            if (e.getActionCommand().equals("srlRacePage")) {
-                String url = TwitchUrl.makeSrlRaceLink(selectedRace.id);
-                UrlOpener.openUrlPrompt(SRLRace.this, url, true);
-            } else if (e.getActionCommand().equals("speedruntv")) {
-                String url = TwitchUrl.makeSrtRaceLink(selectedRace.id);
-                UrlOpener.openUrlPrompt(SRLRace.this, url, true);
-            } else if (e.getActionCommand().equals("joinSrlChannel")) {
-                String url = TwitchUrl.makeSrlIrcLink(selectedRace.id);
-                UrlOpener.openUrlPrompt(SRLRace.this, url, true);
+            switch (e.getActionCommand()) {
+                case "srlRacePage" -> {
+                    String url = TwitchUrl.makeSrlRaceLink(selectedRace.id);
+                    UrlOpener.openUrlPrompt(SRLRace.this, url, true);
+                }
+                case "speedruntv" -> {
+                    String url = TwitchUrl.makeSrtRaceLink(selectedRace.id);
+                    UrlOpener.openUrlPrompt(SRLRace.this, url, true);
+                }
+                case "joinSrlChannel" -> {
+                    String url = TwitchUrl.makeSrlIrcLink(selectedRace.id);
+                    UrlOpener.openUrlPrompt(SRLRace.this, url, true);
+                }
             }
         }
     }
@@ -270,19 +260,13 @@ public class SRLRace extends JDialog {
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
             Entrant e = get(rowIndex);
-            switch (columnIndex) {
-                case 0:
-                    return e;
-                case 1:
-                    return e.name;
-                case 2:
-                    return formatTime(e.time);
-                case 3:
-                    return e;
-                case 4:
-                    return e.points;
-            }
-            return null;
+            return switch (columnIndex) {
+                case 0, 3 -> e;
+                case 1 -> e.name();
+                case 2 -> formatTime(e.time());
+                case 4 -> e.points();
+                default -> null;
+            };
         }
 
         @Override
@@ -297,8 +281,8 @@ public class SRLRace extends JDialog {
         }
         
         private String getPlace(Entrant e) {
-            if (e.time > 0) {
-                return String.valueOf(e.place);
+            if (e.time() > 0) {
+                return String.valueOf(e.place());
             }
             return "-";
         }
@@ -384,12 +368,12 @@ public class SRLRace extends JDialog {
                 return;
             }
             Entrant e = (Entrant)value;
-            if (e.time > 0) {
-                setText(String.valueOf(e.place));
+            if (e.time() > 0) {
+                setText(String.valueOf(e.place()));
             } else {
                 setText("-");
             }
-            setToolTipText(e.message);
+            setToolTipText(e.message());
         }
     }
     
@@ -409,18 +393,15 @@ public class SRLRace extends JDialog {
                 return;
             }
             Entrant e = (Entrant)value;
-            String state = e.statetext;
-            if (state.equals("Forfeit") || state.equals("Disqualified")) {
-                setForeground(FORFEIT);
-            } else if (state.equals("Entered")) {
-                setForeground(ENTERED);
-            } else if (state.equals("Finished")) {
-                setForeground(FINISHED);
-            } else {
-                setForeground(DEFAULT);
+            String state = e.statetext();
+            switch (state) {
+                case "Forfeit", "Disqualified" -> setForeground(FORFEIT);
+                case "Entered" -> setForeground(ENTERED);
+                case "Finished" -> setForeground(FINISHED);
+                default -> setForeground(DEFAULT);
             }
-            setText(state+(e.message.isEmpty() ? "" : " [..]"));
-            setToolTipText(e.message);
+            setText(state+(e.message().isEmpty() ? "" : " [..]"));
+            setToolTipText(e.message());
         }
     }
 }

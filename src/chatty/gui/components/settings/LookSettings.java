@@ -1,23 +1,17 @@
 
 package chatty.gui.components.settings;
 
-import chatty.gui.laf.LaF;
-import chatty.gui.laf.LaF.LaFSettings;
 import chatty.gui.components.LinkLabel;
 import chatty.gui.laf.FlatLafUtil;
+import chatty.gui.laf.LaF.LaFSettings;
 import chatty.gui.laf.LaFChanger;
 import chatty.lang.Language;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JTabbedPane;
 
 /**
  *
@@ -55,9 +49,7 @@ public class LookSettings extends SettingsPanel {
         d.addStringSetting("laf", laf);
         
         LinkLabel lafInfo = new LinkLabel("", d.getLinkLabelListener());
-        laf.addItemListener(e -> {
-            updateInfo(lafInfo, laf);
-        });
+        laf.addItemListener(e -> updateInfo(lafInfo, laf));
         updateInfo(lafInfo, laf);
         
         Map<String, String> themeDef = new LinkedHashMap<>();
@@ -88,13 +80,9 @@ public class LookSettings extends SettingsPanel {
                 Language.getString("settings.general.background"),
                 Language.getString("settings.general.background"),
                 () -> new ColorChooser(d));
-        ColorSettingListener colorChangeListener = new ColorSettingListener() {
-
-            @Override
-            public void colorUpdated() {
-                foregroundColor.setBaseColor(backgroundColor.getSettingValue());
-                backgroundColor.setBaseColor(foregroundColor.getSettingValue());
-            }
+        ColorSettingListener colorChangeListener = () -> {
+            foregroundColor.setBaseColor(backgroundColor.getSettingValue());
+            backgroundColor.setBaseColor(foregroundColor.getSettingValue());
         };
         foregroundColor.addListener(colorChangeListener);
         backgroundColor.addListener(colorChangeListener);
@@ -128,17 +116,17 @@ public class LookSettings extends SettingsPanel {
         //==========================
         JLabel info = new JLabel(SettingConstants.HTML_PREFIX
                 + Language.getString("settings.laf.info"));
-        gbc = d.makeGbc(0, 0, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 0, 1, 1);
         addPanel(info, gbc);
         
         // Look & Feel
-        gbc = d.makeGbc(0, 1, 1, 1, GridBagConstraints.EAST);
+        gbc = SettingsDialog.makeGbc(0, 1, 1, 1, GridBagConstraints.EAST);
         lafSettingsPanel.add(new JLabel(Language.getString("settings.laf.lookandfeel")), gbc);
         
-        gbc = d.makeGbc(1, 1, 1, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(1, 1, 1, 1, GridBagConstraints.WEST);
         lafSettingsPanel.add(laf, gbc);
         
-        gbc = d.makeGbc(0, 2, 4, 1);
+        gbc = SettingsDialog.makeGbc(0, 2, 4, 1);
         lafSettingsPanel.add(lafInfo, gbc);
         
         JPanel generalOptions = new JPanel(new GridBagLayout());
@@ -150,17 +138,17 @@ public class LookSettings extends SettingsPanel {
         // General Options
         //--------------------------
         // Font Theme
-        gbc = d.makeGbc(0, 3, 1, 1, GridBagConstraints.EAST);
+        gbc = SettingsDialog.makeGbc(0, 3, 1, 1, GridBagConstraints.EAST);
         generalOptions.add(new JLabel(Language.getString("settings.laf.font")), gbc);
         
-        gbc = d.makeGbc(1, 3, 1, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(1, 3, 1, 1, GridBagConstraints.WEST);
         generalOptions.add(theme, gbc);
         
         // Font Scale
         SettingsUtil.addLabeledComponent(generalOptions, "lafFontScale", 0, 1, 1, GridBagConstraints.WEST, fontScale);
         
         // Native window
-        gbc = d.makeGbc(0, 8, 2, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(0, 8, 2, 1, GridBagConstraints.WEST);
         generalOptions.add(lafNativeWindow, gbc);
         
         // Scrollbar
@@ -169,7 +157,7 @@ public class LookSettings extends SettingsPanel {
         SettingsUtil.addSubsettings(laf, s -> !s.equals("default") && !s.equals("system") && !s.startsWith("flat"), theme, lafNativeWindow);
         
         generalOptions.add(d.addSimpleBooleanSetting("lafErrorSound"),
-                d.makeGbc(0, 9, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 9, 2, 1, GridBagConstraints.WEST));
         
         //--------------------------
         // Flat Options
@@ -183,7 +171,7 @@ public class LookSettings extends SettingsPanel {
         flatProperties.setLinkLabelListener(d.getLinkLabelListener());
         SettingsUtil.addStandardSetting(flatOptions, "lafFlatProperties", 3, flatProperties);
         FlatTabOptions selectedTabOptions = new FlatTabOptions("lafFlatTabs", d);
-        flatOptions.add(selectedTabOptions, d.makeGbc(0, 2, 3, 1, GridBagConstraints.WEST));
+        flatOptions.add(selectedTabOptions, SettingsDialog.makeGbc(0, 2, 3, 1, GridBagConstraints.WEST));
         
         SettingsUtil.addSubsettings(styledWindow, embeddedMenu);
         SettingsUtil.addSubsettings(laf, s -> s.startsWith("flat"), styledWindow);
@@ -196,14 +184,14 @@ public class LookSettings extends SettingsPanel {
         SettingsUtil.addStandardSetting(hifiCustomOptions, "lafGradient", 2, lafGradient);
         
         // Colors
-        gbc = d.makeGbc(0, 10, 1, 1, GridBagConstraints.EAST);
+        gbc = SettingsDialog.makeGbc(0, 10, 1, 1, GridBagConstraints.EAST);
         hifiCustomOptions.add(new JLabel(Language.getString("settings.laf.colors")), gbc);
         
-        gbc = d.makeGbc(1, 10, 3, 1);
+        gbc = SettingsDialog.makeGbc(1, 10, 3, 1);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         hifiCustomOptions.add(foregroundColor, gbc);
         
-        gbc = d.makeGbc(1, 11, 3, 1);
+        gbc = SettingsDialog.makeGbc(1, 11, 3, 1);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         hifiCustomOptions.add(backgroundColor, gbc);
         
@@ -225,7 +213,7 @@ public class LookSettings extends SettingsPanel {
         optionsTabs.addTab("Flat", SettingsUtil.topAlign(flatOptions, 20));
         optionsTabs.addTab("HiFi Custom", SettingsUtil.topAlign(hifiCustomOptions, 20));
         optionsTabs.addTab("MacOS", SettingsUtil.topAlign(macOptions, 20));
-        gbc = d.makeGbc(0, 0, 1, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(0, 0, 1, 1, GridBagConstraints.WEST);
         gbc.weightx = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         optionsPanel.add(optionsTabs, gbc);
@@ -233,10 +221,10 @@ public class LookSettings extends SettingsPanel {
         //==========================
         // Preview
         //==========================
-        gbc = d.makeGbc(0, 1, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 1, 1, 1);
         previewPanel.add(new JLabel(SettingConstants.HTML_PREFIX+Language.getString("settings.laf.previewInfo")), gbc);
         
-        gbc = d.makeGbc(0, 4, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 4, 1, 1);
         previewPanel.add(lafPreviewButton, gbc);
     }
     

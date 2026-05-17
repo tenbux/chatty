@@ -1,8 +1,7 @@
 
 package chatty.gui;
 
-import java.awt.Component;
-import java.awt.Point;
+import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.util.HashSet;
@@ -88,7 +87,7 @@ public class AttachedWindowManager {
      * the owner itself
      */
     public void attach(Component comp) {
-        if (comp != owner && !components.contains(comp)) {
+        if (comp != owner) {
             components.add(comp);
         }
     }

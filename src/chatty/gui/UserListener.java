@@ -19,9 +19,9 @@ public interface UserListener {
      * @param user
      * @param e Can be null
      */
-    public void userClicked(User user, String messageId, String autoModMsgId, MouseEvent e);
-    public void emoteClicked(Emoticon emote, MouseEvent e);
-    public void usericonClicked(Usericon usericon, MouseEvent e);
-    public void linkClicked(Channel channel, MsgTags.Link link);
+    void userClicked(User user, String messageId, String autoModMsgId, MouseEvent e);
+    void emoteClicked(Emoticon emote, MouseEvent e);
+    void usericonClicked(Usericon usericon, MouseEvent e);
+    void linkClicked(Channel channel, MsgTags.Link link);
 
 }

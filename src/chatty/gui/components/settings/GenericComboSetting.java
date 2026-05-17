@@ -2,12 +2,13 @@
 package chatty.gui.components.settings;
 
 import chatty.gui.components.settings.GenericComboSetting.Entry;
+
+import javax.swing.*;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
-import javax.swing.JComboBox;
 
 /**
  * Warning:
@@ -157,9 +158,7 @@ public class GenericComboSetting<E> extends JComboBox<Entry<E>> {
     public void addSettingChangeListener(Consumer<GenericComboSetting<E>> listener) {
         if (listener != null) {
             if (listeners.isEmpty()) {
-                addItemListener(e -> {
-                    informSettingChangeListeners();
-                });
+                addItemListener(e -> informSettingChangeListeners());
             }
             listeners.add(listener);
         }
@@ -170,46 +169,36 @@ public class GenericComboSetting<E> extends JComboBox<Entry<E>> {
             listener.accept(this);
         }
     }
-    
-    public static class Entry<E> {
-        public final E value;
-        public final String label;
-        
-        public Entry(E value, String label) {
-            this.value = value;
-            this.label = label;
-        }
-        
-        @Override
-        public String toString() {
-            return label;
-        }
-        
-        public static Object valueOf(String value) {
-            return new Entry(value, value);
-        }
-        
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final Entry<?> other = (Entry<?>) obj;
-            if (!Objects.equals(this.value, other.value)) {
-                return false;
-            }
-            return true;
-        }
+
+    public record Entry<E>(E value, String label) {
 
         @Override
-        public int hashCode() {
-            int hash = 3;
-            hash = 89 * hash + Objects.hashCode(this.value);
-            return hash;
+            public String toString() {
+                return label;
+            }
+
+        public static Object valueOf(String value) {
+                return new Entry(value, value);
+            }
+
+        @Override
+            public boolean equals(Object obj) {
+                if (obj == null) {
+                    return false;
+                }
+                if (getClass() != obj.getClass()) {
+                    return false;
+                }
+                final Entry<?> other = (Entry<?>) obj;
+                return Objects.equals(this.value, other.value);
+            }
+
+            @Override
+            public int hashCode() {
+                int hash = 3;
+                hash = 89 * hash + Objects.hashCode(this.value);
+                return hash;
+            }
         }
-    }
 
 }

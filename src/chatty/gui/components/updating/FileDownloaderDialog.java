@@ -2,22 +2,17 @@
 package chatty.gui.components.updating;
 
 import chatty.lang.Language;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.Window;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JProgressBar;
-import javax.swing.SwingUtilities;
 
 /**
  *
@@ -26,7 +21,6 @@ import javax.swing.SwingUtilities;
 public class FileDownloaderDialog extends JDialog {
     
     private final JProgressBar progressBar;
-    private final JButton cancelButton;
     private final JLabel error;
     
     private final FileDownloader downloader;
@@ -90,9 +84,7 @@ public class FileDownloaderDialog extends JDialog {
 
             @Override
             public void cancelled(long totalBytes, long contentLength) {
-                SwingUtilities.invokeLater(() -> {
-                    setVisible(false);
-                });
+                SwingUtilities.invokeLater(() -> setVisible(false));
             }
         });
         
@@ -102,8 +94,8 @@ public class FileDownloaderDialog extends JDialog {
         progressBar = new JProgressBar();
         progressBar.setStringPainted(true);
         add(progressBar, BorderLayout.CENTER);
-        
-        cancelButton = new JButton(Language.getString("dialog.button.cancel"));
+
+        JButton cancelButton = new JButton(Language.getString("dialog.button.cancel"));
         add(cancelButton, BorderLayout.SOUTH);
         
         cancelButton.addActionListener(e -> {
@@ -130,9 +122,9 @@ public class FileDownloaderDialog extends JDialog {
         setLocationRelativeTo(getOwner());
     }
     
-    public static void main(String[] args) throws MalformedURLException {
+    public static void main(String[] args) throws Exception {
         System.out.println(downloadFile(null,
-                new URL("https://github.com/chatty/chatty/releases/download/v0.9.1/Chatty_0.9.1.zip"),
+                URI.create("https://github.com/chatty/chatty/releases/download/v0.9.1/Chatty_0.9.1.zip").toURL(),
                 Paths.get("G:\\test2.zip"), "Downloading update"));
         System.exit(0);
     }

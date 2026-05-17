@@ -3,24 +3,16 @@ package chatty.gui.components;
 
 import chatty.util.Debugging;
 import chatty.util.ElapsedTime;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Point;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import javax.swing.BorderFactory;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.Popup;
-import javax.swing.PopupFactory;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
+
+import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 /**
  * Show a popup in relation to a component that will disappear after a few
@@ -131,15 +123,15 @@ public class SimplePopup {
         Dimension labelSize = label.getPreferredSize();
         
         Point location = owner.getLocationOnScreen();
-        if (owner instanceof JTextComponent) {
+        if (owner instanceof JTextComponent textComponent) {
             try {
-                JTextComponent textComponent = (JTextComponent) owner;
                 if (position == -1) {
                     position = textComponent.getCaretPosition();
                 }
-                location = textComponent.modelToView(position).getLocation();
+                java.awt.geom.Rectangle2D r = textComponent.modelToView2D(position);
+                location = new Point((int) r.getX(), (int) r.getY());
                 SwingUtilities.convertPointToScreen(location, textComponent);
-            } catch (BadLocationException ex) {
+            } catch (BadLocationException ignored) {
                 
             }
         }
@@ -202,9 +194,9 @@ public class SimplePopup {
         }
     }
     
-    public static interface SimplePopupListener {
+    public interface SimplePopupListener {
         
-        public void popupHidden();
+        void popupHidden();
         
     }
     

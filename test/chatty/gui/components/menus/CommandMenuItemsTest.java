@@ -2,11 +2,13 @@
 package chatty.gui.components.menus;
 
 import chatty.util.commands.CustomCommand;
+import org.junit.Test;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import org.junit.Test;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -17,31 +19,32 @@ public class CommandMenuItemsTest {
     @Test
     public void testParse() {
         
-        assertEquals(CommandMenuItems.parse(null), new ArrayList<>());
-        assertEquals(CommandMenuItems.parse(""), new ArrayList<>());
+        assertEquals(new ArrayList<>(), CommandMenuItems.parse(null));
+        assertEquals(new ArrayList<>(), CommandMenuItems.parse(""));
         
-        String input1 = ""
-                + "Test=/Hello\n"
-                + "Test{0}=/Hello\n"
-                + "Test{0}[k]=/Hello\n"
-                + "Test[k]=/Hello\n"
-                + "Test [k]=/Hello\n"
-                + "/Test /Test{0} /Test{0}[k] /Test[k]\n"
-                + "/Hello_World\n"
-                + "@Menu Name\n"
-                + "@Menu Name{0}\n"
-                + "@Menu Name{0}[k]\n"
-                + ".-\n"
-                + "-\n"
-                + "-{0}\n"
-                + "-{1}\n"
-                + ".-{0}\n"
-                + "1m 1m[ctrl+t] 1m[ctrl+t|ct] 1m{0}\n"
-                + "./Test //Test\n"
-                + "\n"
-                + ". Test = /Test $1- \n"
-                + "60s 1m 60\n"
-                + "Uptime=Stream Uptime: $(streamuptime)";
+        String input1 = """
+                \
+                Test=/Hello
+                Test{0}=/Hello
+                Test{0}[k]=/Hello
+                Test[k]=/Hello
+                Test [k]=/Hello
+                /Test /Test{0} /Test{0}[k] /Test[k]
+                /Hello_World
+                @Menu Name
+                @Menu Name{0}
+                @Menu Name{0}[k]
+                .-
+                -
+                -{0}
+                -{1}
+                .-{0}
+                1m 1m[ctrl+t] 1m[ctrl+t|ct] 1m{0}
+                ./Test //Test
+                
+                . Test = /Test $1-\s
+                60s 1m 60
+                Uptime=Stream Uptime: $(streamuptime)""";
         
         List<CommandMenuItem> expected1 = new LinkedList<>();
         expected1.add(new CommandMenuItem("Test", CustomCommand.parse("/Hello"), null, -1, null, null, 1));
@@ -81,12 +84,13 @@ public class CommandMenuItemsTest {
             assertEquals(expected1.get(i), actual1.get(i));
         }
         
-        String input2 = ""
-                + "[mod $is(mystatus:M) ]\n"
-                + "1s 5m 30m /ban /unban\n"
-                + "[ $is(status:M) ]\n"
-                + "Warn=/me slaps $$1 around a bit with a large trout\n"
-                + "[/mod]";
+        String input2 = """
+                \
+                [mod $is(mystatus:M) ]
+                1s 5m 30m /ban /unban
+                [ $is(status:M) ]
+                Warn=/me slaps $$1 around a bit with a large trout
+                [/mod]""";
         
         List<CustomCommand> restriction1 = new ArrayList<>();
         restriction1.add(CustomCommand.parse("$is(mystatus:M)"));

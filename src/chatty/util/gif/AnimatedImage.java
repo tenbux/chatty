@@ -11,14 +11,14 @@ import java.awt.Dimension;
  */
 public interface AnimatedImage {
 
-    public void getFrame(int frame, int[] pixels) throws Exception;
-    public int getFrameCount();
-    public int getDelay(int frame);
-    public Dimension getSize();
-    public String getName();
-    public int getPreferredPauseFrame();
+    void getFrame(int frame, int[] pixels) throws Exception;
+    int getFrameCount();
+    int getDelay(int frame);
+    Dimension getSize();
+    String getName();
+    int getPreferredPauseFrame();
     
-    public static void setAnimationPause(int state) {
+    static void setAnimationPause(int state) {
         AnimatedImageSource.ANIMATION_PAUSE = state;
     }
     

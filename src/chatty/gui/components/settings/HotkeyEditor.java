@@ -3,40 +3,23 @@ package chatty.gui.components.settings;
 
 import chatty.Chatty;
 import chatty.gui.GuiUtil;
-import static chatty.gui.components.settings.CommandSettings.showCommandInfoPopup;
 import chatty.lang.Language;
 import chatty.util.StringUtil;
 import chatty.util.commands.CommandSyntaxHighlighter;
 import chatty.util.commands.CustomCommand;
 import chatty.util.hotkeys.Hotkey;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import javax.swing.ButtonGroup;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JRadioButton;
-import javax.swing.JTextField;
-import javax.swing.KeyStroke;
+
+import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import java.awt.*;
+import java.awt.event.ActionListener;
+import java.util.*;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import static chatty.gui.components.settings.CommandSettings.showCommandInfoPopup;
 
 /**
  *
@@ -45,10 +28,10 @@ import javax.swing.event.DocumentListener;
 public class HotkeyEditor extends TableEditor<Hotkey> {
     
     private static final Set<String> RECOMMENDED_APPLICATION_ACTIONS =
-            new HashSet<>(Arrays.asList(new String[]{"about"}));
+            new HashSet<>(List.of("about"));
     
     private static final Set<String> RECOMMENDED_GLOBAL_ACTIONS =
-            new HashSet<>(Arrays.asList(new String[]{"dialog.toggleTransparency"}));
+            new HashSet<>(List.of("dialog.toggleTransparency"));
 
     private MyItemEditor itemEditor;
     public final MyTableModel data = new MyTableModel();
@@ -63,7 +46,7 @@ public class HotkeyEditor extends TableEditor<Hotkey> {
         setModel(data);
         setItemEditor(() -> {
             if (itemEditor == null) {
-                itemEditor = new MyItemEditor(owner, k -> getExistingHotkey(k));
+                itemEditor = new MyItemEditor(owner, this::getExistingHotkey);
                 itemEditor.setActions(actions);
                 itemEditor.setDescriptions(descriptions);
                 itemEditor.setGlobalHotkeysAvailable(globalHotkeysAvailable);
@@ -73,7 +56,7 @@ public class HotkeyEditor extends TableEditor<Hotkey> {
         
         setFixedColumnWidth(2, 60);
         
-        setTableEditorListener(new TableEditorListener<Hotkey>() {
+        setTableEditorListener(new TableEditorListener<>() {
             @Override
             public void itemAdded(Hotkey item) {
                 updateConflicts();
@@ -108,7 +91,7 @@ public class HotkeyEditor extends TableEditor<Hotkey> {
 
             @Override
             public void refreshData() {
-                
+
             }
         });
     }
@@ -315,22 +298,16 @@ public class HotkeyEditor extends TableEditor<Hotkey> {
                 }
             });
             
-            anonymousCustomCommand = new EditorStringSetting(owner, "Anonymous Custom Command", 10, false, false, "", new Editor.Tester() {
-
-                @Override
-                public String test(Window parent, Component component, int x, int y, String value) {
-                    CustomCommand command = CustomCommand.parse(value);
-                    showCommandInfoPopup(component, command);
-                    return null;
-                }
+            anonymousCustomCommand = new EditorStringSetting(owner, "Anonymous Custom Command", 10, false, false, "", (parent, component, x, y, value) -> {
+                CustomCommand command = CustomCommand.parse(value);
+                showCommandInfoPopup(component, command);
+                return null;
             });
             anonymousCustomCommand.setInfo(SettingConstants.HTML_PREFIX
                     +"Enter the command to execute, for example <code>/echo Currently open channels are: $(chans)</code>.");
             anonymousCustomCommand.setShowInfoByDefault(true);
             anonymousCustomCommand.setSettingValue("");
-            anonymousCustomCommand.setChangeListener(e -> {
-                updateButtons();
-            });
+            anonymousCustomCommand.setChangeListener(e -> updateButtons());
             anonymousCustomCommand.setSyntaxHighlighter(new CommandSyntaxHighlighter());
             
             dialog = new JDialog(owner);
@@ -338,21 +315,17 @@ public class HotkeyEditor extends TableEditor<Hotkey> {
             //hotkeyChooser.setEditable(false);
             dialog.setModal(true);
             
-            ActionListener listener = new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    if (e.getSource() == ok) {
-                        dialog.setVisible(false);
-                    } else if (e.getSource() == cancel) {
-                        currentHotkey = null;
-                        dialog.setVisible(false);
-                    } else if (e.getSource() == actionId) {
-                        updateButtons();
-                        updateDescription();
-                    } else if (e.getSource() == global) {
-                        checkForGlobalHotkeyWarning();
-                    }
+            ActionListener listener = e -> {
+                if (e.getSource() == ok) {
+                    dialog.setVisible(false);
+                } else if (e.getSource() == cancel) {
+                    currentHotkey = null;
+                    dialog.setVisible(false);
+                } else if (e.getSource() == actionId) {
+                    updateButtons();
+                    updateDescription();
+                } else if (e.getSource() == global) {
+                    checkForGlobalHotkeyWarning();
                 }
             };
             ok.addActionListener(listener);

@@ -9,6 +9,6 @@ package chatty.gui.transparency;
  */
 public interface TransparencyComponent {
     
-    public void setTransparent(int transparency);
+    void setTransparent(int transparency);
     
 }

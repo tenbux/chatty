@@ -4,15 +4,15 @@ package chatty.util;
 import chatty.Chatty;
 import chatty.gui.MainGui;
 import chatty.util.IconManager.CustomIcon.Type;
-import java.awt.Image;
-import java.awt.Toolkit;
+
+import javax.swing.*;
+import java.awt.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Logger;
-import javax.swing.ImageIcon;
 
 /**
  * Allows setting custom window/notification icons.
@@ -62,7 +62,7 @@ public class IconManager {
             customIcons = result;
             StringBuilder b = new StringBuilder();
             for (CustomIcon ci : result) {
-                if (b.length() > 0) {
+                if (!b.isEmpty()) {
                     b.append("/");
                 }
                 b.append("[").append(ci.type).append("]");
@@ -70,32 +70,24 @@ public class IconManager {
             }
             LOGGER.info(String.format("Created %s custom icons (%s)",
                     result.size(),
-                    b.toString()));
+                    b));
         }
     }
-    
-    public static class CustomIcon {
 
-        public enum Type {
+    public record CustomIcon(Type type, ImageIcon icon) {
 
-            ALL("all"), MAIN("main"), TRAY("tray"), NOTIFICATION("notif"),
-            LIVE("live"), HELP("help"), DEBUG("debug"), POPOUT("popout");
-            
-            public final String id;
+            public enum Type {
 
-            Type(String id) {
-                this.id = id;
+                ALL("all"), MAIN("main"), TRAY("tray"), NOTIFICATION("notif"),
+                LIVE("live"), HELP("help"), DEBUG("debug"), POPOUT("popout");
+
+                public final String id;
+
+                Type(String id) {
+                    this.id = id;
+                }
+
             }
-
-        }
-
-        public final Type type;
-        public final ImageIcon icon;
-
-        public CustomIcon(Type type, ImageIcon icon) {
-            this.icon = icon;
-            this.type = type;
-        }
 
     }
     

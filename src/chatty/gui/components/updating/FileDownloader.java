@@ -5,6 +5,7 @@ import java.io.BufferedInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.Path;
@@ -54,7 +55,7 @@ public class FileDownloader implements Runnable {
     
     @Override
     public void run() {
-        URLConnection connection = null;
+        URLConnection connection;
         try {
             connection = from.openConnection();
             //connection.setRequestProperty("User-Agent", VERSION);
@@ -97,15 +98,15 @@ public class FileDownloader implements Runnable {
     
     public interface FileDownloaderListener {
         
-        public void completed(long totalBytes, long contentLength);
-        public void error(IOException ex);
-        public void progress(long totalBytes, long contentLength);
-        public void cancelled(long totalBytes, long contentLength);
+        void completed(long totalBytes, long contentLength);
+        void error(IOException ex);
+        void progress(long totalBytes, long contentLength);
+        void cancelled(long totalBytes, long contentLength);
         
     }
     
     public static void main(String[] args) throws IOException {
-        URL from = new URL("https://github.com/chatty/chatty/releases/download/v0.9.1/Chatty_0.9.1.zip");
+        URL from = URI.create("https://github.com/chatty/chatty/releases/download/v0.9.1/Chatty_0.9.1.zip").toURL();
         Path to = Paths.get("G:\\testi.zip");
         FileDownloader downloader = new FileDownloader(from, to, new FileDownloaderListener() {
 

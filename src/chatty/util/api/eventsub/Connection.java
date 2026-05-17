@@ -42,7 +42,7 @@ public class Connection extends JWSClient {
             return;
         }
         if (connectionTimeoutSeconds > 0) {
-            if (getLastReceivedSecondsAgo() > connectionTimeoutSeconds * 2) {
+            if (getLastReceivedSecondsAgo() > connectionTimeoutSeconds * 2L) {
                 forceReconnect();
             }
             else if (getLastReceivedSecondsAgo() > connectionTimeoutSeconds) {

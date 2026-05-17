@@ -84,10 +84,7 @@ class IfEq implements Item {
         if (Objects.equals(output1, other.output1)) {
             return false;
         }
-        if (Objects.equals(output2, other.output2)) {
-            return false;
-        }
-        return true;
+        return !Objects.equals(output2, other.output2);
     }
 
     @Override

@@ -2,20 +2,18 @@
 package chatty.gui.components.menus;
 
 import chatty.Helper;
-import chatty.Room;
 import chatty.gui.Channels;
 import chatty.gui.components.Channel;
 import chatty.gui.components.settings.TabSettings;
 import chatty.util.StringUtil;
-import chatty.util.commands.Parameters;
 import chatty.util.dnd.DockContent;
 import chatty.util.settings.Settings;
+
+import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
 
 /**
  * The Context Menu that appears on the tab bar.
@@ -82,10 +80,9 @@ public class TabContextMenu extends ContextMenu {
         // Order
         //--------------------------
         String customOrderMenuName = "This tab";
-        String customOrderMenuName2 = typeLabel;
         JMenu orderMenu = new JMenu("Order");
         JMenu customOrderMenu = new JMenu(customOrderMenuName);
-        JMenu customOrderMenu2 = new JMenu(customOrderMenuName2);
+        JMenu customOrderMenu2 = new JMenu(typeLabel);
         registerSubmenu(orderMenu);
         registerSubmenu(customOrderMenu);
         registerSubmenu(customOrderMenu2);
@@ -98,7 +95,7 @@ public class TabContextMenu extends ContextMenu {
         
         Map<Long, List<String>> posIds = Channels.getTabPosIds(settings);
         addPosItems(posIds, Channels.getTabPos(settings, content.getId()), customOrderMenuName, "tabsPosTab");
-        addPosItems(posIds, Channels.getTabPos(settings, content.getId().substring(0, 1)), customOrderMenuName2, "tabsPosType");
+        addPosItems(posIds, Channels.getTabPos(settings, content.getId().substring(0, 1)), typeLabel, "tabsPosType");
         
         addSeparator();
         add(orderMenu);

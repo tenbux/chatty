@@ -5,51 +5,31 @@ import chatty.Helper;
 import chatty.Room;
 import chatty.User;
 import chatty.gui.GuiUtil;
-import chatty.util.colors.HtmlColors;
 import chatty.gui.components.LinkLabelListener;
-import static chatty.gui.components.settings.NotificationSettings.l;
 import chatty.gui.notifications.Notification;
 import chatty.gui.notifications.Notification.State;
-import chatty.gui.notifications.Notification.TypeOption;
 import chatty.gui.notifications.Notification.Type;
+import chatty.gui.notifications.Notification.TypeOption;
 import chatty.gui.notifications.NotificationManager;
 import chatty.gui.notifications.NotificationWindow;
 import chatty.lang.Language;
 import chatty.util.Sound;
 import chatty.util.StringUtil;
+import chatty.util.colors.HtmlColors;
 import chatty.util.commands.CustomCommand;
 import chatty.util.commands.Parameters;
 import chatty.util.settings.Settings;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import static java.awt.GridBagConstraints.EAST;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JSlider;
-import javax.swing.JTabbedPane;
-import javax.swing.JTable;
-import javax.swing.SwingUtilities;
+
+import javax.swing.*;
 import javax.swing.table.TableCellRenderer;
+import java.awt.*;
+import java.awt.event.ActionListener;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.List;
+
+import static chatty.gui.components.settings.NotificationSettings.l;
+import static java.awt.GridBagConstraints.EAST;
 
 /**
  * Table to add/remove/edit notification events.
@@ -139,8 +119,7 @@ class NotificationEditor extends TableEditor<Notification> {
         
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
-            Notification p = get(rowIndex);
-            return p;
+            return get(rowIndex);
         }
         
         @Override
@@ -295,7 +274,7 @@ class NotificationEditor extends TableEditor<Notification> {
         private final EditorStringSetting ttsFormat;
 
         // State
-        private JLabel description;
+        private final JLabel description;
         private Notification current;
         private Path soundsPath;
         private boolean save;
@@ -308,13 +287,7 @@ class NotificationEditor extends TableEditor<Notification> {
             dialog.setModal(true);
             
             type = new GenericComboSetting<>(typeNames);
-            type.addItemListener(new ItemListener() {
-
-                @Override
-                public void itemStateChanged(ItemEvent e) {
-                    updateSubTypes();
-                }
-            });
+            type.addItemListener(e -> updateSubTypes());
             
             
             
@@ -382,14 +355,10 @@ class NotificationEditor extends TableEditor<Notification> {
                     Language.getString("settings.general.background"),
                     Language.getString("settings.general.background"),
                     () -> new ColorChooser(dialog));
-            ColorSettingListener colorChangeListener = new ColorSettingListener() {
-
-                @Override
-                public void colorUpdated() {
-                    foregroundColor.setBaseColor(backgroundColor.getSettingValue());
-                    backgroundColor.setBaseColor(foregroundColor.getSettingValue());
-                    updateTestNotification();
-                }
+            ColorSettingListener colorChangeListener = () -> {
+                foregroundColor.setBaseColor(backgroundColor.getSettingValue());
+                backgroundColor.setBaseColor(foregroundColor.getSettingValue());
+                updateTestNotification();
             };
             foregroundColor.addListener(colorChangeListener);
             backgroundColor.addListener(colorChangeListener);
@@ -404,9 +373,7 @@ class NotificationEditor extends TableEditor<Notification> {
             colorTemplates.init();
             
             testColors = new JButton("Test Colors");
-            testColors.addActionListener(e -> {
-                testNotification();
-            });
+            testColors.addActionListener(e -> testNotification());
             
             soundFile = new ComboStringSetting(new String[]{});
             
@@ -423,40 +390,36 @@ class NotificationEditor extends TableEditor<Notification> {
             messageUseColor = new JCheckBox(Language.getString("settings.notifications.messageUseColor"));
             messageOverrideDefault = new JCheckBox(Language.getString("settings.notifications.messageOverrideDefault"));
             
-            Editor.Tester tester = new Editor.Tester() {
-
-                @Override
-                public String test(Window parent, Component component, int x, int y, String value) {
-                    CustomCommand command = CustomCommand.parse(value);
-                    if (command.hasError()) {
-                        CommandSettings.showCommandInfoPopup(component, command);
-                    }
-                    else {
-                        Parameters params = Parameters.create("An example chat message");
-                        params.putObject("user", new User("testUser", Room.createRegular("#testChannel")));
-                        params.putObject("settings", settings);
-                        params.put("chan", "testchannel");
-                        params.put("stream", "testchannel");
-                        params.put("title", "[Message] testUser in #testchannel");
-                        params.put("message", "An example chat message");
-
-                        Parameters params2 = Parameters.create("An example chat message");
-                        params2.putObject("user", null);
-                        params2.putObject("settings", settings);
-                        params2.put("chan", "testchannel");
-                        params2.put("stream", "testchannel");
-                        params2.put("title", "[Info] #testchannel");
-                        params2.put("message", "An example info message");
-
-                        GuiUtil.showNonModalMessage(parent, "Example",
-                                                    String.format("Triggered by chat message:<br />%s<br /><br />"
-                                                            + "Triggered by info message:<br />%s",
-                                                                  Helper.htmlspecialchars_encode(command.replace(params)),
-                                                                  Helper.htmlspecialchars_encode(command.replace(params2))),
-                                                    JOptionPane.INFORMATION_MESSAGE, true);
-                    }
-                    return null;
+            Editor.Tester tester = (parent, component, x, y, value) -> {
+                CustomCommand command = CustomCommand.parse(value);
+                if (command.hasError()) {
+                    CommandSettings.showCommandInfoPopup(component, command);
                 }
+                else {
+                    Parameters params = Parameters.create("An example chat message");
+                    params.putObject("user", new User("testUser", Room.createRegular("#testChannel")));
+                    params.putObject("settings", settings);
+                    params.put("chan", "testchannel");
+                    params.put("stream", "testchannel");
+                    params.put("title", "[Message] testUser in #testchannel");
+                    params.put("message", "An example chat message");
+
+                    Parameters params2 = Parameters.create("An example chat message");
+                    params2.putObject("user", null);
+                    params2.putObject("settings", settings);
+                    params2.put("chan", "testchannel");
+                    params2.put("stream", "testchannel");
+                    params2.put("title", "[Info] #testchannel");
+                    params2.put("message", "An example info message");
+
+                    GuiUtil.showNonModalMessage(parent, "Example",
+                                                String.format("Triggered by chat message:<br />%s<br /><br />"
+                                                        + "Triggered by info message:<br />%s",
+                                                              Helper.htmlspecialchars_encode(command.replace(params)),
+                                                              Helper.htmlspecialchars_encode(command.replace(params2))),
+                                                JOptionPane.INFORMATION_MESSAGE, true);
+                }
+                return null;
             };
             
             ttsFormat = new EditorStringSetting(dialog, "Text to Speech Message Format", 20, true, false, TTS_FORMAT_HELP, tester);
@@ -512,21 +475,17 @@ class NotificationEditor extends TableEditor<Notification> {
             SettingsUtil.addLabeledComponent(sound, "settings.notifications.soundPassiveCooldown", 2, 4, 1, EAST, soundInactiveCooldown);
             
             playSound = new JButton("Test Sound");
-            playSound.addActionListener(new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    try {
-                        String file = soundFile.getSettingValue();
-                        if (file != null && !file.isEmpty()) {
-                            long volume = volumeSlider.getSettingValue();
-                            Sound.play(soundsPath.resolve(file), volume, "test", -1);
-                        }
-                    } catch (Exception ex) {
-                        GuiUtil.showNonModalMessage(dialog, "Error Playing Sound",
-                                ex.toString(),
-                                JOptionPane.ERROR_MESSAGE);
+            playSound.addActionListener(e -> {
+                try {
+                    String file = soundFile.getSettingValue();
+                    if (file != null && !file.isEmpty()) {
+                        long volume = volumeSlider.getSettingValue();
+                        Sound.play(soundsPath.resolve(file), volume, "test", -1);
                     }
+                } catch (Exception ex) {
+                    GuiUtil.showNonModalMessage(dialog, "Error Playing Sound",
+                            ex.toString(),
+                            JOptionPane.ERROR_MESSAGE);
                 }
             });
             gbc = GuiUtil.makeGbc(2, 5, 2, 1);
@@ -595,16 +554,12 @@ class NotificationEditor extends TableEditor<Notification> {
             tabs.addTab(columnLabel("message", true), GuiUtil.northWrap(message));
             tabs.addTab(columnLabel("tts", true), GuiUtil.northWrap(tts));
             
-            ActionListener buttonAction = new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    if (e.getSource() == okButton) {
-                        save = true;
-                    }
-                    if (e.getSource() == okButton || e.getSource() == cancelButton) {
-                        dialog.setVisible(false);
-                    }
+            ActionListener buttonAction = e -> {
+                if (e.getSource() == okButton) {
+                    save = true;
+                }
+                if (e.getSource() == okButton || e.getSource() == cancelButton) {
+                    dialog.setVisible(false);
                 }
             };
             okButton.addActionListener(buttonAction);
@@ -838,9 +793,7 @@ class NotificationEditor extends TableEditor<Notification> {
             w.show();
             if (testNotification != null) {
                 final NotificationWindow toClose = testNotification;
-                SwingUtilities.invokeLater(() -> {
-                    toClose.close();
-                });
+                SwingUtilities.invokeLater(toClose::close);
             }
             testNotification = w;
         }

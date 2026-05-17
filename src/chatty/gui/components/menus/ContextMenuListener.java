@@ -17,15 +17,15 @@ import java.util.Collection;
  * @author tduva
  */
 public interface ContextMenuListener {
-    public void userMenuItemClicked(ActionEvent e, User user, String msgId, String autoModMsgId);
-    public void urlMenuItemClicked(ActionEvent e, String url);
-    public void menuItemClicked(ActionEvent e);
-    public void textMenuItemClick(ActionEvent e, String selected);
-    public void roomsMenuItemClicked(ActionEvent e, Collection<Room> rooms);
-    public void channelMenuItemClicked(ActionEvent e, Channel channel);
-    public void tabMenuItemClicked(ActionEvent e, DockContent content);
-    public void streamsMenuItemClicked(ActionEvent e, Collection<String> streams);
-    public void streamInfosMenuItemClicked(ActionEvent e, Collection<StreamInfo> streamInfos);
-    public void emoteMenuItemClicked(ActionEvent e, CachedImage<Emoticon> emote);
-    public void usericonMenuItemClicked(ActionEvent e, CachedImage<Usericon> usericonImage);
+    void userMenuItemClicked(ActionEvent e, User user, String msgId, String autoModMsgId);
+    void urlMenuItemClicked(ActionEvent e, String url);
+    void menuItemClicked(ActionEvent e);
+    void textMenuItemClick(ActionEvent e, String selected);
+    void roomsMenuItemClicked(ActionEvent e, Collection<Room> rooms);
+    void channelMenuItemClicked(ActionEvent e, Channel channel);
+    void tabMenuItemClicked(ActionEvent e, DockContent content);
+    void streamsMenuItemClicked(ActionEvent e, Collection<String> streams);
+    void streamInfosMenuItemClicked(ActionEvent e, Collection<StreamInfo> streamInfos);
+    void emoteMenuItemClicked(ActionEvent e, CachedImage<Emoticon> emote);
+    void usericonMenuItemClicked(ActionEvent e, CachedImage<Usericon> usericonImage);
 }

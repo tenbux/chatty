@@ -73,7 +73,7 @@ public class ImageUrlTest {
             urls.put(Integer.valueOf(params[i]), params[i+1]);
         }
         ImageUrl.Builder b = ImageUrl.builder(id);
-        urls.forEach((size, url) -> b.addUrl(size, url));
+        urls.forEach(b::addUrl);
         ImageUrl url = b.build();
         for (Map.Entry<Integer, String> entry : urls.entrySet()) {
             assertEquals(entry.getValue(), url.getUrl(id, entry.getKey()));

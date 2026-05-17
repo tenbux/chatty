@@ -2,17 +2,13 @@
 package chatty.util.api;
 
 import chatty.util.CachedBulkManager;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 /**
  *
@@ -26,14 +22,9 @@ public class UserInfoManager {
     private final CachedBulkManager<String, UserInfo> perId;
     
     public UserInfoManager(TwitchApi api) {
-        perLogin = new CachedBulkManager<>(new CachedBulkManager.Requester<String, UserInfo>() {
-            
-            @Override
-            public void request(CachedBulkManager<String, UserInfo> manager, Set<String> asap, Set<String> normal, Set<String> backlog) {
-                Set<String> toRequest = manager.makeAndSetRequested(asap, normal, backlog, 100);
-                api.requests.requestUserInfo(toRequest);
-            }
-            
+        perLogin = new CachedBulkManager<>((manager, asap, normal, backlog) -> {
+            Set<String> toRequest = manager.makeAndSetRequested(asap, normal, backlog, 100);
+            api.requests.requestUserInfo(toRequest);
         }, CachedBulkManager.NONE);
 
         perId = new CachedBulkManager<>(
@@ -90,9 +81,7 @@ public class UserInfoManager {
      * @param resultListener
      */
     public void getCached(Object unique, List<String> logins, Consumer<Map<String, UserInfo>> resultListener) {
-        perLogin.query(unique, (result) -> {
-            resultListener.accept(result.getResults());
-        }, CachedBulkManager.ASAP, logins);
+        perLogin.query(unique, (result) -> resultListener.accept(result.getResults()), CachedBulkManager.ASAP, logins);
     }
     
     /**
@@ -106,9 +95,7 @@ public class UserInfoManager {
      * @param resultListener
      */
     public void getCachedById(Object unique, List<String> ids, Consumer<Map<String, UserInfo>> resultListener) {
-        perId.query(unique, (result) -> {
-            resultListener.accept(result.getResults());
-        }, CachedBulkManager.ASAP, ids);
+        perId.query(unique, (result) -> resultListener.accept(result.getResults()), CachedBulkManager.ASAP, ids);
     }
     
     public void resultReceived(Set<String> requested, Collection<UserInfo> result) {
@@ -118,9 +105,9 @@ public class UserInfoManager {
         else {
             Set<String> notFound = new HashSet<>(requested);
             for (UserInfo info : result) {
-                notFound.remove(info.login);
-                perLogin.setResult(info.login, info);
-                perId.setResult(info.id, info);
+                notFound.remove(info.login());
+                perLogin.setResult(info.login(), info);
+                perId.setResult(info.id(), info);
             }
             perLogin.setNotFound(notFound);
         }
@@ -159,9 +146,9 @@ public class UserInfoManager {
         else {
             Set<String> notFound = new HashSet<>(requested);
             for (UserInfo info : result) {
-                notFound.remove(info.id);
-                perId.setResult(info.id, info);
-                perLogin.setResult(info.login, info);
+                notFound.remove(info.id());
+                perId.setResult(info.id(), info);
+                perLogin.setResult(info.login(), info);
             }
             perId.setNotFound(notFound);
         }

@@ -5,27 +5,10 @@ import chatty.gui.GuiUtil;
 import chatty.gui.components.menus.ContextMenu;
 import chatty.lang.Language;
 import chatty.util.api.StreamCategory;
-import java.awt.Dialog;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import javax.swing.AbstractAction;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.KeyStroke;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
 
 /**
  * Dialog showing a table with status presets (history/favorites).
@@ -45,7 +28,6 @@ public class StatusHistoryDialog extends JDialog {
     
     private final JButton useTitleButton = new JButton(Language.getString("admin.presets.button.useTitleOnly"));
     private final JButton useAllButton = new JButton(Language.getString("admin.presets.button.useStatus"));
-    private final JButton cancelButton = new JButton(Language.getString("dialog.button.cancel"));
     private final StatusHistoryTable table;
     private final JCheckBox filterCurrentGame = new JCheckBox(Language.getString("admin.presets.setting.currentGame"));
     private final JCheckBox filterFavorites = new JCheckBox(Language.getString("admin.presets.setting.favorites"));
@@ -60,13 +42,7 @@ public class StatusHistoryDialog extends JDialog {
         setLayout(new GridBagLayout());
         
         table = new StatusHistoryTable(new TableContextMenu());
-        table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                updateButtons();
-            }
-        });
+        table.getSelectionModel().addListSelectionListener(e -> updateButtons());
         updateButtons();
         table.addMouseListener(new MouseAdapter() {
             
@@ -129,6 +105,7 @@ public class StatusHistoryDialog extends JDialog {
         gbc.insets = new Insets(5, 5, 5, 4);
         add(useTitleButton, gbc);
 
+        JButton cancelButton = new JButton(Language.getString("dialog.button.cancel"));
         cancelButton.setMnemonic(KeyEvent.VK_C);
         gbc = makeGbc(4, 4, 1, 1);
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -201,15 +178,15 @@ public class StatusHistoryDialog extends JDialog {
         if (selected != null) {
             if (null != closeAction) switch (closeAction) {
                 case USE_TITLE:
-                    return new StatusHistoryEntry(selected.title, null, null, null, -1, -1, false);
+                    return new StatusHistoryEntry(selected.title(), null, null, null, -1, -1, false);
                 case USE_GAME:
-                    return new StatusHistoryEntry(null, selected.game, null, null, -1, -1, false);
+                    return new StatusHistoryEntry(null, selected.game(), null, null, -1, -1, false);
                 case USE_TAGS:
-                    return new StatusHistoryEntry(null, null, selected.tags, null, -1, -1, false);
+                    return new StatusHistoryEntry(null, null, selected.tags(), null, -1, -1, false);
                 case USE_GAME_TAGS:
-                    return new StatusHistoryEntry(null, selected.game, selected.tags, null, -1, -1, false);
+                    return new StatusHistoryEntry(null, selected.game(), selected.tags(), null, -1, -1, false);
                 case USE_LABELS:
-                    return new StatusHistoryEntry(null, null, null, selected.labels, -1, -1, false);
+                    return new StatusHistoryEntry(null, null, null, selected.labels(), -1, -1, false);
                 case USE_ALL:
                     return selected;
                 default:
@@ -245,7 +222,7 @@ public class StatusHistoryDialog extends JDialog {
     private void toggleFavoriteOnSelected() {
         StatusHistoryEntry selected = table.getSelectedEntry();
         if (selected != null) {
-            StatusHistoryEntry modified = history.setFavorite(selected, !selected.favorite);
+            StatusHistoryEntry modified = history.setFavorite(selected, !selected.favorite());
             table.updateEntry(modified);
         }
     }

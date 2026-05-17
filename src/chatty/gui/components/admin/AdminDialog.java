@@ -10,20 +10,14 @@ import chatty.gui.MainGui;
 import chatty.gui.components.LinkLabel;
 import chatty.gui.laf.LaF;
 import chatty.lang.Language;
-import chatty.util.api.ChannelInfo;
 import chatty.util.api.ChannelStatus;
 import chatty.util.api.TwitchApi;
 import chatty.util.api.TwitchApi.RequestResultCode;
 import chatty.util.dnd.DockContent;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
+import java.awt.*;
+import java.awt.event.*;
 
 /**
  * Dialog to change stream info and run commercials.
@@ -52,10 +46,7 @@ public class AdminDialog extends JDialog {
     private static final int UPDATE_DELAY = 4000;
 
     private final MainGui main;
-    private final TwitchApi api;
-    
-    private final ActionListener actionListener = new MyActionListener();
-    
+
     private final StatusPanel statusPanel;
     private final CommercialPanel commercialPanel;
     private final BlockedTermsPanel blockedTermsPanel;
@@ -83,7 +74,6 @@ public class AdminDialog extends JDialog {
         super(main);
         setTitle("Channel Admin - No Channel");
         this.main = main;
-        this.api = api;
         addWindowListener(new WindowClosingListener());
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
@@ -92,7 +82,7 @@ public class AdminDialog extends JDialog {
         
         statusPanel = new StatusPanel(this, main, api);
         commercialPanel = new CommercialPanel(main);
-        blockedTermsPanel = new BlockedTermsPanel(this, api);
+        blockedTermsPanel = new BlockedTermsPanel(api);
         
         GridBagConstraints gbc;
         
@@ -100,14 +90,10 @@ public class AdminDialog extends JDialog {
         
         // Add to tab pane
         tabs = new JTabbedPane();
-        tabs.addChangeListener(new ChangeListener() {
-
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                updateInfoText();
-                if (currentChannel != null) {
-                    changeChannel(currentChannel);
-                }
+        tabs.addChangeListener(e -> {
+            updateInfoText();
+            if (currentChannel != null) {
+                changeChannel(currentChannel);
             }
         });
         JScrollPane statusScroll = new JScrollPane(statusPanel);
@@ -136,7 +122,8 @@ public class AdminDialog extends JDialog {
         
         
         add(mainPanel, BorderLayout.CENTER);
-        
+
+        ActionListener actionListener = new MyActionListener();
         close.addActionListener(actionListener);
         
         
@@ -209,13 +196,7 @@ public class AdminDialog extends JDialog {
      * commercials)
      */
     private void startUpdateTimer() {
-        Timer timer = new Timer(UPDATE_DELAY, new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                update();
-            }
-        });
+        Timer timer = new Timer(UPDATE_DELAY, e -> update());
         timer.start();
     }
     

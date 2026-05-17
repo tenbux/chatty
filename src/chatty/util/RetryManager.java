@@ -1,15 +1,15 @@
 
 package chatty.util;
 
-import static chatty.util.CachedBulkManager.ASAP;
-import static chatty.util.CachedBulkManager.REFRESH;
-import static chatty.util.CachedBulkManager.WAIT;
+import javax.swing.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
-import javax.swing.Timer;
+
+import static chatty.util.CachedBulkManager.ASAP;
+import static chatty.util.CachedBulkManager.WAIT;
 
 /**
  *
@@ -17,20 +17,16 @@ import javax.swing.Timer;
  */
 public class RetryManager {
     
-    private final CachedBulkManager<Object, Boolean> manager = new CachedBulkManager<>(new CachedBulkManager.Requester<Object, Boolean>() {
-
-        @Override
-        public void request(CachedBulkManager<Object, Boolean> manager, Set<Object> asap, Set<Object> normal, Set<Object> backlog) {
-            Debugging.println("retry", "request(%s, %s, %s)", asap, normal, backlog);
-            Set<Object> keys = manager.makeAndSetRequested(asap, normal, backlog, 1);
-            if (keys.isEmpty()) {
-                return;
-            }
-            for (Object key : keys) {
-                Consumer<Object> f = getFunction(key);
-                if (f != null) {
-                    f.accept(key);
-                }
+    private final CachedBulkManager<Object, Boolean> manager = new CachedBulkManager<>((manager, asap, normal, backlog) -> {
+        Debugging.println("retry", "request(%s, %s, %s)", asap, normal, backlog);
+        Set<Object> keys = manager.makeAndSetRequested(asap, normal, backlog, 1);
+        if (keys.isEmpty()) {
+            return;
+        }
+        for (Object key : keys) {
+            Consumer<Object> f = getFunction(key);
+            if (f != null) {
+                f.accept(key);
             }
         }
     }, "[RetryManager] ", CachedBulkManager.DAEMON | ASAP);

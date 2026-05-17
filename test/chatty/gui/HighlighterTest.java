@@ -12,15 +12,15 @@ import chatty.util.Replacer2;
 import chatty.util.irc.IrcBadges;
 import chatty.util.irc.MsgTags;
 import chatty.util.settings.Settings;
-import java.awt.Color;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import static org.junit.Assert.*;
 
 /**
@@ -410,9 +410,9 @@ public class HighlighterTest {
         
         update("config:b|subscriber/12 color:red", "config:b|vip color:blue");
         assertTrue(highlighter.check(user, "whatever"));
-        assertEquals(highlighter.getLastMatchColor(), Color.BLUE);
+        assertEquals(Color.BLUE, highlighter.getLastMatchColor());
         assertTrue(highlighter.check(user2, "whatever"));
-        assertEquals(highlighter.getLastMatchColor(), Color.RED);
+        assertEquals(Color.RED, highlighter.getLastMatchColor());
         
         update("config:b|subscriber/12,b|vip");
         assertTrue(highlighter.check(user, "whatever"));
@@ -429,13 +429,13 @@ public class HighlighterTest {
         // Color
         update("color:red testi", "test");
         assertTrue(highlighter.check(user, "test"));
-        assertEquals(highlighter.getLastMatchColor(), null);
+        assertNull(highlighter.getLastMatchColor());
         assertTrue(highlighter.check(user, "testi"));
-        assertEquals(highlighter.getLastMatchColor(), Color.RED);
+        assertEquals(Color.RED, highlighter.getLastMatchColor());
         assertFalse(highlighter.check(user2, "abc"));
-        assertEquals(highlighter.getLastMatchColor(), Color.RED); // Not reset because not matched again
+        assertEquals(Color.RED, highlighter.getLastMatchColor()); // Not reset because not matched again
         assertTrue(highlighter.check(user2, "test"));
-        assertEquals(highlighter.getLastMatchColor(), null);
+        assertNull(highlighter.getLastMatchColor());
         
         // Highlight follow-up messages
         update("Test");
@@ -449,19 +449,19 @@ public class HighlighterTest {
         update("color:red testi", "test");
         highlighter.setHighlightNextMessages(true);
         assertTrue(highlighter.check(user, "testi"));
-        assertEquals(highlighter.getLastMatchColor(), Color.RED);
+        assertEquals(Color.RED, highlighter.getLastMatchColor());
         assertTrue(highlighter.check(user, "asdas"));
-        assertEquals(highlighter.getLastMatchColor(), Color.RED);
+        assertEquals(Color.RED, highlighter.getLastMatchColor());
         assertTrue(highlighter.check(user2, "test"));
-        assertEquals(highlighter.getLastMatchColor(), null);
+        assertNull(highlighter.getLastMatchColor());
         assertTrue(highlighter.check(user, "asdas"));
-        assertEquals(highlighter.getLastMatchColor(), Color.RED);
+        assertEquals(Color.RED, highlighter.getLastMatchColor());
         assertTrue(highlighter.check(user2, "asdas"));
-        assertEquals(highlighter.getLastMatchColor(), null);
+        assertNull(highlighter.getLastMatchColor());
         assertTrue(highlighter.check(user2, "testi"));
-        assertEquals(highlighter.getLastMatchColor(), Color.RED);
+        assertEquals(Color.RED, highlighter.getLastMatchColor());
         assertTrue(highlighter.check(user2, "asdas"));
-        assertEquals(highlighter.getLastMatchColor(), Color.RED);
+        assertEquals(Color.RED, highlighter.getLastMatchColor());
         highlighter.setHighlightNextMessages(false);
         
         // Highlight username
@@ -481,13 +481,13 @@ public class HighlighterTest {
         update("color:red testi", "test");
         highlighter.setHighlightNextMessages(true);
         assertTrue(highlighter.check(user, "username"));
-        assertEquals(highlighter.getLastMatchColor(), null);
+        assertNull(highlighter.getLastMatchColor());
         assertTrue(highlighter.check(user, "asdas"));
-        assertEquals(highlighter.getLastMatchColor(), null);
+        assertNull(highlighter.getLastMatchColor());
         assertTrue(highlighter.check(user2, "testi"));
-        assertEquals(highlighter.getLastMatchColor(), Color.RED);
+        assertEquals(Color.RED, highlighter.getLastMatchColor());
         assertTrue(highlighter.check(user, "asdas"));
-        assertEquals(highlighter.getLastMatchColor(), null);
+        assertNull(highlighter.getLastMatchColor());
         highlighter.setHighlightNextMessages(false);
     }
     
@@ -1113,13 +1113,11 @@ public class HighlighterTest {
         update();
         updateBlacklist();
         
-        HighlightItem.setGlobalPresets(HighlightItem.makePresets(Arrays.asList(new String[]{
-            "t \\Qabc$1\\E",
-            "t2 _t",
-            "_t abc$1",
-            "_f $replace($1-,\\\\s+,_,reg)",
-            "cc cc:config:silent"
-        })));
+        HighlightItem.setGlobalPresets(HighlightItem.makePresets(Arrays.asList("t \\Qabc$1\\E",
+                "t2 _t",
+                "_t abc$1",
+                "_f $replace($1-,\\\\s+,_,reg)",
+                "cc cc:config:silent")));
         
         update("cc:regm:$(t)$(_t)");
         assertTrue(highlighter.check(user, "abc$1abc"));
@@ -1189,37 +1187,37 @@ public class HighlighterTest {
         highlighter.setIncludeAllTextMatches(false);
         update("cat", "nice cat");
         assertTrue(highlighter.check(user, "What a nice cat!"));
-        assertEquals(highlighter.getLastTextMatches().size(), 1);
-        assertEquals(highlighter.getLastMatchItems().size(), 1);
+        assertEquals(1, highlighter.getLastTextMatches().size());
+        assertEquals(1, highlighter.getLastMatchItems().size());
         
         // Second matched entry adds to the area covered by matches
         highlighter.setIncludeAllTextMatches(true);
         assertTrue(highlighter.check(user, "What a nice cat!"));
-        assertEquals(highlighter.getLastTextMatches().size(), 2);
-        assertEquals(highlighter.getLastMatchItems().size(), 2);
+        assertEquals(2, highlighter.getLastTextMatches().size());
+        assertEquals(2, highlighter.getLastMatchItems().size());
         
         // First matched entry already covers area matched by the second
         update("nice cat", "cat");
         assertTrue(highlighter.check(user, "What a nice cat!"));
-        assertEquals(highlighter.getLastTextMatches().size(), 1);
-        assertEquals(highlighter.getLastMatchItems().size(), 1);
+        assertEquals(1, highlighter.getLastTextMatches().size());
+        assertEquals(1, highlighter.getLastMatchItems().size());
         
         // First matched entry doesn't have text matches, but second does
         update("config:blah", "cat");
         assertTrue(highlighter.check(user, "What a nice cat!"));
-        assertEquals(highlighter.getLastTextMatches().size(), 1);
-        assertEquals(highlighter.getLastMatchItems().size(), 2);
+        assertEquals(1, highlighter.getLastTextMatches().size());
+        assertEquals(2, highlighter.getLastMatchItems().size());
         
         // Second matched entry without text matches doesn't have any effect
         update("cat", "config:blah");
         assertTrue(highlighter.check(user, "What a nice cat!"));
-        assertEquals(highlighter.getLastTextMatches().size(), 1);
-        assertEquals(highlighter.getLastMatchItems().size(), 1);
+        assertEquals(1, highlighter.getLastTextMatches().size());
+        assertEquals(1, highlighter.getLastMatchItems().size());
         
         update("cat", "kitty", "nice cat");
         assertTrue(highlighter.check(user, "What a nice kitty cat, isn't it a nice cat!"));
-        assertEquals(highlighter.getLastTextMatches().size(), 4);
-        assertEquals(highlighter.getLastMatchItems().size(), 3);
+        assertEquals(4, highlighter.getLastTextMatches().size());
+        assertEquals(3, highlighter.getLastMatchItems().size());
     }
     
     @Test
@@ -1227,9 +1225,7 @@ public class HighlighterTest {
         update();
         updateBlacklist();
         
-        highlighter.updateSubstitutes(Replacer2.create(Arrays.asList(new String[]{
-            "a 𝒜"
-        })));
+        highlighter.updateSubstitutes(Replacer2.create(List.of("a 𝒜")));
         highlighter.setIncludeAllTextMatches(false);
         highlighter.setSubstitutitesDefault(false);
         
@@ -1326,9 +1322,9 @@ public class HighlighterTest {
         update("msgtext:message");
         updateBlacklist();
         assertTrue(highlighter.check(Type.ANY, text, msgStart, msgEnd, "", ab, user, null, MsgTags.EMPTY, false));
-        assertEquals(new Match(28, text.length()), highlighter.getLastTextMatches().get(0));
+        assertEquals(new Match(28, text.length()), highlighter.getLastTextMatches().getFirst());
         assertTrue(highlighter.check(Type.ANY, text, 0, text.length(), "", ab, user, null, MsgTags.EMPTY, false));
-        assertEquals(new Match(28, text.length()), highlighter.getLastTextMatches().get(0));
+        assertEquals(new Match(28, text.length()), highlighter.getLastTextMatches().getFirst());
         assertFalse(highlighter.check(Type.ANY, text, 0, 0, "", ab, user, null, MsgTags.EMPTY, false));
         assertFalse(highlighter.check(Type.ANY, text, -1, -1, "", ab, user, null, MsgTags.EMPTY, false));
         
@@ -1399,9 +1395,7 @@ public class HighlighterTest {
         update();
         updateBlacklist();
         
-        highlighter.updateSubstitutes(Replacer2.create(Arrays.asList(new String[]{
-            "a 𝒜"
-        })));
+        highlighter.updateSubstitutes(Replacer2.create(List.of("a 𝒜")));
         highlighter.setIncludeAllTextMatches(false);
         highlighter.setSubstitutitesDefault(true);
         
@@ -1431,14 +1425,14 @@ public class HighlighterTest {
         
         update("msgtext:!");
         assertTrue(highlighter.check(Type.ANY, text, 9, 10, "", ab, user, null, MsgTags.EMPTY, false));
-        assertEquals(new Match(9, 10), highlighter.getLastTextMatches().get(0));
+        assertEquals(new Match(9, 10), highlighter.getLastTextMatches().getFirst());
         assertTrue(highlighter.check(Type.ANY, text, 8, 10, "", ab, user, null, MsgTags.EMPTY, false));
-        assertEquals(new Match(9, 10), highlighter.getLastTextMatches().get(0));
+        assertEquals(new Match(9, 10), highlighter.getLastTextMatches().getFirst());
         
         update("msgtext:!");
         updateBlacklist("start:apple");
         assertTrue(highlighter.check(Type.ANY, "𝒜pple c𝒜rt!", 7, 13, "", ab, user, null, MsgTags.EMPTY, false));
-        assertEquals(new Match(12, 13), highlighter.getLastTextMatches().get(0));
+        assertEquals(new Match(12, 13), highlighter.getLastTextMatches().getFirst());
         
         update("msgtext:!");
         updateBlacklist("+start:apple");
@@ -1447,7 +1441,7 @@ public class HighlighterTest {
         update("msgtext:cart");
         updateBlacklist("+msgstart:apple");
         assertTrue(highlighter.check(Type.ANY, "𝒜pple c𝒜rt!", 7, 13, "", ab, user, null, MsgTags.EMPTY, false));
-        assertEquals(new Match(7, 12), highlighter.getLastTextMatches().get(0));
+        assertEquals(new Match(7, 12), highlighter.getLastTextMatches().getFirst());
         
         update("msgtext:cart");
         updateBlacklist("+msgstart:cart");
@@ -1456,7 +1450,7 @@ public class HighlighterTest {
         update("text:apple");
         updateBlacklist("+msgstart:apple");
         assertTrue(highlighter.check(Type.ANY, "𝒜pple c𝒜rt!", 7, 13, "", ab, user, null, MsgTags.EMPTY, false));
-        assertEquals(new Match(0, 6), highlighter.getLastTextMatches().get(0));
+        assertEquals(new Match(0, 6), highlighter.getLastTextMatches().getFirst());
         
         update("text:apple");
         updateBlacklist("+msgstart:cart");
@@ -1469,12 +1463,12 @@ public class HighlighterTest {
         update("text:cart");
         updateBlacklist("start:cart");
         assertTrue(highlighter.check(Type.ANY, "𝒜pple c𝒜rt!", 7, 13, "", ab, user, null, MsgTags.EMPTY, false));
-        assertEquals(new Match(7, 12), highlighter.getLastTextMatches().get(0));
+        assertEquals(new Match(7, 12), highlighter.getLastTextMatches().getFirst());
         
         update("msgstart:apple");
         updateBlacklist("msgstart:cart");
         assertTrue(highlighter.check(Type.ANY, "𝒜pple c𝒜rt!", 0, 6, "", ab, user, null, MsgTags.EMPTY, false));
-        assertEquals(new Match(0, 6), highlighter.getLastTextMatches().get(0));
+        assertEquals(new Match(0, 6), highlighter.getLastTextMatches().getFirst());
         
         update("msgstart:apple");
         updateBlacklist("msgstart:apple");

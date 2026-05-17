@@ -3,21 +3,13 @@ package chatty.gui.notifications;
 
 import chatty.gui.notifications.NotificationWindow.HideMethod;
 import chatty.util.ActivityTracker;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.GraphicsConfiguration;
-import java.awt.GraphicsDevice;
-import java.awt.GraphicsEnvironment;
-import java.awt.Insets;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.Toolkit;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
-import javax.swing.SwingUtilities;
 
 /**
  * Create and position notifications.
@@ -239,10 +231,7 @@ public class NotificationWindowManager<T> {
      * @return 
      */
     private boolean isClear() {
-        if (displayed.isEmpty() && queue.isEmpty()) {
-            return true;
-        }
-        return false;
+        return displayed.isEmpty() && queue.isEmpty();
     }
     
     /**
@@ -296,7 +285,7 @@ public class NotificationWindowManager<T> {
      * displayed, then make the oldest one disappear faster.
      */
     private void checkQueueSize() {
-        if (queue.size() > maxQueueSize && displayed.size() > 0) {
+        if (queue.size() > maxQueueSize && !displayed.isEmpty()) {
             displayed.getFirst().setFallbackTimeout(shortMaxDisplayTime);
         }
     }
@@ -317,7 +306,7 @@ public class NotificationWindowManager<T> {
         n.setLocation(location);
         n.setTimeout(displayTime + (displayTime/4 * displayed.size()));
         n.setKeepOpenOnHover(keepOpenOnHover);
-        if (queue.size() > maxQueueSize && displayed.size() == 0) {
+        if (queue.size() > maxQueueSize && displayed.isEmpty()) {
             n.setFallbackTimeout(shortMaxDisplayTime);
         }
         displayed.add(n);
@@ -402,17 +391,13 @@ public class NotificationWindowManager<T> {
         return bounds;
     }
     
-    public static final void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            NotificationWindowManager m = new NotificationWindowManager(null);
+            m.setPosition(0);
+            m.setScreen(1);
+            m.showMessage("Test", "Test message with some text.", Color.WHITE, Color.BLACK);
 
-            @Override
-            public void run() {
-                NotificationWindowManager m = new NotificationWindowManager(null);
-                m.setPosition(0);
-                m.setScreen(1);
-                m.showMessage("Test", "Test message with some text.", Color.WHITE, Color.BLACK);
-                
-            }
         });
     }
 }

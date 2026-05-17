@@ -39,16 +39,16 @@ public class DefaultsPanel extends JPanel {
      * something to be run after all changes have been applied.
      */
     public interface DefaultsHelper {
-        public void setString(String setting, String value);
-        public void setLong(String setting, long value);
-        public void setBoolean(String setting, boolean value);
+        void setString(String setting, String value);
+        void setLong(String setting, long value);
+        void setBoolean(String setting, boolean value);
         
-        public String getStringDefault(String setting);
-        public boolean getBooleanDefault(String setting);
+        String getStringDefault(String setting);
+        boolean getBooleanDefault(String setting);
         
-        public boolean getEnabled(String option);
+        boolean getEnabled(String option);
         
-        public void applied();
+        void applied();
     }
     
     private final DefaultsHelper helper;
@@ -249,9 +249,7 @@ public class DefaultsPanel extends JPanel {
             helper.applied();
         });
     }
-    
-    private static float RESIZE_FACTOR = 1.4f;
-    
+
     private void updateStyle() {
         String name;
         if (style1Button.isSelected()) {
@@ -280,6 +278,7 @@ public class DefaultsPanel extends JPanel {
         }
         name += ".png";
         ImageIcon icon = getImage(name);
+        float RESIZE_FACTOR = 1.4f;
         icon.setImage(icon.getImage().getScaledInstance((int)(icon.getIconWidth() / RESIZE_FACTOR), (int)(icon.getIconHeight() / RESIZE_FACTOR), Image.SCALE_SMOOTH));
         styleImage.setIcon(icon);
     }

@@ -7,13 +7,8 @@ import chatty.util.api.StreamCategory;
 import chatty.util.api.StreamLabels.StreamLabel;
 import chatty.util.settings.Settings;
 import chatty.util.settings.SettingsListener;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -75,7 +70,7 @@ public class StatusHistory implements SettingsListener {
             // Remove entry if it's not a favorite and older than specified in
             // the setting
             //System.out.println(entry.getValue().lastActivity);
-            if (!entry.getValue().favorite && entry.getValue().lastActivity < keepAfter) {
+            if (!entry.getValue().favorite() && entry.getValue().lastActivity() < keepAfter) {
                 it.remove();
                 countRemoved++;
             }
@@ -101,7 +96,7 @@ public class StatusHistory implements SettingsListener {
     
     public synchronized boolean isFavorite(String title, StreamCategory game, List<StreamTag> tags, List<StreamLabel> labels) {
         StatusHistoryEntry entry = get(title, game, tags, labels);
-        return entry != null ? entry.favorite : false;
+        return entry != null && entry.favorite();
     }
     
     private void put(StatusHistoryEntry entry) {
@@ -148,34 +143,31 @@ public class StatusHistory implements SettingsListener {
     /**
      * Adds a new entry for the given title and game or modifies the already
      * existing one, if present.
-     * 
+     *
      * @param title
      * @param game
      * @param tags
-     * @return 
      */
-    public synchronized StatusHistoryEntry addUsed(String title, StreamCategory game, List<StreamTag> tags, List<StreamLabel> labels) {
+    public synchronized void addUsed(String title, StreamCategory game, List<StreamTag> tags, List<StreamLabel> labels) {
         StatusHistoryEntry entry = new StatusHistoryEntry(title, game, tags, labels, System.currentTimeMillis(), 1, false);
         StatusHistoryEntry present = entries.get(entry);
         if (present != null) {
             entry = present.increaseUsed();
         }
         put(entry);
-        return entry;
     }
     
     /**
      * Adds the given title and game to the favorites, creating a new entry
      * if not already present.
-     * 
+     *
      * @param title
      * @param game
      * @param tags
      * @param labels
-     * @return 
      */
-    public synchronized StatusHistoryEntry addFavorite(String title, StreamCategory game, List<StreamTag> tags, List<StreamLabel> labels) {
-        return setFavorite(title, game, tags, labels, true);
+    public synchronized void addFavorite(String title, StreamCategory game, List<StreamTag> tags, List<StreamLabel> labels) {
+        setFavorite(title, game, tags, labels, true);
     }
     
     /**
@@ -221,7 +213,7 @@ public class StatusHistory implements SettingsListener {
         if (present != null) {
             entry = present;
         }
-        if (entry.favorite != favorite) {
+        if (entry.favorite() != favorite) {
             entry = entry.setFavorite(favorite);
         }
         put(entry);
@@ -236,7 +228,7 @@ public class StatusHistory implements SettingsListener {
                 modifiedValues.add(modified);
             }
         }
-        modifiedValues.stream().forEach(e -> entries.put(e, e));
+        modifiedValues.forEach(e -> entries.put(e, e));
     }
     
     public synchronized void updateCategory(StreamCategory category) {
@@ -247,14 +239,14 @@ public class StatusHistory implements SettingsListener {
                 modifiedValues.put(entry, modified);
                 LOGGER.info(String.format("Status presets: Updating '%s' (%s to %s)",
                         entry,
-                        entry.game.toStringVerbose(),
-                        modified.game.toStringVerbose()));
+                        entry.game().toStringVerbose(),
+                        modified.game().toStringVerbose()));
             }
         }
         // After renaming StreamCategory old an new might not be equal()
-        modifiedValues.entrySet().stream().forEach(e -> {
-            entries.remove(e.getKey());
-            entries.put(e.getValue(), e.getValue());
+        modifiedValues.forEach((key, value) -> {
+            entries.remove(key);
+            entries.put(value, value);
         });
     }
 
@@ -319,21 +311,21 @@ public class StatusHistory implements SettingsListener {
      */
     private List entryToList(StatusHistoryEntry entry) {
         List<Object> list = new ArrayList<>();
-        list.add(entry.title);
-        list.add(entry.game.name);
-        list.add(entry.lastActivity);
-        list.add(entry.timesUsed);
-        list.add(entry.favorite);
+        list.add(entry.title());
+        list.add(entry.game().name());
+        list.add(entry.lastActivity());
+        list.add(entry.timesUsed());
+        list.add(entry.favorite());
         // Add empty list in between where Communities would have been
         list.add(new ArrayList<>());
         List<List<String>> clist = new ArrayList<>();
-        if (entry.tags != null && !entry.tags.isEmpty()) {
+        if (entry.tags() != null && !entry.tags().isEmpty()) {
             // New format, for several Communities
-            for (StreamTag c : entry.tags) {
+            for (StreamTag c : entry.tags()) {
                 List<String> cdata = new ArrayList<>();
                 // With new freeform tags only save the name
                 cdata.add("");
-                cdata.add(c.getName());
+                cdata.add(c.name());
                 clist.add(cdata);
             }
             /**
@@ -343,12 +335,12 @@ public class StatusHistory implements SettingsListener {
              */
         }
         list.add(clist);
-        list.add(entry.game.id);
+        list.add(entry.game().id());
         
         List<String> labels = new ArrayList<>();
-        if (entry.labels != null && !entry.labels.isEmpty()) {
-            for (StreamLabel label : entry.labels) {
-                labels.add(label.getId());
+        if (entry.labels() != null && !entry.labels().isEmpty()) {
+            for (StreamLabel label : entry.labels()) {
+                labels.add(label.id());
             }
         }
         list.add(labels);
@@ -380,9 +372,8 @@ public class StatusHistory implements SettingsListener {
             // Communities were at 5, Tags are now at 6 (to be able to
             // differentiate them)
             if (list.size() > 6) {
-                if (list.get(6) instanceof List) {
+                if (list.get(6) instanceof List clist) {
                     // New format, for several Communities
-                    List clist = (List) list.get(6);
                     for (Object obj : clist) {
                         List cdata = (List) obj;
                         // With new freefrom tags the id is not used, and spaces

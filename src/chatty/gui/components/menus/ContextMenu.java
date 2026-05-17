@@ -1,10 +1,10 @@
 
 package chatty.gui.components.menus;
 
-import chatty.Helper;
-import chatty.util.StringUtil;
 import chatty.util.commands.CustomCommand;
 import chatty.util.commands.Parameters;
+
+import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -12,13 +12,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.swing.ButtonGroup;
-import javax.swing.ImageIcon;
-import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
-import javax.swing.JPopupMenu;
-import javax.swing.JRadioButtonMenuItem;
 
 /**
  * A Popup Menu with convenience methods to add items as well as items in
@@ -28,13 +21,7 @@ import javax.swing.JRadioButtonMenuItem;
  */
 public abstract class ContextMenu extends JPopupMenu implements ActionListener {
     
-    private final ActionListener listener = new ActionListener() {
-
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            ContextMenu.this.actionPerformed(getCommandActionEvent(e));
-        }
-    };
+    private final ActionListener listener = e -> ContextMenu.this.actionPerformed(getCommandActionEvent(e));
     
     private final Map<String, JMenu> subMenus = new HashMap<>();
     private final Set<ContextMenuListener> listeners = new HashSet<>();
@@ -110,16 +97,16 @@ public abstract class ContextMenu extends JPopupMenu implements ActionListener {
         return addItem(action, text, -1, null, null);
     }
 
-    public JMenuItem addItem(String action, String text, ImageIcon icon) {
-        return addItem(action, text, -1, null, icon);
+    public void addItem(String action, String text, ImageIcon icon) {
+        addItem(action, text, -1, null, icon);
     }
     
     public JMenuItem addItem(String action, String text, String parent) {
         return addItem(action, text, -1, parent, null);
     }
     
-    public JMenuItem addItem(String action, String text, String parent, ImageIcon icon) {
-        return addItem(action, text, -1, parent, icon);
+    public void addItem(String action, String text, String parent, ImageIcon icon) {
+        addItem(action, text, -1, parent, icon);
     }
 
     public JMenuItem addCommandItem(CommandMenuItem item, Parameters parameters) {

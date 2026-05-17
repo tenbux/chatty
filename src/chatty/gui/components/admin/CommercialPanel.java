@@ -3,27 +3,20 @@ package chatty.gui.components.admin;
 
 import chatty.gui.MainGui;
 import chatty.gui.components.WrapLayout;
-import static chatty.gui.components.admin.AdminDialog.hideableLabel;
-import static chatty.gui.components.admin.AdminDialog.makeGbc;
 import chatty.gui.components.settings.DurationSetting;
 import chatty.util.DateTime;
 import chatty.util.ElapsedTime;
 import chatty.util.api.TwitchApi;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.event.ActionEvent;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import javax.swing.ButtonGroup;
-import javax.swing.ButtonModel;
-import javax.swing.JCheckBox;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JToggleButton;
+
+import static chatty.gui.components.admin.AdminDialog.hideableLabel;
+import static chatty.gui.components.admin.AdminDialog.makeGbc;
 
 /**
  *
@@ -211,13 +204,7 @@ public class CommercialPanel extends JPanel {
         ButtonGroup g = new NoneSelectedButtonGroup();
         JPanel panel = new JPanel();
         panel.setLayout(new WrapLayout(WrapLayout.LEFT));
-        ActionListener listener = new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                commercialButtonClicked(e.getActionCommand());
-            }
-        };
+        ActionListener listener = e -> commercialButtonClicked(e.getActionCommand());
         for (int i : commercialButtonsDef) {
             JToggleButton b = new JToggleButton(i+"s");
             b.setActionCommand(String.valueOf(i));
@@ -400,11 +387,10 @@ public class CommercialPanel extends JPanel {
                 + "There is currently a commercial scheduled to be run. It can also"
                 + " be run if you close this. What do you want to do?";
         String[] options = new String[]{"Run on schedule", "Cancel commercial"};
-        int result = JOptionPane.showOptionDialog(main, message, 
-                "Closing Admin Dialog while commercial is scheduled", JOptionPane.YES_NO_OPTION, 
+        return JOptionPane.showOptionDialog(main, message,
+                "Closing Admin Dialog while commercial is scheduled", JOptionPane.YES_NO_OPTION,
                 JOptionPane.QUESTION_MESSAGE, null,
                 options, options[0]);
-        return result;
     }
     
     /**

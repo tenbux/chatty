@@ -2,11 +2,8 @@
 package chatty.util.commands;
 
 import chatty.util.StringUtil;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -54,7 +51,7 @@ class Sort implements Item {
         List<String> split = Arrays.asList(value.split(Pattern.quote(sep)));
         switch (t) {
             case "abc":
-                Collections.sort(split, String.CASE_INSENSITIVE_ORDER);
+                split.sort(String.CASE_INSENSITIVE_ORDER);
                 break;
             case "Abc":
                 Collections.sort(split);
@@ -96,10 +93,7 @@ class Sort implements Item {
         if (!Objects.equals(this.type, other.type)) {
             return false;
         }
-        if (this.isRequired != other.isRequired) {
-            return false;
-        }
-        return true;
+        return this.isRequired == other.isRequired;
     }
     
     @Override

@@ -2,7 +2,11 @@
 package chatty.util;
 
 import java.io.*;
-import java.net.*;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -22,15 +26,14 @@ public class Webserver implements Runnable {
     
     public static final int ERROR_COULD_NOT_LISTEN_TO_PORT = 0;
     private static final int SO_TIMEOUT = 10*1000;
-    
-    private static int port = 61324;
+
     private volatile boolean running = true;
     private volatile ServerSocket serverSocket = null;
     private final WebserverListener listener;
     private int connectionCount = 0;
     
     private final List<WebserverConnection> connections =
-            Collections.synchronizedList(new ArrayList<WebserverConnection>());
+            Collections.synchronizedList(new ArrayList<>());
     
     /**
      * Main method for testing the server on it's own.
@@ -60,7 +63,9 @@ public class Webserver implements Runnable {
                 System.out.println("Save token and stuff");
             }
         });
-        new Thread(s).start();
+        Thread serverThread = new Thread(s, "Webserver");
+        serverThread.setDaemon(true);
+        serverThread.start();
     }
 
     /**
@@ -100,16 +105,17 @@ public class Webserver implements Runnable {
      */
     @Override
     public void run() {
-        debug("Trying to start webserver at port "+port);
+        int port = 61324;
+        debug("Trying to start webserver at port "+ port);
         try {
             // Since 127.0.0.1 is registered with Twitch, hardcode that instead
             // of using InetAddress.getLoopbackAddress() which may also return
             // "::1".
             serverSocket = new ServerSocket(port, 0, InetAddress.getByName("127.0.0.1"));
         } catch (IOException ex) {
-            debug("Could not listen to port "+port+" ("+ex.getLocalizedMessage()+")");
+            debug("Could not listen to port "+ port +" ("+ex.getLocalizedMessage()+")");
             if (listener != null) {
-                listener.webserverError("Could not listen to port "+port);
+                listener.webserverError("Could not listen to port "+ port);
             }
             stop();
             return;
@@ -121,7 +127,7 @@ public class Webserver implements Runnable {
         
         while (running) {
             debug("Waiting for connections on "+serverSocket.toString());
-            Socket clientSocket = null;
+            Socket clientSocket;
             try {
                 clientSocket = serverSocket.accept();
             } catch (SocketException ex) {
@@ -178,7 +184,9 @@ public class Webserver implements Runnable {
     private void newConnection(Socket clientSocket) {
         WebserverConnection connection =
                 new WebserverConnection(clientSocket, connectionCount++);
-        new Thread(connection).start();
+        Thread connectionThread = new Thread(connection, "Webserver-connection");
+        connectionThread.setDaemon(true);
+        connectionThread.start();
         connections.add(connection);
     }
     
@@ -261,7 +269,7 @@ public class Webserver implements Runnable {
         private void respond(String request) {
             debugConnection("Making response for "+removeToken(request));
             try (OutputStream output = connection.getOutputStream()) {
-                String response = "";
+                String response;
                 // Check if there should be a token in there
                 if (StringUtil.toLowerCase(request).startsWith("get /token/")) {
                     String token = getToken(request);
@@ -286,7 +294,7 @@ public class Webserver implements Runnable {
                     response = makeResponse(null);
                 }
                 // Send the response
-                output.write(response.getBytes("UTF-8"));
+                output.write(response.getBytes(StandardCharsets.UTF_8));
             } catch (IOException ex) {
                 debugConnection("Error responding: "+ex.getLocalizedMessage());
             }
@@ -356,7 +364,7 @@ public class Webserver implements Runnable {
                 return makeHeader(false) + "Nothing here..";
             }
 
-            String content = "";
+            String content;
 
             try {
                 // Read file to send back as content
@@ -384,23 +392,19 @@ public class Webserver implements Runnable {
          * @return 
          */
         private String makeHeader(boolean ok) {
-            String header = "";
-            if (ok) {
-                header += "HTTP/1.0 200 OK\n";
-            } else {
-                header += "HTTP/1.0 403 Forbidden\n";
-            }
-            header += "Server: ChattyWebserver\n";
-            header += "Content-Type: text/html; charset=UTF-8\n\n";
-            
-            return header;
+            String statusLine = ok ? "HTTP/1.0 200 OK" : "HTTP/1.0 403 Forbidden";
+            return statusLine + "\n" + """
+                    Server: ChattyWebserver
+                    Content-Type: text/html; charset=UTF-8
+
+                    """;
         }
 
     }
     
-    public static interface WebserverListener {
-        public void webserverStarted();
-        public void webserverStopped();
+    public interface WebserverListener {
+        void webserverStarted();
+        void webserverStopped();
         
         /**
          * An error occured with the webserver. The webserver will already have
@@ -408,14 +412,14 @@ public class Webserver implements Runnable {
          * 
          * @param error A message describing the error
          */
-        public void webserverError(String error);
+        void webserverError(String error);
         
         /**
          * The token has been received.
          * 
          * @param token The token
          */
-        public void webserverTokenReceived(String token);
+        void webserverTokenReceived(String token);
     }
     
 }

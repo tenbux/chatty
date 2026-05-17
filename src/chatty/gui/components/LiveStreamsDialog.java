@@ -3,13 +3,7 @@ package chatty.gui.components;
 
 import chatty.ChannelFavorites;
 import chatty.Chatty;
-import chatty.Helper;
-import chatty.Room;
-import chatty.gui.DockedDialogHelper;
-import chatty.gui.DockedDialogManager;
-import chatty.gui.GuiUtil;
-import chatty.gui.MainGui;
-import chatty.gui.TwitchUrl;
+import chatty.gui.*;
 import chatty.gui.components.LiveStreamsList.ListDataChangedListener;
 import chatty.gui.components.menus.CommandActionEvent;
 import chatty.gui.components.menus.ContextMenuAdapter;
@@ -21,19 +15,14 @@ import chatty.util.commands.CustomCommand;
 import chatty.util.dnd.DockContent;
 import chatty.util.dnd.DockContentContainer;
 import chatty.util.settings.Settings;
-import java.awt.CardLayout;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Window;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.function.Function;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.ScrollPaneConstants;
 
 /**
  *
@@ -142,8 +131,7 @@ public class LiveStreamsDialog extends JFrame {
     private final CardLayout cardLayout;
     
     private String titleSorting = "";
-    private String titleCounts = "";
-    
+
     private boolean liveStreamListSelected = true;
     
     private final DockedDialogHelper helper;
@@ -205,13 +193,7 @@ public class LiveStreamsDialog extends JFrame {
         removedList = new LiveStreamsRemovedList(localLiveStreamListener);
         removedList.addContextMenuListener(localCml);
         removedList.addContextMenuListener(listener);
-        removedList.addBackButtonListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                switchList();
-            }
-        });
+        removedList.addBackButtonListener(e -> switchList());
         
         // Test data
         if (Chatty.DEBUG) {
@@ -388,7 +370,7 @@ public class LiveStreamsDialog extends JFrame {
      * Called when any list data was changed (added/removed/"new" color).
      */
     private void listUpdated() {
-        titleCounts = String.valueOf(list.getModel().getSize());
+        String titleCounts = String.valueOf(list.getModel().getSize());
         updateTitle();
     }
     
@@ -539,7 +521,7 @@ public class LiveStreamsDialog extends JFrame {
             String game1 = o1.getGame();
             String game2 = o2.getGame();
             //if (game1 == game2 || (game1 != null && game1.equals(game2))) {
-            if (game1 == null ? game2 == null : game1.equals(game2)) {
+            if (Objects.equals(game1, game2)) {
                 return o1.getStream().compareTo(o2.getStream());
             }
             if (game1 == null) {

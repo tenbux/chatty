@@ -12,7 +12,7 @@ import javax.swing.AbstractListModel;
  */
 public class UserlistModel<T extends Comparable<T>> extends AbstractListModel<T> {
     
-    ArrayList<T> data = new ArrayList<>();
+    final ArrayList<T> data = new ArrayList<>();
 
     public ArrayList<T> getData() {
         return (ArrayList) data.clone();

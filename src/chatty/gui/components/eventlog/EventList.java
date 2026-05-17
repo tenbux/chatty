@@ -3,12 +3,9 @@ package chatty.gui.components.eventlog;
 
 import chatty.lang.Language;
 import chatty.util.DateTime;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
@@ -16,14 +13,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import javax.swing.AbstractListModel;
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JPanel;
-import javax.swing.JTextArea;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
 
 /**
  *
@@ -51,9 +40,7 @@ public class EventList extends JList<Event> {
         addComponentListener(cl);
         
         // Update times
-        Timer timer = new Timer(30*1000, e -> {
-            repaint();
-        });
+        Timer timer = new Timer(30*1000, e -> repaint());
         timer.setRepeats(true);
         timer.start();
     }
@@ -70,7 +57,7 @@ public class EventList extends JList<Event> {
     public int getNewEvents() {
         int count = 0;
         for (Event event : data.items) {
-            if (event.id != null && !main.isReadEvent(event.id)) {
+            if (event.id != null && main.isReadEvent(event.id)) {
                 count++;
             }
         }
@@ -90,7 +77,7 @@ public class EventList extends JList<Event> {
     public void addEvent(Event event) {
         data.add(event);
         if (data.getSize() == 1) {
-            SwingUtilities.invokeLater(() -> fixLayout());
+            SwingUtilities.invokeLater(this::fixLayout);
         }
     }
     
@@ -118,7 +105,7 @@ public class EventList extends JList<Event> {
             if (getIndexOf(event) != -1) {
                 return;
             }
-            items.add(0, event);
+            items.addFirst(event);
             super.fireIntervalAdded(this, 0, 0);
             if (items.size() > MAX_ENTRIES) {
                 int removeIndex = items.size() - 1;
@@ -214,7 +201,7 @@ public class EventList extends JList<Event> {
             }
             Event event = (Event)value;
             
-            if (event.id != null && !main.isReadEvent(event.id)) {
+            if (event.id != null && main.isReadEvent(event.id)) {
                 title.setText(String.format("(%s) %s",
                         Language.getString("eventLog.new"),
                         event.title));

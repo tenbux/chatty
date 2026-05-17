@@ -6,23 +6,16 @@ import chatty.util.Debugging;
 import chatty.util.JSONUtil;
 import chatty.util.StringUtil;
 import chatty.util.api.Follower.Type;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Logger;
-import java.util.Optional;
-import java.util.function.Consumer;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 /**
  *
@@ -95,7 +88,7 @@ public class FollowerManager {
      * @return Whether any followers are assumed as new
      */
     private boolean hasNewFollowers(List<Follower> followers) {
-        return !followers.isEmpty() && followers.get(0).newFollower;
+        return !followers.isEmpty() && followers.getFirst().newFollower;
     }
     
     /**
@@ -166,10 +159,7 @@ public class FollowerManager {
         if (errorCount == null) {
             errorCount = 0;
         }
-        if (System.currentTimeMillis() - info.time > REQUEST_DELAY*1000+(REQUEST_DELAY*1000*(errorCount)/2)) {
-            return true;
-        }
-        return false;
+        return System.currentTimeMillis() - info.time > REQUEST_DELAY * 1000 + ((long) REQUEST_DELAY * 1000 * (errorCount) / 2);
     }
     
     /**
@@ -189,9 +179,7 @@ public class FollowerManager {
             result = parseSubscribers(stream, json);
         }
         if (result != null) {
-            addAccountCreationTimes(result, updatedInfo -> {
-                processResult(updatedInfo.stream, updatedInfo);
-            });
+            addAccountCreationTimes(result, updatedInfo -> processResult(updatedInfo.stream, updatedInfo));
         } else {
             parseRequestError(responseCode, stream);
         }
@@ -216,7 +204,7 @@ public class FollowerManager {
                 for (Follower f : info.followers) {
                     UserInfo userInfo = t.get(f.name);
                     if (userInfo != null) {
-                        updatedFollowers.add(f.setAccountCreationTime(userInfo.createdAt));
+                        updatedFollowers.add(f.setAccountCreationTime(userInfo.createdAt()));
                     }
                     else {
                         updatedFollowers.add(f);
@@ -265,7 +253,7 @@ public class FollowerManager {
                 cachedSingle.get(stream).put(username, new Follower(type, username, null, -1, -1, false, false, null, null));
             }
             else {
-                Follower result = followerInfo.followers.get(0);
+                Follower result = followerInfo.followers.getFirst();
                 cachedSingle.get(stream).put(username, result);
                 listener.receivedFollower(stream, username, TwitchApi.RequestResultCode.SUCCESS, result);
             }
@@ -285,7 +273,7 @@ public class FollowerManager {
             JSONArray data = (JSONArray) root.get("data");
             
             if (!data.isEmpty()) {
-                JSONObject channelFollow = (JSONObject) data.get(0);
+                JSONObject channelFollow = (JSONObject) data.getFirst();
                 long followedAt = DateTime.parseDatetime((String) channelFollow.get("followed_at"));
                 Follower follower = createFollowerItem(stream, userName, null, followedAt, -1, null, null);
                 List<Follower> result = new ArrayList<>();
@@ -301,7 +289,7 @@ public class FollowerManager {
     
     private FollowerInfo parseFollowers(String stream, String json) {
         List<Follower> result = new ArrayList<>();
-        int total = -1;
+        int total;
         if (json == null) {
             LOGGER.warning(type+" data null.");
             return null;
@@ -363,7 +351,7 @@ public class FollowerManager {
                 String username = JSONUtil.getString(entry, "user_login");
                 String display_name = JSONUtil.getString(entry, "user_name");
                 String info = "";
-                String verboseInfo = "";
+                String verboseInfo;
                 switch (JSONUtil.getString(entry, "tier", "")) {
                     case "1000":
                         info += "T1";
@@ -450,7 +438,7 @@ public class FollowerManager {
     }
 
     private synchronized void parseRequestError(int responseCode, String stream) {
-        String errorMessage = "";
+        String errorMessage;
         if (responseCode == 404) {
             errorMessage = "Channel not found.";
             error(stream, 10);
@@ -517,7 +505,7 @@ public class FollowerManager {
 //    private static final Instant OLD_FOLLOW_API_OFF = ZonedDateTime.of(2023, 6, 17, 20, 29, 0, 0, ZoneId.of("+02:00")).toInstant(); // For testing only
     
     public static boolean forceNewFollowsApi() {
-        return Debugging.isEnabled("newfollowerapi") || Instant.now().isAfter(OLD_FOLLOW_API_OFF);
+        return !Debugging.isEnabled("newfollowerapi") && !Instant.now().isAfter(OLD_FOLLOW_API_OFF);
     }
     
 }

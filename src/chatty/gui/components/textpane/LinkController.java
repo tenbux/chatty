@@ -3,85 +3,42 @@ package chatty.gui.components.textpane;
 
 import chatty.Helper;
 import chatty.User;
+import chatty.gui.*;
 import chatty.gui.Highlighter;
-import chatty.gui.LinkListener;
-import chatty.gui.MainGui;
-import chatty.gui.MouseClickedListener;
-import chatty.gui.UserListener;
 import chatty.gui.colors.ColorItem;
 import chatty.gui.components.Channel;
-import chatty.gui.components.menus.ChannelContextMenu;
-import chatty.gui.components.menus.ContextMenu;
-import chatty.gui.components.menus.ContextMenuListener;
-import chatty.gui.components.menus.EmoteContextMenu;
-import chatty.gui.components.menus.StreamsContextMenu;
-import chatty.gui.components.menus.TextSelectionMenu;
-import chatty.gui.components.menus.UrlContextMenu;
-import chatty.gui.components.menus.UserContextMenu;
-import chatty.gui.components.menus.UsericonContextMenu;
+import chatty.gui.components.menus.*;
 import chatty.gui.components.textpane.ChannelTextPane.Attribute;
-import static chatty.gui.components.textpane.SettingConstants.USER_HOVER_HL_CTRL;
-import static chatty.gui.components.textpane.SettingConstants.USER_HOVER_HL_MENTIONS;
-import static chatty.gui.components.textpane.SettingConstants.USER_HOVER_HL_MENTIONS_CTRL_ALL;
 import chatty.gui.notifications.Notification;
 import chatty.lang.Language;
-import chatty.util.CombinedEmoticon;
-import chatty.util.DateTime;
-import chatty.util.Debugging;
-import chatty.util.ReplyManager;
+import chatty.util.*;
 import chatty.util.ReplyManager.Reply;
-import chatty.util.StringUtil;
-import chatty.util.TwitchEmotesApi;
-import chatty.util.TwitchEmotesApi.EmotesetInfo;
-import chatty.util.api.Emoticon;
-import chatty.util.api.Emoticons;
 import chatty.util.api.CachedImage;
 import chatty.util.api.CachedImage.ImageType;
+import chatty.util.api.Emoticon;
+import chatty.util.api.Emoticons;
 import chatty.util.api.usericons.Usericon;
 import chatty.util.irc.MsgTags;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Point;
-import java.awt.Rectangle;
+import org.json.simple.JSONArray;
+
+import javax.swing.*;
+import javax.swing.Timer;
+import javax.swing.text.*;
+import javax.swing.text.html.HTML;
+import java.awt.*;
 import java.awt.event.ActionEvent;
-import static java.awt.event.ActionEvent.ACTION_FIRST;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.HashSet;
+import java.awt.geom.Rectangle2D;
+import java.util.*;
 import java.util.List;
-import java.util.Objects;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
-import javax.swing.JPopupMenu;
-import javax.swing.JTextPane;
-import javax.swing.JViewport;
-import javax.swing.Popup;
-import javax.swing.PopupFactory;
-import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Element;
-import javax.swing.text.JTextComponent;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
-import javax.swing.text.html.HTML;
-import org.json.simple.JSONArray;
+
+import static chatty.gui.components.textpane.SettingConstants.*;
+import static java.awt.event.ActionEvent.ACTION_FIRST;
 
 /**
  * Detects any clickable text in the document and reacts accordingly. It shows
@@ -118,20 +75,17 @@ public class LinkController extends MouseAdapter {
     
     private Channel channel;
     
-    private MyPopup popup = new MyPopup();
+    private final MyPopup popup = new MyPopup();
     
     private boolean popupImagesEnabled;
     
     private int mentionMessages;
     
     private Element prevHoverElement;
-    
-    private ChannelTextPane.Type type;
-    
+
     private MainGui main;
     
     public void setType(ChannelTextPane.Type type) {
-        this.type = type;
     }
     
     /**
@@ -240,9 +194,7 @@ public class LinkController extends MouseAdapter {
                 || (user = getMention(element)) != null) {
             for (UserListener listener : userListener) {
                 final User finalUser = user;
-                SwingUtilities.invokeLater(() -> {
-                    listener.userClicked(finalUser, getMsgId(element), getAutoModMsgId(element), e);
-                });
+                SwingUtilities.invokeLater(() -> listener.userClicked(finalUser, getMsgId(element), getAutoModMsgId(element), e));
             }
         } else if ((emoteImage = getEmoticonImage(element)) != null) {
             for (UserListener listener : userListener) {
@@ -260,9 +212,7 @@ public class LinkController extends MouseAdapter {
         if ((user = getUser(element)) != null || (user = getMention(element)) != null) {
             for (UserListener listener : userListener) {
                 final User finalUser = user;
-                SwingUtilities.invokeLater(() -> {
-                    listener.userClicked(finalUser, getMsgId(element), getAutoModMsgId(element), e);
-                });
+                SwingUtilities.invokeLater(() -> listener.userClicked(finalUser, getMsgId(element), getAutoModMsgId(element), e));
             }
         }
     }
@@ -404,6 +354,7 @@ public class LinkController extends MouseAdapter {
         return (String) e.getAttributes().getAttribute(ChannelTextPane.Attribute.ID_AUTOMOD);
     }
     
+    @SuppressWarnings("unchecked")
     private CachedImage<Emoticon> getEmoticonImage(Element e) {
         return (CachedImage<Emoticon>)(e.getAttributes().getAttribute(ChannelTextPane.Attribute.EMOTICON));
     }
@@ -448,7 +399,7 @@ public class LinkController extends MouseAdapter {
     public static Element getElement(MouseEvent e) {
         JTextPane text = (JTextPane) e.getSource();
         Point mouseLocation = new Point(e.getX(), e.getY());
-        int pos = text.viewToModel(mouseLocation);
+        int pos = text.viewToModel2D(mouseLocation);
 
         if (pos >= 0) {
 
@@ -466,8 +417,8 @@ public class LinkController extends MouseAdapter {
              * https://stackoverflow.com/questions/24036650/detecting-image-on-current-mouse-position-only-works-on-part-of-image
              */
             try {
-                Rectangle rect = text.modelToView(pos);
-                if (e.getX() < rect.x && e.getY() < rect.y + rect.height && pos > 0) {
+                Rectangle2D rect = text.modelToView2D(pos);
+                if (e.getX() < rect.getX() && e.getY() < rect.getY() + rect.getHeight() && pos > 0) {
                     pos--;
                 }
                 
@@ -494,7 +445,7 @@ public class LinkController extends MouseAdapter {
                     // text.getFont() likely not the same as the attributes
                     Font font = new Font(StyleConstants.getFontFamily(attr), Font.PLAIN, StyleConstants.getFontSize(attr));
                     int textWidth = text.getFontMetrics(font).stringWidth(doc.getText(pos, 1));
-                    if (e.getX() - rect.x > textWidth) {
+                    if (e.getX() - rect.getX() > textWidth) {
                         /**
                          * Returning the paragraph element still contains info
                          * like highlight source, but not the link. Normally
@@ -510,17 +461,16 @@ public class LinkController extends MouseAdapter {
                          * "wrong" element, rather than the paragraph that at
                          * least contains the mouse pointer.
                          */
-                        Element paragraph = doc.getParagraphElement(pos);
-//                        element = paragraph.getElement(paragraph.getElementCount() - 1);
+                        //                        element = paragraph.getElement(paragraph.getElementCount() - 1);
 //                        if (getUrl(element) != null) {
 //                            element = null;
 //                        }
-                        element = paragraph;
+                        element = doc.getParagraphElement(pos);
                     }
                 }
                 return element;
                 
-            } catch (BadLocationException ex) {
+            } catch (BadLocationException ignored) {
 
             }
         }
@@ -557,15 +507,13 @@ public class LinkController extends MouseAdapter {
                 m = new UrlContextMenu(url, isUrlDeleted(element), contextMenuListener);
             }
             else if (link != null) {
-                switch (link.type) {
-                    case JOIN:
-                        String c = Helper.toStream(link.target);
-                        m = new StreamsContextMenu(Arrays.asList(new String[]{c}), contextMenuListener);
-                        break;
-                    case URL:
-                        m = new UrlContextMenu(link.target, false, contextMenuListener);
-                        break;
-                }
+                m = switch (link.type()) {
+                    case JOIN -> {
+                        String c = Helper.toStream(link.target());
+                        yield new StreamsContextMenu(Collections.singletonList(c), contextMenuListener);
+                    }
+                    case URL -> new UrlContextMenu(link.target(), false, contextMenuListener);
+                };
             }
             else if (emoteImage != null) {
                 m = new EmoteContextMenu(emoteImage, contextMenuListener);
@@ -600,9 +548,7 @@ public class LinkController extends MouseAdapter {
              * channel), press ESC to close context menu (-> Channel Info
              * switches back to top channel instead of the one clicked in).
              */
-            SwingUtilities.invokeLater(() -> {
-                m2.show(e.getComponent(), e.getX(), e.getY());
-            });
+            SwingUtilities.invokeLater(() -> m2.show(e.getComponent(), e.getX(), e.getY()));
         }
         popup.hide();
         if (mouseClickedListener != null) {
@@ -654,9 +600,7 @@ public class LinkController extends MouseAdapter {
         private Consumer<MyPopup> provider;
 
         public MyPopup() {
-            showTimer = new Timer(SHOW_DELAY, e -> {
-                showNow();
-            });
+            showTimer = new Timer(SHOW_DELAY, e -> showNow());
             showTimer.setRepeats(false);
             label.setHorizontalTextPosition(SwingConstants.CENTER);
             label.setVerticalTextPosition(SwingConstants.BOTTOM);
@@ -796,37 +740,41 @@ public class LinkController extends MouseAdapter {
                     return null;
                 }
                 Dimension labelSize = label.getPreferredSize();
-                Rectangle r = textPane.modelToView(element.getStartOffset());
-                r.translate(0, - labelSize.height - 3);
-                r.translate(sourceWidth / 2 - labelSize.width / 2, 0);
-                r.translate(textPane.getLocationOnScreen().x, textPane.getLocationOnScreen().y);
+                Rectangle2D r2d = textPane.modelToView2D(element.getStartOffset());
+                int rx = (int)r2d.getX();
+                int ry = (int)r2d.getY();
+                int rh = (int)r2d.getHeight();
+                ry += -labelSize.height - 3;
+                rx += sourceWidth / 2 - labelSize.width / 2;
+                rx += textPane.getLocationOnScreen().x;
+                ry += textPane.getLocationOnScreen().y;
                 Component viewPort = textPane.getParent();
                 if (viewPort instanceof JViewport) {
                     // Only check bounds if parent is as expected
                     Point bounds = viewPort.getLocationOnScreen();
                     // Top
-                    if (bounds.y - 20 > r.y) {
-                        r.y += labelSize.height + r.height + 4;
-                        if (bounds.y > r.y) {
+                    if (bounds.y - 20 > ry) {
+                        ry += labelSize.height + rh + 4;
+                        if (bounds.y > ry) {
                             return null;
                         }
                     }
                     // Bottom
-                    if (bounds.y + viewPort.getHeight() < r.y + labelSize.height) {
+                    if (bounds.y + viewPort.getHeight() < ry + labelSize.height) {
                         return null;
                     }
                     // Left
-                    int overLeftEdge = (bounds.x - 5) - r.x;
+                    int overLeftEdge = (bounds.x - 5) - rx;
                     if (overLeftEdge > 0) {
-                        r.x = r.x + overLeftEdge;
+                        rx = rx + overLeftEdge;
                     }
                     // Right
-                    int overRightEdge = (r.x + labelSize.width) - (bounds.x + textPane.getWidth() + 10);
+                    int overRightEdge = (rx + labelSize.width) - (bounds.x + textPane.getWidth() + 10);
                     if (overRightEdge > 0) {
-                        r.x = r.x - overRightEdge;
+                        rx = rx - overRightEdge;
                     }
                 }
-                return new Point(r.x, r.y);
+                return new Point(rx, ry);
             } catch (BadLocationException ex) {
                 // Just return null
             }
@@ -897,15 +845,15 @@ public class LinkController extends MouseAdapter {
         
         if (emote instanceof CombinedEmoticon) {
             List<Emoticon> combinedEmotes = ((CombinedEmoticon) emote).getEmotes();
-            code = combinedEmotes.get(0).code;
-            String combinedWith = "";
+            code = combinedEmotes.getFirst().code;
+            StringBuilder combinedWith = new StringBuilder();
             for (int i=1; i<combinedEmotes.size(); i++) {
                 Emoticon cEmote = combinedEmotes.get(i);
-                combinedWith += String.format("<br />+ <span style='font-weight:bold'>%s</span> (%s)",
+                combinedWith.append(String.format("<br />+ <span style='font-weight:bold'>%s</span> (%s)",
                         Helper.htmlspecialchars_encode(cEmote.code),
-                        getEmoteType(cEmote));
+                        getEmoteType(cEmote)));
             }
-            if (!combinedWith.isEmpty()) {
+            if (combinedWith.length() > 0) {
                 result += "<br />"+combinedWith;
             }
         }
@@ -994,7 +942,7 @@ public class LinkController extends MouseAdapter {
         }
         if (sharedInfo != null && !sharedInfo.isEmpty()) {
             if (usericon.type == Usericon.Type.CHANNEL_LOGO) {
-                info += "<br />Shared Chat: "+StringUtil.join(sharedInfo, ", ")+"";
+                info += "<br />Shared Chat: "+StringUtil.join(sharedInfo, ", ");
             }
             else {
                 String activeChannel = "";
@@ -1036,7 +984,7 @@ public class LinkController extends MouseAdapter {
             b.append("No reply data found (may have expired).");
         }
         p.setText(String.format("%sThread:<div style='text-align:left;font-weight:normal'>%s</div>",
-                POPUP_HTML_PREFIX, b.toString()));
+                POPUP_HTML_PREFIX, b));
     }
     
     private static void makeMentionPopupText(User user, MyPopup p, int amount) {
@@ -1056,7 +1004,7 @@ public class LinkController extends MouseAdapter {
             }
         }
         p.setText(String.format("%sLatest messages of %s:<div style='text-align:left;font-weight:normal'>%s</div>",
-                POPUP_HTML_PREFIX, user, b.toString()));
+                POPUP_HTML_PREFIX, user, b));
     }
     
     //-------------
@@ -1083,7 +1031,7 @@ public class LinkController extends MouseAdapter {
         }
         AttributeSet attrs = e.getAttributes();
         while (attrs != null) {
-            result.append("<b>").append(attrs.toString()).append("</b>");
+            result.append("<b>").append(attrs).append("</b>");
             result.append("<br />");
             Enumeration en = attrs.getAttributeNames();
             while (en.hasMoreElements()) {
@@ -1160,9 +1108,7 @@ public class LinkController extends MouseAdapter {
                 JMenuItem item = new JMenuItem("Go to source message");
                 item.setEnabled(main.hasLineId(sourceChannel, lineId));
                 item.setToolTipText("Message from "+sourceChannel);
-                item.addActionListener(e -> {
-                    main.scrollToLineId(sourceChannel, lineId, "Source Message");
-                });
+                item.addActionListener(e -> main.scrollToLineId(sourceChannel, lineId, "Source Message"));
                 m.add(item);
             }
         }
@@ -1203,44 +1149,43 @@ public class LinkController extends MouseAdapter {
                 sourceText = ((ColorItem)source).getId();
                 sourceLabel = "["+Language.getString("settings.page.msgColors")+"] "+sourceText;
             }
-            else if (source instanceof Notification) {
-                Notification n = (Notification) source;
+            else if (source instanceof Notification n) {
                 sourceType = "notificationSource";
                 sourceText = String.valueOf(n.id);
                 sourceLabel = String.format("[%s] %s",
                         Language.getString("settings.page.notifications"),
-                        n.toString());
+                        n);
             }
             else if (source instanceof List) {
                 Object sourceItem = getSingleItem(source);
-                if (sourceItem instanceof Highlighter.HighlightItem) {
-                    Highlighter.HighlightItem hlItem = (Highlighter.HighlightItem) sourceItem;
+                if (sourceItem instanceof Highlighter.HighlightItem hlItem) {
                     if (hlItem.getUsedForFeature() != null) {
-                        switch (hlItem.getUsedForFeature()) {
-                            case "highlight":
+                        sourceLabel = switch (hlItem.getUsedForFeature()) {
+                            case "highlight" -> {
                                 sourceType = "highlightSource";
-                                sourceLabel = Language.getString("settings.page.highlight");
-                                break;
-                            case "ignore":
+                                yield Language.getString("settings.page.highlight");
+                            }
+                            case "ignore" -> {
                                 sourceType = "ignoreSource";
-                                sourceLabel = Language.getString("settings.page.ignore");
-                                break;
-                            case "msgcolor":
+                                yield Language.getString("settings.page.ignore");
+                            }
+                            case "msgcolor" -> {
                                 sourceType = "msgColorSource";
-                                sourceLabel = Language.getString("settings.page.msgColors");
-                                break;
-                            case "routing":
+                                yield Language.getString("settings.page.msgColors");
+                            }
+                            case "routing" -> {
                                 sourceType = "routingSource";
-                                sourceLabel = Language.getString("settings.page.customTabs");
-                                break;
-                            case "noPresetsUsernameHighlight":
+                                yield Language.getString("settings.page.customTabs");
+                            }
+                            case "noPresetsUsernameHighlight" -> {
                                 sourceType = "highlightSource";
-                                sourceLabel = Language.getString("settings.boolean.highlightUsername");
-                                break;
-                            default:
+                                yield Language.getString("settings.boolean.highlightUsername");
+                            }
+                            default -> {
                                 sourceType = "unknownSource";
-                                sourceLabel = "Unknown";
-                        }
+                                yield "Unknown";
+                            }
+                        };
                     }
                     else {
                         sourceType = "unknownSource";
@@ -1251,7 +1196,7 @@ public class LinkController extends MouseAdapter {
                     list.forEach(entry -> rawList.add(entry.getRaw()));
                     sourceText = rawList.toJSONString();
                     sourceLabel = "["+sourceLabel+"] ";
-                    sourceLabel += list.get(0).getRaw();
+                    sourceLabel += list.getFirst().getRaw();
                     if (list.size() > 1) {
                         sourceLabel += " (and " + (list.size() - 1) + " more for marked matches)";
                     }
@@ -1267,18 +1212,16 @@ public class LinkController extends MouseAdapter {
                 sourceText = "";
                 sourceLabel = "";
             }
-            item.addActionListener(e -> {
-                contextMenuListener.menuItemClicked(new ActionEvent(item, ACTION_FIRST, sourceType+"."+sourceText));
-            });
+            item.addActionListener(e -> contextMenuListener.menuItemClicked(new ActionEvent(item, ACTION_FIRST, sourceType+"."+sourceText)));
             item.setToolTipText(sourceLabel);
             menu.add(item);
         }
     }
     
     private static Object getSingleItem(Object o) {
-        if (o != null && o instanceof List
+        if (o instanceof List
                 && !((List) o).isEmpty()) {
-            return ((List) o).get(0);
+            return ((List) o).getFirst();
         }
         return o;
     }

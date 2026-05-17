@@ -1,22 +1,11 @@
 
 package chatty.gui.notifications;
 
-import chatty.Addressbook;
-import chatty.ChannelFavorites;
-import chatty.Chatty;
-import chatty.Helper;
-import chatty.Room;
-import chatty.User;
+import chatty.*;
 import chatty.gui.Highlighter.HighlightItem;
 import chatty.gui.MainGui;
 import chatty.gui.components.textpane.InfoMessage;
 import chatty.gui.notifications.Notification.State;
-import static chatty.gui.notifications.Notification.State.APP_NOT_ACTIVE;
-import static chatty.gui.notifications.Notification.State.CHANNEL_ACTIVE;
-import static chatty.gui.notifications.Notification.State.CHANNEL_AND_APP_NOT_ACTIVE;
-import static chatty.gui.notifications.Notification.State.CHANNEL_NOT_ACTIVE;
-import static chatty.gui.notifications.Notification.State.CHANNEL_OR_APP_NOT_ACTIVE;
-import static chatty.gui.notifications.Notification.State.OFF;
 import chatty.gui.notifications.Notification.Type;
 import chatty.gui.notifications.Notification.TypeOption;
 import chatty.util.DateTime;
@@ -25,19 +14,18 @@ import chatty.util.StringUtil;
 import chatty.util.api.Follower;
 import chatty.util.api.FollowerInfo;
 import chatty.util.api.StreamInfo;
-import chatty.util.commands.CustomCommand;
-import chatty.util.commands.CustomCommands;
 import chatty.util.commands.Parameters;
 import chatty.util.history.HistoryUtil;
 import chatty.util.irc.MsgTags;
 import chatty.util.settings.Settings;
 import chatty.util.tts.TextToSpeech;
+
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
+
+import static chatty.gui.notifications.Notification.State.*;
 
 /**
  *
@@ -256,7 +244,7 @@ public class NotificationManager {
                     channel);
             StringBuilder b = new StringBuilder();
             for (Follower f : info.getNewFollowers()) {
-                if (b.length() > 0) {
+                if (!b.isEmpty()) {
                     b.append(", ");
                 }
                 b.append(f.display_name);
@@ -290,27 +278,15 @@ public class NotificationManager {
     }
     
     public void commandNotification(String channel, String title, String text, HighlightItem matchedItem) {
-        check(Type.COMMAND, channel, null, null, text, null, matchedItem, (n) -> {
-            if (title != null) {
-                return new NotificationData(String.format(title, channel), text);
-            }
-            return new NotificationData(String.format("[Command] %s", channel), text);
-        });
+        check(Type.COMMAND, channel, null, null, text, null, matchedItem, (n) -> new NotificationData(String.format(Objects.requireNonNullElse(title, "[Command] %s"), channel), text));
     }
     
-    private static interface NotificationChecker {
-        public NotificationData check(Notification n);
+    private interface NotificationChecker {
+        NotificationData check(Notification n);
     }
-    
-    private static class NotificationData {
-        public final String title;
-        public final String message;
-        
-        public NotificationData(String title, String message) {
-            this.title = title;
-            this.message = message;
-        }
-        
+
+    private record NotificationData(String title, String message) {
+
     }
     
     private void check(Type type, String channel, NotificationChecker c) {
@@ -412,22 +388,21 @@ public class NotificationManager {
         }
     }
     
-    public boolean showNotification(Notification n, String title, String message,
-            String data, String channel) {
+    public void showNotification(Notification n, String title, String message,
+                                 String data, String channel) {
         main.showNotification(title, message, n.foregroundColor, n.backgroundColor, new NotificationWindowData(n, data));
-        return true;
     }
     
-    private boolean playSound(Notification n) {
+    private void playSound(Notification n) {
         // Check stuff, return true only if played
         if (!settings.getBoolean("sounds")) {
-            return false;
+            return;
         }
-        if (n.lastPlayedAgo() < n.soundCooldown*1000) {
-            return false;
+        if (n.lastPlayedAgo() < n.soundCooldown* 1000L) {
+            return;
         }
-        if (n.lastMatchedAgo() < n.soundInactiveCooldown*1000) {
-            return false;
+        if (n.lastMatchedAgo() < n.soundInactiveCooldown* 1000L) {
+            return;
         }
         n.setSoundPlayed();
         
@@ -439,7 +414,6 @@ public class NotificationManager {
         } catch (Exception ex) {
             // Do nothing further (already logged)
         }
-        return true;
     }
     
     private void addInfoMsg(Notification n, NotificationData d, String channel, String targets) {
@@ -506,10 +480,7 @@ public class NotificationManager {
         if (setting == CHANNEL_OR_APP_NOT_ACTIVE && (channelActive && appActive)) {
             return false;
         }
-        if (setting == CHANNEL_ACTIVE && !channelActive) {
-            return false;
-        }
-        return true;
+        return setting != CHANNEL_ACTIVE || channelActive;
     }
     
     private boolean checkHistoricAllowMatch(MsgTags tags, Notification n) {
@@ -528,17 +499,9 @@ public class NotificationManager {
         long displayNamesMode = settings.getLong("displayNamesMode");
         return Helper.makeDisplayNick(user, displayNamesMode);
     }
-    
-    public static class NotificationWindowData {
-        
-        public final Notification notification;
-        public final String channel;
-        
-        public NotificationWindowData(Notification notification, String channel) {
-            this.notification = notification;
-            this.channel = channel;
-        }
-        
+
+    public record NotificationWindowData(Notification notification, String channel) {
+
     }
     
 }

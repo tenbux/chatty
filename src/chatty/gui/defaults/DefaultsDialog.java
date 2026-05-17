@@ -4,15 +4,14 @@ package chatty.gui.defaults;
 import chatty.lang.Language;
 import chatty.util.IconManager;
 import chatty.util.settings.Settings;
-import java.awt.BorderLayout;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JFrame;
-import javax.swing.JScrollPane;
-import javax.swing.SwingUtilities;
 
 /**
  * Allows the user to choose between some default settings.
@@ -68,13 +67,10 @@ public class DefaultsDialog extends JFrame {
 
             @Override
             public boolean getEnabled(String option) {
-                switch (option) {
-                    case "notifications":
-                        return true;
-                    case "userlist":
-                        return false;
-                }
-                return false;
+                return switch (option) {
+                    case "notifications" -> true;
+                    default -> false;
+                };
             }
 
             @Override

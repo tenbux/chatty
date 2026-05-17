@@ -1,8 +1,7 @@
 
 package chatty.util.colors;
 
-import chatty.util.Debugging;
-import java.awt.Color;
+import java.awt.*;
 
 /**
  *
@@ -100,7 +99,7 @@ public class ColorCorrection {
     }
     
     public static Color makeDarker(Color color, float factor) {
-        float hsb[] = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
+        float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
         return Color.getHSBColor(hsb[0], hsb[1], factor * hsb[2]);
     }
     

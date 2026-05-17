@@ -2,11 +2,13 @@
 package chatty.util.api;
 
 import chatty.Chatty;
+
 import java.io.*;
 import java.net.HttpURLConnection;
-import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 
@@ -31,7 +33,7 @@ public class TwitchApiRequest implements Runnable {
     
     private static final String CLIENT_ID = Chatty.CLIENT_ID;
     
-    private String url;
+    private final String url;
     private TwitchApiRequestResult origin;
     private String token;
     private String data = null;
@@ -39,7 +41,7 @@ public class TwitchApiRequest implements Runnable {
     private int responseCode = -1;
     private String requestMethod = "GET";
     private String contentType = "application/json";
-    private String apiVersion = null;
+    private String apiVersion;
     private String error;
     private String info;
     
@@ -125,12 +127,11 @@ public class TwitchApiRequest implements Runnable {
             LOGGER.info(requestMethod + " (" + apiVersion + "): " + targetUrl);
         }
         
-        Charset charset = Charset.forName("UTF-8");
-        URL url;
+        var charset = StandardCharsets.UTF_8;
         HttpURLConnection connection = null;
 
         try {
-            url = new URL(targetUrl);
+            URL url = new URI(targetUrl).toURL();
             connection = (HttpURLConnection)url.openConnection();
             connection.setConnectTimeout(CONNECT_TIMEOUT);
             connection.setReadTimeout(READ_TIMEOUT);
@@ -179,10 +180,7 @@ public class TwitchApiRequest implements Runnable {
             }
             
             return response.toString();
-        } catch (SocketTimeoutException ex) {
-            error = ex.toString();
-            return null;
-        } catch (IOException ex) {
+        } catch (URISyntaxException | IOException ex) {
             error = ex.toString();
             return null;
         } finally {
@@ -199,7 +197,7 @@ public class TwitchApiRequest implements Runnable {
     
     public interface TwitchApiRequestResult {
         
-        public void requestResult(String url, String result, int responseCode, String error, String encoding, String token, String info);
+        void requestResult(String url, String result, int responseCode, String error, String encoding, String token, String info);
         
     }
     

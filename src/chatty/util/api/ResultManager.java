@@ -1,11 +1,7 @@
 
 package chatty.util.api;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 
 /**
@@ -77,40 +73,31 @@ public class ResultManager {
     }
     
     public interface CategoryResult {
-        public void result(Collection<StreamCategory> categories);
+        void result(Collection<StreamCategory> categories);
     }
     
     public interface ShieldModeResult {
-        public void result(String stream, boolean enabled);
+        void result(String stream, boolean enabled);
     }
     
     public interface CreateClipResult {
-        public void result(String editUrl, String viewUrl, String error);
+        void result(String editUrl, String viewUrl, String error);
     }
     
     public static void main(String[] args) {
         ResultManager m = new ResultManager();
-        m.subscribe(Type.CATEGORY_RESULT, (CategoryResult) categories -> {
-            System.out.println(categories);
-        });
-        m.subscribe(Type.CATEGORY_RESULT, (CategoryResult) categories -> {
-            System.out.println("b"+categories);
-        });
+        m.subscribe(Type.CATEGORY_RESULT, (CategoryResult) System.out::println);
+        m.subscribe(Type.CATEGORY_RESULT, (CategoryResult) categories -> System.out.println("b"+categories));
 //        m.subscribe(Type.CATEGORY_SEARCH_RESULT, new Consumer<Object> () {
 //            @Override
 //            public void accept(Object t) {
 //                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
 //            }
 //        });
-        m.inform(Type.CATEGORY_RESULT, (CategoryResult result) -> {
-            result.result(null);
-        });
+        m.inform(Type.CATEGORY_RESULT, (CategoryResult result) -> result.result(null));
         
-        Object o = new CategoryResult() {
-            @Override
-            public void result(Collection<StreamCategory> categories) {
-                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-            }
+        Object o = (CategoryResult) categories -> {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         };
     }
     

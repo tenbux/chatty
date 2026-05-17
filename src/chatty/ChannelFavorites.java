@@ -57,9 +57,7 @@ public class ChannelFavorites {
         roomManager.addRoomsIfNone(rooms);
         
         // Listener for saving settings
-        settings.addSettingsListener((s) -> {
-            saveToSettings();
-        });
+        settings.addSettingsListener((s) -> saveToSettings());
     }
     
     /**
@@ -221,17 +219,14 @@ public class ChannelFavorites {
      * doesn't have to be the same actual Favorite object).
      *
      * @param favorite
-     * @return 
      */
-    public synchronized Favorite remove(Favorite favorite) {
+    public synchronized void remove(Favorite favorite) {
         if (data.containsKey(favorite.getChannel())) {
             Favorite removed = data.remove(favorite.getChannel());
             if (removed.isFavorite) {
                 informListeners();
             }
-            return removed;
         }
-        return null;
     }
     
     //========
@@ -260,9 +255,11 @@ public class ChannelFavorites {
     
     private synchronized void loadFromSettings() {
         data.clear();
-        Map<String, List> entries = settings.getMap(SETTING);
-        for (String channel : entries.keySet()) {
-            List entryValues = entries.get(channel);
+        @SuppressWarnings("unchecked")
+        Map<String, List<Object>> entries = settings.getMap(SETTING);
+        for (Map.Entry<String, List<Object>> entry : entries.entrySet()) {
+            String channel = entry.getKey();
+            List<Object> entryValues = entry.getValue();
             Favorite fav = Favorite.fromList(entryValues, channel);
             if (fav != null) {
                 data.put(fav.room.getChannel(), fav);
@@ -272,9 +269,9 @@ public class ChannelFavorites {
     }
     
     private synchronized void saveToSettings() {
-        Map<String, List> entries = new HashMap<>();
+        Map<String, List<Object>> entries = new HashMap<>();
         for (Favorite f : data.values()) {
-            List list = f.toList();
+            List<Object> list = f.toList();
             entries.put(f.getChannel(), list);
         }
         settings.putMap(SETTING, entries);
@@ -283,78 +280,68 @@ public class ChannelFavorites {
     //================
     // Favorite Class
     //================
-    
-    public static class Favorite {
-        
-        public final Room room;
-        public final long lastJoined;
-        public final boolean isFavorite;
 
-        public Favorite(Room room, long lastJoined, boolean isFavorite) {
-            this.room = room;
-            this.lastJoined = lastJoined;
-            this.isFavorite = isFavorite;
-        }
-        
+    public record Favorite(Room room, long lastJoined, boolean isFavorite) {
+
         public String getChannel() {
-            return room.getChannel();
-        }
-        
+                return room.getChannel();
+            }
+
         /**
          * Turn this favorite into a list, except for the channel.
-         * 
+         *
          * @param input
          * @param channel
-         * @return 
+         * @return
          */
-        public static Favorite fromList(List input, String channel) {
-            long lastJoined = ((Number)input.get(0)).longValue();
-            boolean isFavorite = (Boolean)input.get(1);
-            if (input.size() == 2) {
-                return new Favorite(Room.createRegular(channel), lastJoined, isFavorite);
-            } else if (input.size() == 3) {
-                String ownerId = (String)input.get(2);
-                return new Favorite(Room.createRegularWithId(channel, ownerId), lastJoined, isFavorite);
-            } else if (input.size() == 4) {
-                String name = (String)input.get(2);
-                String ownerStream = (String)input.get(3);
-                Room room = Room.createFromChannel(channel, name, Helper.toChannel(ownerStream));
-                if (room != null) {
-                    return new Favorite(room, lastJoined, isFavorite);
+            public static Favorite fromList(List<Object> input, String channel) {
+                long lastJoined = ((Number) input.get(0)).longValue();
+                boolean isFavorite = (Boolean) input.get(1);
+                if (input.size() == 2) {
+                    return new Favorite(Room.createRegular(channel), lastJoined, isFavorite);
+                } else if (input.size() == 3) {
+                    String ownerId = (String) input.get(2);
+                    return new Favorite(Room.createRegularWithId(channel, ownerId), lastJoined, isFavorite);
+                } else if (input.size() == 4) {
+                    String name = (String) input.get(2);
+                    String ownerStream = (String) input.get(3);
+                    Room room = Room.createFromChannel(channel, name, Helper.toChannel(ownerStream));
+                    if (room != null) {
+                        return new Favorite(room, lastJoined, isFavorite);
+                    }
                 }
+                return null;
             }
-            return null;
-        }
-        
-        public List toList() {
-            List result = new ArrayList<>();
-            result.add(lastJoined);
-            result.add(isFavorite);
-            if (room.hasOwnerChannel() && room.hasStream() && !room.isOwner()) {
-                result.add(room.getName());
-                result.add(room.getStream());
-            } else if (room.getStreamId() != null) {
-                result.add(room.getStreamId());
+
+        public List<Object> toList() {
+                List<Object> result = new ArrayList<>();
+                result.add(lastJoined);
+                result.add(isFavorite);
+                if (room.hasOwnerChannel() && room.hasStream() && !room.isOwner()) {
+                    result.add(room.getName());
+                    result.add(room.getStream());
+                } else if (room.getStreamId() != null) {
+                    result.add(room.getStreamId());
+                }
+                return result;
             }
-            return result;
-        }
-        
+
         public Favorite setFavorite(boolean isFavorite) {
-            if (this.isFavorite == isFavorite) {
-                return this;
+                if (this.isFavorite == isFavorite) {
+                    return this;
+                }
+                return new Favorite(this.room, this.lastJoined, isFavorite);
             }
-            return new Favorite(this.room, this.lastJoined, isFavorite);
-        }
-        
+
         public Favorite setJoined(long lastJoined) {
-            return new Favorite(room, lastJoined, isFavorite);
-        }
-        
+                return new Favorite(room, lastJoined, isFavorite);
+            }
+
         @Override
-        public String toString() {
-            return room.toString();
-        }
-        
+            public String toString() {
+                return room.toString();
+            }
+
     }
     
     //===========
@@ -384,7 +371,7 @@ public class ChannelFavorites {
          * 
          * This will be run in the ChannelFavorites instance lock.
          */
-        public void favoritesChanged();
+        void favoritesChanged();
         
     }
     

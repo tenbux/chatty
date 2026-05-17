@@ -1,23 +1,13 @@
 
 package chatty.gui.components.textpane;
 
-import chatty.util.colors.HtmlColors;
 import chatty.gui.components.textpane.ChannelTextPane.Attribute;
 import chatty.util.Debugging;
 import chatty.util.colors.ColorCorrection;
-import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Rectangle;
-import java.awt.Shape;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
 import javax.swing.event.DocumentEvent;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Element;
-import javax.swing.text.LabelView;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.View;
-import javax.swing.text.ViewFactory;
+import javax.swing.text.*;
+import java.awt.*;
 
 /**
  * Always wrap long words.
@@ -147,14 +137,11 @@ public class WrapLabelView extends LabelView {
      */
     @Override
     public float getMinimumSpan(int axis) {
-        switch (axis) {
-            case View.X_AXIS:
-                return 0;
-            case View.Y_AXIS:
-                return super.getMinimumSpan(axis);
-            default:
-                throw new IllegalArgumentException("Invalid axis: " + axis);
-        }
+        return switch (axis) {
+            case View.X_AXIS -> 0;
+            case View.Y_AXIS -> super.getMinimumSpan(axis);
+            default -> throw new IllegalArgumentException("Invalid axis: " + axis);
+        };
     }
     
     @Override

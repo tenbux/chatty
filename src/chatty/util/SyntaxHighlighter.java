@@ -1,31 +1,21 @@
 
 package chatty.util;
 
-import static chatty.gui.GuiUtil.addChangeListener;
 import chatty.gui.components.settings.Editor;
 import chatty.util.colors.ColorCorrection;
 import chatty.util.colors.ColorCorrectionNew;
 import chatty.util.commands.CommandSyntaxHighlighter;
-import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Rectangle;
-import java.awt.Shape;
+
+import javax.swing.*;
+import javax.swing.plaf.TextUI;
+import javax.swing.text.*;
+import javax.swing.text.Highlighter.HighlightPainter;
+import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.JFrame;
-import javax.swing.JTextPane;
-import javax.swing.plaf.TextUI;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultHighlighter;
-import javax.swing.text.DefaultStyledDocument;
-import javax.swing.text.DocumentFilter;
-import javax.swing.text.Highlighter;
-import javax.swing.text.Highlighter.HighlightPainter;
-import javax.swing.text.JTextComponent;
-import javax.swing.text.MutableAttributeSet;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
+
+import static chatty.gui.GuiUtil.addChangeListener;
 
 /**
  * Works for JTextComponent or JTextPane, although the one for JTextPane isn't
@@ -89,24 +79,14 @@ public abstract class SyntaxHighlighter {
     public enum Type {
             REGULAR, REGULAR2, ESCAPE, ERROR, IDENTIFIER
         }
-    
-    public static class Item {
-        
-        public final int start;
-        public final int end;
-        public final Type type;
-        
-        public Item(int start, int end, Type type) {
-            this.start = start;
-            this.end = end;
-            this.type = type;
-        }
-        
+
+    public record Item(int start, int end, Type type) {
+
         @Override
-        public String toString() {
-            return String.format("%d-%d[%s]", start, end, type);
-        }
-        
+            public String toString() {
+                return String.format("%d-%d[%s]", start, end, type);
+            }
+
     }
     
     public static Runnable install(JTextPane pane, SyntaxHighlighter hl) {
@@ -198,20 +178,12 @@ public abstract class SyntaxHighlighter {
             comp.getHighlighter().removeAllHighlights();
             for (Item entry : hl.getItems(comp.getText())) {
                 boolean dark = ColorCorrection.isDarkColor(comp.getBackground());
-                HighlightPainter painter;
-                switch (entry.type) {
-                    case ESCAPE:
-                        painter = createPainter(dark ? new Color(95, 95, 255) : new Color(160, 160, 255));
-                        break;
-                    case ERROR:
-                        painter = highlightPainterError;
-                        break;
-                    case REGULAR2:
-                        painter = createPainter(dark ? new Color(0,125,0) : new Color(50,255,50));
-                        break;
-                    default:
-                        painter = createPainter(dark ? new Color(20,138,20) : new Color(125,255,125));
-                }
+                HighlightPainter painter = switch (entry.type) {
+                    case ESCAPE -> createPainter(dark ? new Color(95, 95, 255) : new Color(160, 160, 255));
+                    case ERROR -> highlightPainterError;
+                    case REGULAR2 -> createPainter(dark ? new Color(0, 125, 0) : new Color(50, 255, 50));
+                    default -> createPainter(dark ? new Color(20, 138, 20) : new Color(125, 255, 125));
+                };
                 try {
                     comp.getHighlighter().addHighlight(entry.start, entry.end, painter);
                 }
@@ -222,9 +194,7 @@ public abstract class SyntaxHighlighter {
             // Didn't always repaint highlights on other lines
             comp.repaint();
         };
-        addChangeListener(comp.getDocument(), e -> {
-            update.run();
-        });
+        addChangeListener(comp.getDocument(), e -> update.run());
         return update;
     }
     
@@ -235,14 +205,13 @@ public abstract class SyntaxHighlighter {
     public static class MyHighlightPainter implements Highlighter.HighlightPainter {
 
         public void paint(Graphics g, int offs0, int offs1, Shape bounds, JTextComponent c) {
-            Rectangle alloc = bounds.getBounds();
             try {
                 TextUI mapper = c.getUI();
-                Rectangle p0 = mapper.modelToView(c, offs0);
-                Rectangle p1 = mapper.modelToView(c, offs1);
+                Rectangle2D p0 = mapper.modelToView2D(c, offs0, Position.Bias.Forward);
+                Rectangle2D p1 = mapper.modelToView2D(c, offs1, Position.Bias.Forward);
                 g.setColor(ColorCorrection.isDarkColor(c.getBackground()) ? Color.ORANGE : Color.RED);
-                Rectangle r = p0.union(p1);
-                g.fillRect(r.x, r.y + r.height - 3, r.width, 2);
+                Rectangle2D r = p0.createUnion(p1);
+                g.fillRect((int) r.getX(), (int) (r.getY() + r.getHeight()) - 3, (int) r.getWidth(), 2);
             } catch (BadLocationException e) {
                 // Ignore
             }

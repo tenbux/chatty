@@ -3,16 +3,14 @@ package chatty;
 
 import chatty.Chatty.PathType;
 import chatty.gui.laf.LaFChanger;
+import chatty.util.MiscUtil;
 import chatty.util.RingBuffer;
+
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.logging.*;
 
 /**
@@ -54,13 +52,7 @@ public class Logging {
         // Add console handler with custom formatter
         ConsoleHandler c = new ConsoleHandler();
         c.setFormatter(new TextFormatter());
-        c.setFilter(new Filter() {
-
-            @Override
-            public boolean isLoggable(LogRecord record) {
-                return record.getLevel() != USERINFO;
-            }
-        });
+        c.setFilter(record -> record.getLevel() != USERINFO);
         Logger.getLogger("").addHandler(c);
         
         // Add file handler with custom formatter
@@ -168,9 +160,7 @@ public class Logging {
     }
     
     public static String getStacktrace(Throwable t) {
-        StringWriter sw = new StringWriter();
-        t.printStackTrace(new PrintWriter(sw));
-        return sw.toString();
+        return MiscUtil.getStackTrace(t);
     }
     
     public static String getStacktraceForLogging(Throwable t) {
@@ -189,9 +179,7 @@ public class Logging {
         @Override
         public boolean isLoggable(LogRecord record) {
             if (record.getSourceClassName().equals("chatty.util.TwitchApiRequest")) {
-                if (record.getLevel() == Level.INFO) {
-                    return false;
-                }
+                return record.getLevel() != Level.INFO;
             }
             return true;
         }

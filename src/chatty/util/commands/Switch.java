@@ -102,10 +102,7 @@ public class Switch implements Item {
         if (!Objects.equals(this.def, other.def)) {
             return false;
         }
-        if (this.isRequired != other.isRequired) {
-            return false;
-        }
-        return true;
+        return this.isRequired == other.isRequired;
     }
     
     @Override

@@ -1,27 +1,15 @@
 
 package chatty.gui.components.settings;
 
-import chatty.gui.GuiUtil;
 import chatty.util.colors.HtmlColors;
-import chatty.lang.Language;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.MouseListener;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
 
 /**
  * A single Color Setting represented by a preview, a textfield that contains
@@ -98,16 +86,12 @@ public class ColorSetting extends JPanel implements StringSetting {
         preview.setPreferredSize(new Dimension(120,20));
         
         // Choose color button action
-        chooseColor.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (colorChooser == null) {
-                    colorChooser = chooserCreator.get();
-                }
-                String result = colorChooser.chooseColorString(type, currentColor, secondaryColor, name, previewText);
-                setSettingValue(result);
+        chooseColor.addActionListener(e -> {
+            if (colorChooser == null) {
+                colorChooser = chooserCreator.get();
             }
+            String result = colorChooser.chooseColorString(type, currentColor, secondaryColor, name, previewText);
+            setSettingValue(result);
         });
         chooseColor.setMargin(new Insets(0, 0, 0, 0));
         chooseColor.setIcon(new ImageIcon(ColorSetting.class.getResource("colorpicker.png")));

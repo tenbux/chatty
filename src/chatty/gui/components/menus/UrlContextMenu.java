@@ -4,9 +4,8 @@ package chatty.gui.components.menus;
 import chatty.Helper;
 import chatty.Room;
 import chatty.User;
+
 import java.awt.event.ActionEvent;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * The Context Menu for URLs.
@@ -17,7 +16,7 @@ public class UrlContextMenu extends ContextMenu {
     
     private final ContextMenuListener listener;
     private final String url;
-    private String channel;
+    private final String channel;
     private User dummyUser;
     
     /**

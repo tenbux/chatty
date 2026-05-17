@@ -5,9 +5,8 @@ import chatty.Helper;
 import chatty.util.DateTime;
 import chatty.util.ElapsedTime;
 import chatty.util.StringUtil;
-import java.util.ArrayList;
+
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -26,9 +25,10 @@ public class StreamInfo {
     
     private static final Logger LOGGER = Logger.getLogger(StreamInfo.class.getName());
     
-    private enum UpdateResult { UPDATED, CHANGED, SET_OFFLINE };
-    public enum StreamType { LIVE, WATCH_PARTY, RERUN, PREMIERE };
-    
+    private enum UpdateResult { UPDATED, CHANGED, SET_OFFLINE }
+
+    public enum StreamType { LIVE, WATCH_PARTY, RERUN, PREMIERE }
+
     /**
      * All lowercase name of the stream
      */
@@ -146,7 +146,7 @@ public class StreamInfo {
     }
     
     public synchronized boolean isRequested() {
-        return requested;
+        return !requested;
     }
 
     /**
@@ -165,15 +165,12 @@ public class StreamInfo {
             long startedAt, StreamType streamType) {
         //System.out.println(status);
         followed = true;
-        boolean saveToHistory = false;
+        boolean saveToHistory = hasExpired() || startedAtSameAfterOffline > 0;
         /**
          * Save history when other API calls aren't made (channel not joined).
          * Also when ignoring the other API due to rerun always save history
          * from this one.
          */
-        if (hasExpired() || startedAtSameAfterOffline > 0) {
-            saveToHistory = true;
-        }
         lastFollowedUpdate.set();
         set(status, game, viewers, startedAt, streamType, saveToHistory);
     }
@@ -261,7 +258,7 @@ public class StreamInfo {
             if (saveToHistory) {
                 addHistoryItem(System.currentTimeMillis(),
                         new StreamInfoHistoryItem(System.currentTimeMillis(),
-                                viewers, status, game.name,
+                                viewers, status, game.name(),
                                 streamType,
                                 getTimeStarted(), getTimeStartedWithPicnic()));
             }
@@ -427,7 +424,7 @@ public class StreamInfo {
                 fullStatus = "No stream title set";
             }
             fullStatus = getStreamTypeString()+fullStatus;
-            if (game != null && !game.isEmpty()) {
+            if (game != null && game.isEmpty()) {
                 fullStatus += " ("+game+")";
             }
             return fullStatus;
@@ -671,7 +668,7 @@ public class StreamInfo {
      * @return The name of the game or an empty String if no game is set
      */
     public synchronized String getGame() {
-        return game.name;
+        return game.name();
     }
     
     /**
@@ -701,7 +698,7 @@ public class StreamInfo {
      * @return true if the info should be updated, false otherwise
      */
     public synchronized boolean hasExpired() {
-        return getUpdatedDelay() > expiresAfter * (1+ updateFailedCounter / 2);
+        return getUpdatedDelay() > (long) expiresAfter * (1+ updateFailedCounter / 2);
     }
     
     /**
@@ -711,10 +708,7 @@ public class StreamInfo {
      * @return true if the info can be used, false otherwise
      */
     public synchronized boolean isValid() {
-        if (!updateSucceeded || getUpdatedDelay() > expiresAfter*2) {
-            return false;
-        }
-        return true;
+        return updateSucceeded && getUpdatedDelay() <= expiresAfter * 2L;
     }
     
     public synchronized boolean isValidEnough() {
@@ -722,10 +716,7 @@ public class StreamInfo {
     }
     
     public synchronized boolean lastUpdateLongAgo() {
-        if (updateSucceeded && getUpdatedDelay() > expiresAfter*4) {
-            return true;
-        }
-        return false;
+        return updateSucceeded && getUpdatedDelay() > expiresAfter * 4L;
     }
     
     /**
@@ -757,8 +748,8 @@ public class StreamInfo {
         }
     }
     
-    public void setHistory(LinkedHashMap<Long, StreamInfoHistoryItem> history) {
-        synchronized(history) {
+    public void setHistory(Map<Long, StreamInfoHistoryItem> history) {
+        synchronized(this.history) {
             this.history.clear();
             this.history.putAll(history);
         }
@@ -787,7 +778,7 @@ public class StreamInfo {
             }
             if (found != null) {
                 if (found.isOnline()
-                        && time - found.getTime() < expiresAfter*1000*2) {
+                        && time - found.getTime() < (long) expiresAfter *1000*2) {
                     if (picnic) {
                         return found.getStreamStartTimeWithPicnic();
                     }
@@ -891,63 +882,45 @@ public class StreamInfo {
             return new ViewerStats(min, max, avg, firstTime, lastTime, count, b.toString());
         }
     }
-    
+
     /**
-     * Holds a set of immutable values that make up viewerstats.
-     */
-    public static class ViewerStats {
-        public final int max;
-        public final int min;
-        public final int avg;
-        public final long startTime;
-        public final long endTime;
-        public final int count;
-        public final String history;
-        
-        public ViewerStats(int min, int max, int avg, long startTime,
-                long endTime, int count, String history) {
-            this.max = max;
-            this.min = min;
-            this.avg = avg;
-            this.startTime = startTime;
-            this.endTime = endTime;
-            this.count = count;
-            this.history = history;
-        }
-        
+         * Holds a set of immutable values that make up viewerstats.
+         */
+        public record ViewerStats(int min, int max, int avg, long startTime, long endTime, int count, String history) {
+
         /**
          * Which duration the data in this stats covers. This is not necessarily
          * the whole duration that was worked with (e.g. if the stream went
          * offline at the end, that data may not be included). This is the range
          * between the first and last valid data point.
-         * 
+         *
          * @return The number of seconds this data covers.
          */
-        public long duration() {
-            return (endTime - startTime) / 1000;
-        }
-        
+            public long duration() {
+                return (endTime - startTime) / 1000;
+            }
+
         /**
          * Checks if these viewerstats contain any viewer data.
-         * 
-         * @return 
+         *
+         * @return
          */
-        public boolean isValid() {
-            // If min was set to another value than the initial one, then this
-            // means at least one data point with a viewercount was there.
-            return min != -1;
-        }
-        
+            public boolean isValid() {
+                // If min was set to another value than the initial one, then this
+                // means at least one data point with a viewercount was there.
+                return min != -1;
+            }
+
         @Override
-        public String toString() {
-            return "Viewerstats ("+DateTime.format2(startTime)
-                    +"-"+DateTime.format2(endTime)+"):"
-                    + " avg:"+Helper.formatViewerCount(avg)
-                    + " min:"+Helper.formatViewerCount(min)
-                    + " max:"+Helper.formatViewerCount(max)
-                    + " ["+count+"/"+history+"]";
+            public String toString() {
+                return "Viewerstats (" + DateTime.format2(startTime)
+                        + "-" + DateTime.format2(endTime) + "):"
+                        + " avg:" + Helper.formatViewerCount(avg)
+                        + " min:" + Helper.formatViewerCount(min)
+                        + " max:" + Helper.formatViewerCount(max)
+                        + " [" + count + "/" + history + "]";
+            }
         }
-    }
     
     public synchronized boolean setFollowerCount(int followers) {
         if (followers != this.followerCount) {

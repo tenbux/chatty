@@ -56,10 +56,7 @@ public class ChannelState {
      * @return 
      */
     public synchronized boolean reset() {
-        boolean changed = false;
-        if (setSubMode(false)) {
-            changed = true;
-        }
+        boolean changed = setSubMode(false);
         if (setSlowMode(-1)) {
             changed = true;
         }

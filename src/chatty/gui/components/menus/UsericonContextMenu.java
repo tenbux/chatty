@@ -1,12 +1,13 @@
 
 package chatty.gui.components.menus;
 
-import chatty.Chatty;
-import static chatty.gui.components.menus.ContextMenuHelper.ICON_WEB;
 import chatty.util.StringUtil;
 import chatty.util.api.CachedImage;
 import chatty.util.api.usericons.Usericon;
+
 import java.awt.event.ActionEvent;
+
+import static chatty.gui.components.menus.ContextMenuHelper.ICON_WEB;
 
 /**
  *
@@ -54,7 +55,7 @@ public class UsericonContextMenu extends ContextMenu {
             infoMenu = "Custom Usericon";
         }
         if (!usericon.badgeType.isEmpty()) {
-            addItem("copyBadgeType", "ID/Version: "+usericon.badgeType.toString(), -1, infoMenu, ContextMenuHelper.ICON_COPY);
+            addItem("copyBadgeType", "ID/Version: "+ usericon.badgeType, -1, infoMenu, ContextMenuHelper.ICON_COPY);
         }
         if (usericon.restriction != null) {
             if (usericon.restriction.isEmpty()) {
@@ -73,7 +74,7 @@ public class UsericonContextMenu extends ContextMenu {
             else {
                 addSeparator(infoMenu);
                 addItem("addUsericonOfBadgeType", "Override/Hide (" + usericon.badgeType + ")", infoMenu);
-                addItem("addUsericonOfBadgeTypeAllVariants", "Override/Hide (all " + usericon.badgeType.id + " variants)", infoMenu);
+                addItem("addUsericonOfBadgeTypeAllVariants", "Override/Hide (all " + usericon.badgeType.id() + " variants)", infoMenu);
             }
         }
         

@@ -213,10 +213,7 @@ public class IrcMsgTags {
             return false;
         }
         final IrcMsgTags other = (IrcMsgTags) obj;
-        if (!Objects.equals(this.tags, other.tags)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.tags, other.tags);
     }
     
     @Override

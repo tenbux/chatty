@@ -2,10 +2,13 @@
 package chatty.gui.components.menus;
 
 import chatty.gui.components.menus.ContextMenuHelper.Quality;
+import org.junit.Test;
+
 import java.util.ArrayList;
 import java.util.Arrays;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -15,20 +18,20 @@ public class ContextMenuHelperTest {
     
     @Test
     public void testParseLivestreamerQualities() {
-        assertEquals(ContextMenuHelper.parseLivestreamerQualities(""),
-                new ArrayList<>());
+        assertEquals(new ArrayList<>(),
+                ContextMenuHelper.parseLivestreamerQualities(""));
         
-        assertEquals(ContextMenuHelper.parseLivestreamerQualities(" "),
-                new ArrayList<>());
+        assertEquals(new ArrayList<>(),
+                ContextMenuHelper.parseLivestreamerQualities(" "));
         
         assertEquals(ContextMenuHelper.parseLivestreamerQualities("Select"),
-                new ArrayList<>(Arrays.asList(new Quality("Select", "Select"))));
+                new ArrayList<>(List.of(new Quality("Select", "Select"))));
         
         assertEquals(ContextMenuHelper.parseLivestreamerQualities("Select "),
-                new ArrayList<>(Arrays.asList(new Quality("Select", "Select"))));
+                new ArrayList<>(List.of(new Quality("Select", "Select"))));
         
         assertEquals(ContextMenuHelper.parseLivestreamerQualities("{Select quality:select}"),
-                new ArrayList<>(Arrays.asList(new Quality("Select quality", "select"))));
+                new ArrayList<>(List.of(new Quality("Select quality", "select"))));
         
         assertEquals(ContextMenuHelper.parseLivestreamerQualities("Best, Worst Select |"),
                 new ArrayList<>(Arrays.asList(

@@ -52,7 +52,7 @@ public class BotNameManager {
         botName = StringUtil.toLowerCase(botName);
         synchronized(botNames) {
             if (!botNames.containsKey(channel)) {
-                botNames.put(channel, new HashSet<String>());
+                botNames.put(channel, new HashSet<>());
             }
             botNames.get(channel).add(StringUtil.toLowerCase(botName));
         }
@@ -106,7 +106,7 @@ public class BotNameManager {
          * which means it's valid for all channels
          * @param botName Can not be null or empty
          */
-        public void botNameAdded(String channel, String botName);
+        void botNameAdded(String channel, String botName);
     }
     
 }

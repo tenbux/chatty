@@ -67,9 +67,9 @@ public class EmojiUtil {
         TWEMOJI("twemoji", "Twemoji (Twitter)", "twemoji/72x72/"),
         E1("e1", "Emoji One", "e1/png_64/");
         
-        String id;
-        String name;
-        String internalPath;
+        final String id;
+        final String name;
+        final String internalPath;
         
         EmojiSet(String id, String name, String path) {
             this.id = id;

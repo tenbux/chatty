@@ -2,12 +2,10 @@
 package chatty.util.dnd;
 
 import chatty.util.dnd.DockDropInfo.DropType;
-import java.awt.BorderLayout;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.List;
-import javax.swing.JComponent;
-import javax.swing.JPanel;
-import javax.swing.JSplitPane;
-import javax.swing.SwingUtilities;
 
 /**
  * Holds content or components that hold content (tabs).
@@ -33,7 +31,7 @@ public class DockBase extends JPanel implements DockChild {
     
     public DockDropInfo findDrop(DockImportInfo info) {
         DockDropInfo childDrop = child.findDrop(info);
-        if (childDrop != null && childDrop.location == DropType.INVALID) {
+        if (childDrop != null && childDrop.location() == DropType.INVALID) {
             return null;
         }
         if (childDrop != null) {
@@ -110,12 +108,11 @@ public class DockBase extends JPanel implements DockChild {
             // Exchange child
             exchangeChild(newChildSplit);
             // Divider
-            DockSplit split = newChildSplit;
-            split.setDividerLocation(0.5);
-            split.setResizeWeight(0.5);
+            newChildSplit.setDividerLocation(0.5);
+            newChildSplit.setResizeWeight(0.5);
             SwingUtilities.invokeLater(() -> {
-                split.setDividerLocation(0.5);
-                split.setResizeWeight(0.5);
+                newChildSplit.setDividerLocation(0.5);
+                newChildSplit.setResizeWeight(0.5);
             });
         }
     }
@@ -149,10 +146,10 @@ public class DockBase extends JPanel implements DockChild {
     @Override
     public void drop(DockTransferInfo info) {
         // Once a drop was initiated by the user, should reset target path
-        info.importInfo.content.setTargetPath(null);
+        info.importInfo().content().setTargetPath(null);
         
-        info.importInfo.source.removeContent(info.importInfo.content);
-        split(info.dropInfo, info.importInfo.content);
+        info.importInfo().source().removeContent(info.importInfo().content());
+        split(info.dropInfo(), info.importInfo().content());
     }
 
     @Override
@@ -259,22 +256,22 @@ public class DockBase extends JPanel implements DockChild {
 
     public DockChild createLayout(DockLayoutElement element, DockChild parent) {
         DockChild newChild = null;
-        if (element instanceof DockLayoutSplit) {
-            DockLayoutSplit s = (DockLayoutSplit) element;
-            
-            DockSplit split = new DockSplit(s.orientation);
-            DockChild left = createLayout(s.left, split);
-            DockChild right = createLayout(s.right, split);
+        if (element instanceof DockLayoutSplit(
+                DockLayoutElement left1, DockLayoutElement right1, int dividerLocation, int orientation
+        )) {
+
+            DockSplit split = new DockSplit(orientation);
+            DockChild left = createLayout(left1, split);
+            DockChild right = createLayout(right1, split);
             split.setChildren(left, right);
             split.setDockParent(parent);
-            split.setDividerLocation(s.dividerLocation);
+            split.setDividerLocation(dividerLocation);
             split.setResizeWeight(0.5);
             
             newChild = split;
         }
-        else if (element instanceof DockLayoutTabs) {
-            DockLayoutTabs t = (DockLayoutTabs) element;
-            
+        else if (element instanceof DockLayoutTabs t) {
+
             DockTabsContainer tabs = new DockTabsContainer();
             tabs.setDockParent(parent);
             

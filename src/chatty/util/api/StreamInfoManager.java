@@ -6,14 +6,15 @@ import chatty.util.ElapsedTime;
 import chatty.util.JSONUtil;
 import chatty.util.StringUtil;
 import chatty.util.api.StreamInfo.StreamType;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * Gets stream info from the TwitchApi.
@@ -178,7 +179,7 @@ public class StreamInfoManager {
         // request was requested not too long ago. This ofc is also to actually
         // return the StreamInfo object.
         StreamInfo cached = getStreamInfo(stream);
-        if (cached.hasExpired() && !cached.isRequested()) {
+        if (cached.hasExpired() && cached.isRequested()) {
             cached.setRequested();
             api.requests.requestStreamInfo(stream);
         }
@@ -262,7 +263,7 @@ public class StreamInfoManager {
             StreamInfo cached = getStreamInfo(stream);
             // Don't check for expired, so all open chans are
             // requested, meaning hopefully less requests
-            if (!cached.isRequested() && (!special || cached.recheckOffline())) {
+            if (cached.isRequested() && (!special || cached.recheckOffline())) {
                 streamsForRequest.add(stream);
                 streamInfosForRequest.add(cached);
                 cached.setRequested();
@@ -411,7 +412,7 @@ public class StreamInfoManager {
                     if (parsedInfo == null) {
                         // Can't use setUpdateSucceeded(false) because it is
                         // not known which StreamInfo object it would be.
-                        LOGGER.warning("Error parsing stream "+(JSONObject)obj);
+                        LOGGER.warning("Error parsing stream "+ obj);
                     }
                     if (streamInfos != null) {
                         streamInfos.remove(parsedInfo);
@@ -442,7 +443,7 @@ public class StreamInfoManager {
      * If uptime is greater than 10 years, it's probably not valid. Streams that
      * just started appear to sometimes return a wrong start time.
      */
-    private static final long VALID_UPTIME_LIMIT = 10*365*24*60*60*1000;
+    private static final long VALID_UPTIME_LIMIT = 10L *365*24*60*60*1000;
 
     /**
      * Parse a stream object into a StreamInfo object. This gets the name of the
@@ -462,13 +463,13 @@ public class StreamInfoManager {
         }
         Number viewersTemp;
         String status;
-        StreamCategory game = StreamCategory.EMPTY;
+        StreamCategory game;
         String name;
         String display_name;
         StreamType streamType = StreamType.LIVE;
         long timeStarted = -1;
-        String userId = null;
-        String thumbnailUrl = null;
+        String userId;
+        String thumbnailUrl;
         String broadcastId;
         try {
             // Get stream data

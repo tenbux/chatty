@@ -1,17 +1,18 @@
 
 package chatty.util;
 
-import static chatty.util.CachedBulkManager.*;
 import chatty.util.CachedBulkManager.Requester;
+import chatty.util.CachedBulkManager.Result;
+import chatty.util.CachedBulkManager.ResultListener;
+import org.junit.Test;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.junit.Test;
+
+import static chatty.util.CachedBulkManager.*;
 import static org.junit.Assert.*;
 
 /**
@@ -75,31 +76,31 @@ public class CacheBulkManagerTest {
         
         CachedBulkManager<String, String> m = new CachedBulkManager<>(requester, DAEMON | UNIQUE);
         m.query(null, NONE, "a", "b", "c");
-        assertEquals(m.pendingRequests(), 1);
+        assertEquals(1, m.pendingRequests());
         m.query(null, NONE, "a", "b", "c");
-        assertEquals(m.pendingRequests(), 1);
+        assertEquals(1, m.pendingRequests());
         m.query(null, RETRY, "a", "b", "c");
-        assertEquals(m.pendingRequests(), 2);
+        assertEquals(2, m.pendingRequests());
         m.query(null, RETRY, "a", "b", "c");
-        assertEquals(m.pendingRequests(), 2);
+        assertEquals(2, m.pendingRequests());
         m.query(listener, RETRY, "a", "b", "c");
-        assertEquals(m.pendingRequests(), 3);
+        assertEquals(3, m.pendingRequests());
         
         CachedBulkManager<String, String> m2 = new CachedBulkManager<>(requester, DAEMON);
         m2.query(null, NONE, "a", "b", "c");
-        assertEquals(m2.pendingRequests(), 1);
+        assertEquals(1, m2.pendingRequests());
         m2.query(null, NONE, "a", "b", "c");
-        assertEquals(m2.pendingRequests(), 2);
+        assertEquals(2, m2.pendingRequests());
         m2.query(null, RETRY, "a", "b", "c");
-        assertEquals(m2.pendingRequests(), 3);
+        assertEquals(3, m2.pendingRequests());
         m2.query(null, RETRY, "a", "b", "c");
-        assertEquals(m2.pendingRequests(), 4);
+        assertEquals(4, m2.pendingRequests());
         m2.query(listener, RETRY, "a", "b", "c");
-        assertEquals(m2.pendingRequests(), 5);
+        assertEquals(5, m2.pendingRequests());
         m2.query(listener, RETRY | UNIQUE, "a", "b", "c");
-        assertEquals(m2.pendingRequests(), 6);
+        assertEquals(6, m2.pendingRequests());
         m2.query(listener, RETRY | UNIQUE, "a", "b", "c");
-        assertEquals(m2.pendingRequests(), 6);
+        assertEquals(6, m2.pendingRequests());
     }
     
     @Test
@@ -123,16 +124,16 @@ public class CacheBulkManagerTest {
         
         CachedBulkManager<String, String> m = new CachedBulkManager<>(requester, DAEMON);
         m.query(listener, PARTIAL, "a", "b", "c");
-        assertEquals(m.pendingRequests(), 1);
+        assertEquals(1, m.pendingRequests());
         m.setResult("a", "r.a");
-        assertEquals(m.pendingRequests(), 1);
+        assertEquals(1, m.pendingRequests());
         m.setResult("b", "r.b");
         
         // Unrelated, shouldn't create a result
         m.setResult("d", "r.d");
         
         m.setResult("c", "r.c");
-        assertEquals(m.pendingRequests(), 0);
+        assertEquals(0, m.pendingRequests());
     }
     
     @Test
@@ -153,9 +154,9 @@ public class CacheBulkManagerTest {
         
         CachedBulkManager<String, String> m = new CachedBulkManager<>(requester, DAEMON);
         m.query(listener, RETRY, "a", "b", "c");
-        assertEquals(m.pendingRequests(), 1);
+        assertEquals(1, m.pendingRequests());
         m.setResult("a", "r.a");
-        assertEquals(m.pendingRequests(), 1);
+        assertEquals(1, m.pendingRequests());
         m.setResult("b", "r.b");
         
         // Unrelated, shouldn't create a result
@@ -164,10 +165,10 @@ public class CacheBulkManagerTest {
         listener.calledCount(0);
         m.setError("c");
         listener.calledCount(1);
-        assertEquals(m.pendingRequests(), 1);
+        assertEquals(1, m.pendingRequests());
         m.setResult("c", "r.c");
         listener.calledCount(2);
-        assertEquals(m.pendingRequests(), 0);
+        assertEquals(0, m.pendingRequests());
     }
     
     @Test
@@ -198,7 +199,7 @@ public class CacheBulkManagerTest {
         listener.calledCount(0);
         m.setResult("c", "r.c");
         listener.calledCount(1);
-        assertEquals(m.pendingRequests(), 0);
+        assertEquals(0, m.pendingRequests());
     }
     
     @Test
@@ -224,7 +225,7 @@ public class CacheBulkManagerTest {
         CachedBulkManager<String, String> m = new CachedBulkManager<>(requester, DAEMON);
         m.getOrQuery(this, listener, RETRY, "a", "b", "c");
         m.setNotFound("a", "b", "c");
-        assertEquals(m.pendingRequests(), 0);
+        assertEquals(0, m.pendingRequests());
         m.getOrQuery(this, listener, RETRY, "d", "e");
         m.setError("d", "e");
         m.setResult("d", "r.d");
@@ -301,7 +302,7 @@ public class CacheBulkManagerTest {
         m.query(listener, ASAP, "d");
         m.setResult("c", "r.c");
         listener.calledCount(1);
-        assertEquals(m.pendingRequests(), 1);
+        assertEquals(1, m.pendingRequests());
     }
     
     @Test
@@ -353,13 +354,13 @@ public class CacheBulkManagerTest {
         m.query(listener, REFRESH | RETRY, "b", "c");
         requester.requestCount(2);
         m.doRequests();
-        assertEquals(m.pendingRequests(), 1);
+        assertEquals(1, m.pendingRequests());
         m.setError("b", "c");
         requester.requestCount(3);
         listener.calledCount(2);
         m.setNotFound("b");
         listener.calledCount(3);
-        assertEquals(m.pendingRequests(), 1);
+        assertEquals(1, m.pendingRequests());
     }
     
     @Test
@@ -425,39 +426,28 @@ public class CacheBulkManagerTest {
         listenerB.calledCount(0);
         requester.requestCount(1);
     }
-    
-    private static class CustomObject {
-        
-        public final String key;
-        public final String someValue;
-        
-        public CustomObject(String key, String someValue) {
-            this.key = key;
-            this.someValue = someValue;
-        }
+
+    private record CustomObject(String key, String someValue) {
 
         @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
+            public boolean equals(Object obj) {
+                if (obj == null) {
+                    return false;
+                }
+                if (getClass() != obj.getClass()) {
+                    return false;
+                }
+                final CustomObject other = (CustomObject) obj;
+                return Objects.equals(this.key, other.key);
             }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final CustomObject other = (CustomObject) obj;
-            if (!Objects.equals(this.key, other.key)) {
-                return false;
-            }
-            return true;
-        }
-        
+
         @Override
-        public int hashCode() {
-            int hash = 3;
-            hash = 79 * hash + Objects.hashCode(this.key);
-            return hash;
-        }
-        
+            public int hashCode() {
+                int hash = 3;
+                hash = 79 * hash + Objects.hashCode(this.key);
+                return hash;
+            }
+
     }
     
     /**
@@ -465,22 +455,18 @@ public class CacheBulkManagerTest {
      */
     @Test
     public void testCustomObject() {
-        Requester<CustomObject, String> requester = new Requester<CustomObject, String>() {
-
-            @Override
-            public void request(CachedBulkManager<CustomObject, String> manager, Set<CustomObject> asap, Set<CustomObject> normal, Set<CustomObject> backlog) {
-                Set<CustomObject> keys = manager.makeAndSetRequested(asap, normal, backlog, 100);
-                for (CustomObject key : keys) {
-                    assertNotNull(key.someValue);
-                }
+        Requester<CustomObject, String> requester = (manager, asap, normal, backlog) -> {
+            Set<CustomObject> keys = manager.makeAndSetRequested(asap, normal, backlog, 100);
+            for (CustomObject key : keys) {
+                assertNotNull(key.someValue);
             }
         };
         CachedBulkManager<CustomObject, String> m = new CachedBulkManager<>(requester, DAEMON);
         m.getOrQuery(null, null, NONE, new CustomObject("a", "stuff"));
         m.setResult(new CustomObject("b", null), "r.b");
-        assertEquals(m.get(new CustomObject("a", null)), null);
+        assertNull(m.get(new CustomObject("a", null)));
         m.setResult(new CustomObject("a", null), "r.a");
-        assertEquals(m.get(new CustomObject("a", null)), "r.a");
+        assertEquals("r.a", m.get(new CustomObject("a", null)));
     }
     
     @Test
@@ -532,7 +518,7 @@ public class CacheBulkManagerTest {
         assertNull(result);
         m.setResult("b", "r.b");
         result = m.getOrQuery(this, listener, ASAP, keys);
-        assertEquals(result.getResults().size(), 2);
+        assertEquals(2, result.getResults().size());
     }
     
     @Test
@@ -544,33 +530,33 @@ public class CacheBulkManagerTest {
         
         CachedBulkManager<String, String> m = new CachedBulkManager<>(requester, DAEMON);
         m.query(this, listener, NONE, "a");
-        assertEquals(m.pendingRequests(), 1);
+        assertEquals(1, m.pendingRequests());
         m.query(this, null, NONE, "b");
-        assertEquals(m.pendingRequests(), 1);
+        assertEquals(1, m.pendingRequests());
         m.doRequests();
         requester.requestCount(1);
         m.setResult("a", "r.a");
-        assertEquals(m.pendingRequests(), 1);
+        assertEquals(1, m.pendingRequests());
         m.setResult("b", "r.b");
-        assertEquals(m.pendingRequests(), 0);
+        assertEquals(0, m.pendingRequests());
         listener.calledCount(0);
     }
     
     @Test
     public void testMake() {
-        Requester requester = new Requester() {
+        Requester<String, String> requester = new Requester<>() {
 
             private int request = 0;
-            
+
             @Override
-            public void request(CachedBulkManager manager, Set asap, Set normal, Set backlog) {
+            public void request(CachedBulkManager<String, String> manager, Set<String> asap, Set<String> normal, Set<String> backlog) {
                 manager.makeAndSetRequested(asap, normal, backlog, 10);
                 request++;
                 if (request == 1) {
-                    assertTrue(normal.size() == 3);
+                    assertEquals(3, normal.size());
                 }
                 if (request == 2) {
-                    assertTrue(normal.size() == 1);
+                    assertEquals(1, normal.size());
                 }
             }
         };
@@ -592,13 +578,9 @@ public class CacheBulkManagerTest {
 
             CachedBulkManager<String, String> m = new CachedBulkManager<>(requester, DAEMON);
             m.query(null, NONE, "a", "b", "c");
-            new Thread(new Runnable() {
-
-                @Override
-                public void run() {
-                    System.out.println("a");
-                    m.doRequests();
-                }
+            new Thread(() -> {
+                System.out.println("a");
+                m.doRequests();
             }).start();
             System.out.println("b");
             m.doRequests();
@@ -678,7 +660,7 @@ public class CacheBulkManagerTest {
             assertEquals("Invalid result count", items.length, result.getResults().size());
             for (String[] item : items) {
                 assertTrue("Missing result item", result.getResults().containsKey(item[0]));
-                assertEquals("Invalid test: Result must be key-value", item.length, 2);
+                assertEquals("Invalid test: Result must be key-value", 2, item.length);
                 assertEquals("Result item", item[1], result.get(item[0]));
             }
             called++;
@@ -688,18 +670,18 @@ public class CacheBulkManagerTest {
     
     @Test
     public void testB() {
-        Requester requester = new CachedBulkManager.Requester<String, String>() {
+        Requester<String, String> requester = new CachedBulkManager.Requester<>() {
 
             private int request = 0;
-            
+
             @Override
             public void request(CachedBulkManager<String, String> manager, Set<String> asap, Set<String> normal, Set<String> backlog) {
                 request++;
-                System.out.println("Request "+request);
+                System.out.println("Request " + request);
                 if (request == 1) {
                     assertTrue(normal.isEmpty());
                     assertTrue(asap.contains("b"));
-                    assertTrue(asap.size() == 1);
+                    assertEquals(1, asap.size());
                 }
             }
         };
@@ -711,29 +693,29 @@ public class CacheBulkManagerTest {
     @Test
     public void testSomething() {
         
-        Requester requester = new CachedBulkManager.Requester<String, String>() {
+        Requester<String, String> requester = new CachedBulkManager.Requester<>() {
 
             private int request = 0;
-            
+
             @Override
             public void request(CachedBulkManager<String, String> manager, Set<String> asap, Set<String> normal, Set<String> backlog) {
                 request++;
-                System.out.println("Request "+request);
+                System.out.println("Request " + request);
                 if (request == 1) {
                     assertTrue(normal.contains("test1"));
                     assertTrue(normal.contains("abc"));
-                    assertTrue(normal.size() == 2);
+                    assertEquals(2, normal.size());
                     assertTrue(asap.contains("test2"));
-                    assertTrue(asap.size() == 1);
+                    assertEquals(1, asap.size());
                 } else if (request == 2) {
                     assertTrue(normal.contains("test1"));
                     assertTrue(normal.contains("abc"));
-                    assertTrue(normal.size() == 2);
+                    assertEquals(2, normal.size());
                     assertTrue(asap.isEmpty());
                 } else if (request == 3) {
                     assertTrue(normal.contains("test1"));
                     assertTrue(normal.contains("abc"));
-                    assertTrue(normal.size() == 2);
+                    assertEquals(2, normal.size());
                     assertTrue(asap.isEmpty());
                 }
             }
@@ -743,7 +725,7 @@ public class CacheBulkManagerTest {
         m.query(null, 0, "test1", "abc");
         m.query(r -> {
             assertTrue(r.hasAllKeys());
-            assertEquals(r.get("test2"), "test2Result");
+            assertEquals("test2Result", r.get("test2"));
         }, ASAP, "test2");
         m.setResult("test2", "test2Result");
         m.query(null, ASAP, "test2");
@@ -1071,8 +1053,8 @@ public class CacheBulkManagerTest {
         requester.requestCount(0);
         
         m.setCurrentTimestamp(500); // +500
-        
-        assertEquals(null, m.getOrQuery(null, listener, ASAP, "a"));
+
+        assertNull(m.getOrQuery(null, listener, ASAP, "a"));
         listener.calledCount(0);
         requester.requestCount(1);
         

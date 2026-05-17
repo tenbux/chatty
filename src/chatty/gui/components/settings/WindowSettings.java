@@ -23,7 +23,7 @@ public class WindowSettings extends SettingsPanel {
         //---------
         JPanel dialogs = addTitledPanel(Language.getString("settings.section.dialogs"), 0);
         
-        dialogs.add(new JLabel(Language.getString("settings.dialogs.restore")), d.makeGbc(0, 0, 1, 1));
+        dialogs.add(new JLabel(Language.getString("settings.dialogs.restore")), SettingsDialog.makeGbc(0, 0, 1, 1));
         
         Map<Long, String> restoreModeOptions = new LinkedHashMap<>();
         restoreModeOptions.put((long)WindowStateManager.RESTORE_MAIN, Language.getString("settings.dialogs.option.openDefault"));
@@ -32,13 +32,13 @@ public class WindowSettings extends SettingsPanel {
         restoreModeOptions.put((long)WindowStateManager.REOPEN_ON_START, Language.getString("settings.dialogs.option.reopen"));
         ComboLongSetting restoreMode = new ComboLongSetting(restoreModeOptions);
         d.addLongSetting("restoreMode", restoreMode);
-        dialogs.add(restoreMode, d.makeGbc(1, 0, 1, 1));
+        dialogs.add(restoreMode, SettingsDialog.makeGbc(1, 0, 1, 1));
         
         dialogs.add(d.addSimpleBooleanSetting("restoreOnlyIfOnScreen"),
-                d.makeGbc(0, 1, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 1, 2, 1, GridBagConstraints.WEST));
         
         dialogs.add(d.addSimpleBooleanSetting("attachedWindows"),
-                d.makeGbc(0, 2, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 2, 2, 1, GridBagConstraints.WEST));
 
         //------------
         // Minimizing
@@ -46,22 +46,22 @@ public class WindowSettings extends SettingsPanel {
         JPanel minimizing = addTitledPanel(Language.getString("settings.section.minimizing"), 1);
         
         minimizing.add(d.addSimpleBooleanSetting("minimizeToTray"),
-                d.makeGbc(0, 1, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 1, 1, 1, GridBagConstraints.WEST));
         
         minimizing.add(d.addSimpleBooleanSetting("closeToTray"),
-                d.makeGbc(1, 1, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(1, 1, 1, 1, GridBagConstraints.WEST));
         
         minimizing.add(d.addSimpleBooleanSetting("trayIconAlways"),
-                d.makeGbc(2, 1, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(2, 1, 1, 1, GridBagConstraints.WEST));
         
         minimizing.add(d.addSimpleBooleanSetting("hidePopoutsIfTray"),
-                d.makeGbcSub(0, 2, 3, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbcSub(0, 2, 3, 1, GridBagConstraints.WEST));
         
         minimizing.add(d.addSimpleBooleanSetting("singleClickTrayOpen"),
-                d.makeGbcSub(0, 3, 3, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbcSub(0, 3, 3, 1, GridBagConstraints.WEST));
         
         minimizing.add(d.addSimpleBooleanSetting("hideStreamsOnMinimize"),
-                d.makeGbc(0, 4, 3, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 4, 3, 1, GridBagConstraints.WEST));
         
         //-------
         // Chat
@@ -99,10 +99,10 @@ public class WindowSettings extends SettingsPanel {
         JPanel other = addTitledPanel(Language.getString("settings.section.otherWindow"), 3);
         
         other.add(d.addSimpleBooleanSetting("urlPrompt"),
-                d.makeGbc(0, 0, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 0, 1, 1, GridBagConstraints.WEST));
         
         other.add(d.addSimpleBooleanSetting("inputLimitsEnabled"),
-                d.makeGbc(0, 1, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 1, 1, 1, GridBagConstraints.WEST));
         
         //--------
         // Popout

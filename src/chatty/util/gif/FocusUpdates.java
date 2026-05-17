@@ -3,7 +3,8 @@ package chatty.util.gif;
 
 import chatty.util.BatchAction;
 import chatty.util.settings.Settings;
-import java.awt.KeyboardFocusManager;
+
+import java.awt.*;
 
 /**
  * Update animation state based on the settings and whether an app window is
@@ -25,9 +26,7 @@ public class FocusUpdates {
              * window in the "new value", so delay updating settings a bit to
              * wait for the second event.
              */
-            BatchAction.queue(FocusUpdates.class, 100, false, true, () -> {
-                update(settings, e.getNewValue() != null);
-            });
+            BatchAction.queue(FocusUpdates.class, 100, false, true, () -> update(settings, e.getNewValue() != null));
         });
         
         settings.addSettingChangeListener((setting, type, value) -> {

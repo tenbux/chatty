@@ -2,16 +2,14 @@
 package chatty;
 
 import chatty.util.settings.Settings;
+import org.junit.*;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -58,6 +56,6 @@ public class AddressbookTest {
         desiredResult.add(new AddressbookEntry("Abc", categories));
         assertEquals(ab.getEntries(), desiredResult);
         assertEquals(ab.get("abc").getCategories(), categories);
-        assertEquals(ab.getEntries().size(), 1);
+        assertEquals(1, ab.getEntries().size());
     }
 }

@@ -2,15 +2,16 @@
 package chatty.gui.components.updating;
 
 import chatty.Chatty;
-import static chatty.Logging.USERINFO;
-import chatty.gui.components.updating.Stuff;
 import chatty.util.GitHub;
 import chatty.util.GitHub.Release;
 import chatty.util.GitHub.Releases;
 import chatty.util.settings.Settings;
+
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static chatty.Logging.USERINFO;
 
 /**
  * Request a version file and check if it's a new version.
@@ -184,8 +185,8 @@ public class Version {
         return intVersion;
     }
     
-    public static interface VersionListener {
-        public void versionChecked(String newVersion, GitHub.Releases releases);
+    public interface VersionListener {
+        void versionChecked(String newVersion, GitHub.Releases releases);
     }
     
 }

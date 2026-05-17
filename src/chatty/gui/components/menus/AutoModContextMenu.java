@@ -38,8 +38,8 @@ public class AutoModContextMenu extends ContextMenu {
         this.listener.itemClicked(item, e);
     }
 
-    public static interface AutoModContextMenuListener {
+    public interface AutoModContextMenuListener {
 
-        public void itemClicked(AutoModDialog.Item item, ActionEvent e);
+        void itemClicked(AutoModDialog.Item item, ActionEvent e);
     }
 }

@@ -1,7 +1,6 @@
 
 package chatty.gui.components;
 
-import chatty.Helper;
 import chatty.TwitchClient;
 import chatty.gui.MainGui;
 import chatty.gui.UrlOpener;
@@ -10,19 +9,15 @@ import chatty.util.MiscUtil;
 import chatty.util.api.TokenInfo;
 import chatty.util.api.TokenInfo.Scope;
 import chatty.util.api.TokenInfo.ScopeCategory;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import javax.swing.*;
 
 /**
  * Dialog thats builds the URL based on the selected access options and waits
@@ -177,7 +172,7 @@ public class TokenGetDialog extends JDialog implements ItemListener, ActionListe
     }
     
     private void updateUrl() {
-        String scopes = "";
+        StringBuilder scopes = new StringBuilder();
         List<String> sortedScopes = new ArrayList<>();
         for (Map.Entry<Scope, JCheckBox> entry : checkboxes.entrySet()) {
             JCheckBox checkbox = entry.getValue();
@@ -187,10 +182,10 @@ public class TokenGetDialog extends JDialog implements ItemListener, ActionListe
         }
         Collections.sort(sortedScopes);
         for (String scope : sortedScopes) {
-            scopes += "+"+scope;
+            scopes.append("+").append(scope);
         }
-        if (!scopes.isEmpty()) {
-            scopes = scopes.substring(1);
+        if (scopes.length() > 0) {
+            scopes = new StringBuilder(scopes.substring(1));
         }
         String url = TwitchClient.REQUEST_TOKEN_URL+scopes;
         currentUrl = url;

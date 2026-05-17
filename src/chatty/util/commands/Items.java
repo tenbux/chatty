@@ -39,7 +39,7 @@ class Items implements Item {
     }
 
     public void flush() {
-        if (builder.length() > 0) {
+        if (!builder.isEmpty()) {
             collection.add(new Literal(builder.toString()));
             builder = new StringBuilder();
         }
@@ -86,10 +86,7 @@ class Items implements Item {
             return false;
         }
         final Items other = (Items)obj;
-        if (!Objects.equals(this.collection, other.collection)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.collection, other.collection);
     }
 
     @Override

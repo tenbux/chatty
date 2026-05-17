@@ -4,19 +4,14 @@ package chatty.util.api;
 import chatty.Helper;
 import chatty.util.Debugging;
 import chatty.util.JSONUtil;
-import chatty.util.StringUtil;
 import chatty.util.api.usericons.Usericon;
 import chatty.util.api.usericons.UsericonFactory;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+
+import java.util.*;
+import java.util.logging.Logger;
 
 /**
  *
@@ -29,7 +24,7 @@ public class BadgeManager {
     private final TwitchApi api;
     
     private boolean globalBadgesRequested = false;
-    private final Set<String> roomsRequested = Collections.synchronizedSet(new HashSet<String>());
+    private final Set<String> roomsRequested = Collections.synchronizedSet(new HashSet<>());
     
     public BadgeManager(TwitchApi api) {
         this.api = api;
@@ -47,9 +42,7 @@ public class BadgeManager {
         if (!roomsRequested.contains(room) || forceRefresh) {
             roomsRequested.add(room);
             
-            api.waitForUserId(r -> {
-                api.requests.requestRoomBadges(r.getId(room), room);
-            }, room);
+            api.waitForUserId(r -> api.requests.requestRoomBadges(r.getId(room), room), room);
         }
     }
     

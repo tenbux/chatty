@@ -1,8 +1,8 @@
 
 package chatty.gui.laf;
 
-import chatty.gui.laf.LaFCustomDefaults.UIResourceMatteBorder;
 import chatty.gui.components.settings.SettingsDialog;
+import chatty.gui.laf.LaFCustomDefaults.UIResourceMatteBorder;
 import chatty.util.StringUtil;
 import chatty.util.colors.ColorCorrectionNew;
 import chatty.util.colors.HtmlColors;
@@ -14,21 +14,17 @@ import com.jtattoo.plaf.hifi.HiFiLookAndFeel;
 import com.jtattoo.plaf.luna.LunaLookAndFeel;
 import com.jtattoo.plaf.mint.MintLookAndFeel;
 import com.jtattoo.plaf.noire.NoireLookAndFeel;
-import java.awt.Color;
-import java.awt.Component;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
-import java.util.logging.Logger;
-import javax.swing.LookAndFeel;
-import javax.swing.UIManager;
+
+import javax.swing.*;
 import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.border.Border;
 import javax.swing.plaf.FontUIResource;
 import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.swing.plaf.metal.OceanTheme;
+import java.awt.*;
+import java.util.*;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
  *
@@ -78,94 +74,56 @@ public class LaF {
     }
     
     public static boolean shouldUpdate(String settingName) {
-        List<String> settingNames = Arrays.asList(new String[]{
-            "laf", "lafTheme", "lafScroll", "lafForeground", "lafBackground",
-            "lafStyle", "lafCustomTheme", "lafGradient", "lafVariant",
-            "lafNativeWindow", "lafFlatProperties", "lafFlatStyledWindow",
-            "lafFlatEmbeddedMenu", "lafFlatTabs", "lafErrorSound"});
+        List<String> settingNames = Arrays.asList("laf", "lafTheme", "lafScroll", "lafForeground", "lafBackground",
+                "lafStyle", "lafCustomTheme", "lafGradient", "lafVariant",
+                "lafNativeWindow", "lafFlatProperties", "lafFlatStyledWindow",
+                "lafFlatEmbeddedMenu", "lafFlatTabs", "lafErrorSound");
         return settingNames.contains(settingName);
     }
-    
-    public static class LaFSettings {
-        
-        public final String lafCode;
-        public final String theme;
-        public final int fontScale;
-        public final Map<String, String> custom;
-        public final Color bg;
-        public final Color fg;
-        public final String style;
-        public final int gradient;
-        public final String scroll;
-        public final int variant;
-        public final boolean nativeWindow;
-        public final boolean flatStyledWindow;
-        public final boolean flatEmbeddedMenu;
-        public final String flatProperties;
-        public final long flatTabs;
-        public final boolean errorSound;
-        
-        public LaFSettings(String lafCode, String theme, int fontScale,
-                           Map<String, String> custom, Color fg, Color bg,
-                           String style, int gradient, String scroll, int variant,
-                           boolean nativeWindow, boolean styledWindow, boolean embeddedMenu,
-                           String flatProperties, long flatSelectedTab, boolean errorSound) {
-            this.lafCode = lafCode;
-            this.theme = theme;
-            this.fontScale = fontScale;
-            this.custom = custom;
-            this.fg = fg;
-            this.bg = bg;
-            this.style = style;
-            this.gradient = gradient;
-            this.scroll = scroll;
-            this.variant = variant;
-            this.nativeWindow = nativeWindow;
-            this.flatStyledWindow = styledWindow;
-            this.flatEmbeddedMenu = embeddedMenu;
-            this.flatProperties = flatProperties;
-            this.flatTabs = flatSelectedTab;
-            this.errorSound = errorSound;
-        }
-        
+
+    public record LaFSettings(String lafCode, String theme, int fontScale, Map<String, String> custom, Color fg,
+                              Color bg, String style, int gradient, String scroll, int variant, boolean nativeWindow,
+                              boolean flatStyledWindow, boolean flatEmbeddedMenu, String flatProperties, long flatTabs,
+                              boolean errorSound) {
+
         public static LaFSettings fromSettings(Settings settings) {
-            return new LaFSettings(
-                    settings.getString("laf"),
-                    settings.getString("lafTheme"),
-                    (int) settings.getLong("lafFontScale"),
-                    settings.getMap("lafCustomTheme"),
-                    HtmlColors.decode(settings.getString("lafForeground"), Color.WHITE),
-                    HtmlColors.decode(settings.getString("lafBackground"), Color.BLACK),
-                    settings.getString("lafStyle"), (int) (settings.getLong("lafGradient")),
-                    settings.getString("lafScroll"), (int) (settings.getLong("lafVariant")),
-                    settings.getBoolean("lafNativeWindow"),
-                    settings.getBoolean("lafFlatStyledWindow"),
-                    settings.getBoolean("lafFlatEmbeddedMenu"),
-                    settings.getString("lafFlatProperties"),
-                    settings.getLong("lafFlatTabs"),
-                    settings.getBoolean("lafErrorSound"));
-        }
-        
+                return new LaFSettings(
+                        settings.getString("laf"),
+                        settings.getString("lafTheme"),
+                        (int) settings.getLong("lafFontScale"),
+                        settings.getMap("lafCustomTheme"),
+                        HtmlColors.decode(settings.getString("lafForeground"), Color.WHITE),
+                        HtmlColors.decode(settings.getString("lafBackground"), Color.BLACK),
+                        settings.getString("lafStyle"), (int) (settings.getLong("lafGradient")),
+                        settings.getString("lafScroll"), (int) (settings.getLong("lafVariant")),
+                        settings.getBoolean("lafNativeWindow"),
+                        settings.getBoolean("lafFlatStyledWindow"),
+                        settings.getBoolean("lafFlatEmbeddedMenu"),
+                        settings.getString("lafFlatProperties"),
+                        settings.getLong("lafFlatTabs"),
+                        settings.getBoolean("lafErrorSound"));
+            }
+
         public static LaFSettings fromSettingsDialog(SettingsDialog d, Settings settings) {
-            String lafCode = d.getStringSetting("laf");
-            String lafTheme = d.getStringSetting("lafTheme");
-            int lafFontScale = ((Number)d.getLongSetting("lafFontScale")).intValue();
-            Color bg = HtmlColors.decode(d.getStringSetting("lafBackground"), Color.BLACK);
-            Color fg = HtmlColors.decode(d.getStringSetting("lafForeground"), Color.WHITE);
-            String style = d.getStringSetting("lafStyle");
-            int gradient = ((Number)(d.getLongSetting("lafGradient"))).intValue();
-            int variant = ((Number)(d.getLongSetting("lafVariant"))).intValue();
-            String scroll = d.getStringSetting("lafScroll");
-            Map<String, String> custom = settings.getMap("lafCustomTheme");
-            boolean nativeWindow = d.getBooleanSettingValue("lafNativeWindow");
-            return new LaFSettings(lafCode, lafTheme, lafFontScale, custom, fg, bg, style, gradient, scroll, variant, nativeWindow,
-                d.getBooleanSettingValue("lafFlatStyledWindow"),
-                d.getBooleanSettingValue("lafFlatEmbeddedMenu"),
-                d.getStringSetting("lafFlatProperties"),
-                d.getLongSetting("lafFlatTabs"),
-                d.getBooleanSettingValue("lafErrorSound"));
-        }
-        
+                String lafCode = d.getStringSetting("laf");
+                String lafTheme = d.getStringSetting("lafTheme");
+                int lafFontScale = d.getLongSetting("lafFontScale").intValue();
+                Color bg = HtmlColors.decode(d.getStringSetting("lafBackground"), Color.BLACK);
+                Color fg = HtmlColors.decode(d.getStringSetting("lafForeground"), Color.WHITE);
+                String style = d.getStringSetting("lafStyle");
+                int gradient = d.getLongSetting("lafGradient").intValue();
+                int variant = d.getLongSetting("lafVariant").intValue();
+                String scroll = d.getStringSetting("lafScroll");
+                Map<String, String> custom = settings.getMap("lafCustomTheme");
+                boolean nativeWindow = d.getBooleanSettingValue("lafNativeWindow");
+                return new LaFSettings(lafCode, lafTheme, lafFontScale, custom, fg, bg, style, gradient, scroll, variant, nativeWindow,
+                        d.getBooleanSettingValue("lafFlatStyledWindow"),
+                        d.getBooleanSettingValue("lafFlatEmbeddedMenu"),
+                        d.getStringSetting("lafFlatProperties"),
+                        d.getLongSetting("lafFlatTabs"),
+                        d.getBooleanSettingValue("lafErrorSound"));
+            }
+
     }
     
     /**
@@ -330,10 +288,7 @@ public class LaF {
     
     private static boolean determineDarkTheme() {
         Color color = UIManager.getColor("Panel.background");
-        if (color != null && ColorCorrectionNew.getLightness(color) < 128) {
-            return true;
-        }
-        return false;
+        return color != null && ColorCorrectionNew.getLightness(color) < 128;
     }
     
     private static void modifyDefaults() {
@@ -365,8 +320,7 @@ public class LaF {
         if (fontScale != 100 && fontScale >= 10 && fontScale <= 200) {
             LOGGER.info("[LAF] Applying font scale "+fontScale);
             LaFUtil.modifyDefaults((k, v) -> {
-                if (v instanceof FontUIResource) {
-                    FontUIResource font = (FontUIResource) v;
+                if (v instanceof FontUIResource font) {
                     int step = (fontScale - 100) / 10;
                     int fontSize = font.getSize() + step;
 //                    System.out.println(font.getSize()+" => "+fontSize);
@@ -514,21 +468,13 @@ public class LaF {
         Color fg = settings.fg;
         float gradient = (float)(settings.gradient / 100.0);
         
-        float contrast = 1f;
-        switch (settings.variant) {
-            case 1:
-                contrast = 0.5f;
-                break;
-            case 2:
-                contrast = 1.5f;
-                break;
-            case 3:
-                contrast = 2f;
-                break;
-            case 4:
-                contrast = 2.5f;
-                break;
-        }
+        float contrast = switch (settings.variant) {
+            case 1 -> 0.5f;
+            case 2 -> 1.5f;
+            case 3 -> 2f;
+            case 4 -> 2.5f;
+            default -> 1f;
+        };
         float contrastLight = (float)(contrast + (1 - contrast)*0.5);
         float contrastLighter = (float)(contrast + (1 - contrast)*0.7);
         

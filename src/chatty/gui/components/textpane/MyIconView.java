@@ -3,14 +3,12 @@ package chatty.gui.components.textpane;
 
 import chatty.gui.components.textpane.ChannelTextPane.Attribute;
 import chatty.util.Debugging;
-import java.awt.Graphics;
-import java.awt.Rectangle;
-import java.awt.Shape;
+
 import javax.swing.text.Element;
 import javax.swing.text.IconView;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.View;
-import static javax.swing.text.View.Y_AXIS;
+import java.awt.*;
 
 /**
  * Changes the position of the icon slightly, so it overlaps with following text
@@ -192,14 +190,11 @@ class MyIconView extends IconView {
      */
     @Override
     public float getMinimumSpan(int axis) {
-        switch (axis) {
-            case View.X_AXIS:
-                return 0;
-            case View.Y_AXIS:
-                return super.getMinimumSpan(axis);
-            default:
-                throw new IllegalArgumentException("Invalid axis: " + axis);
-        }
+        return switch (axis) {
+            case View.X_AXIS -> 0;
+            case View.Y_AXIS -> super.getMinimumSpan(axis);
+            default -> throw new IllegalArgumentException("Invalid axis: " + axis);
+        };
     }
     
     @Override

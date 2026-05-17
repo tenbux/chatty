@@ -125,12 +125,12 @@ public class RunUpdater {
             if (escaped == null) {
                 return null;
             }
-            if (b.length() > 0) {
+            if (!b.isEmpty()) {
                 b.append(" ");
             }
             b.append(escaped);
         }
-        return quote("/"+param+"="+b.toString());
+        return quote("/"+param+"="+ b);
     }
     
     /**

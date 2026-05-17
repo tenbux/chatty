@@ -1,10 +1,12 @@
 
 package chatty.util;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  *
@@ -24,7 +26,7 @@ public class JSONUtil {
      */
     public static String getString(JSONObject data, Object key, String errorValue) {
         Object value = data.get(key);
-        if (value != null && value instanceof String) {
+        if (value instanceof String) {
             return (String)value;
         }
         return errorValue;
@@ -44,7 +46,7 @@ public class JSONUtil {
     
     public static List<String> getStringList(JSONObject data, Object key) {
         Object value = data.get(key);
-        if (value != null && value instanceof JSONArray) {
+        if (value instanceof JSONArray) {
             List<String> result = new ArrayList<>();
             for (Object item : (JSONArray)value) {
                 if (item instanceof String) {
@@ -68,7 +70,7 @@ public class JSONUtil {
      */
     public static int getInteger(JSONObject data, Object key, int errorValue) {
         Object value = data.get(key);
-        if (value != null && value instanceof Number) {
+        if (value instanceof Number) {
             return ((Number)value).intValue();
         }
         return errorValue;
@@ -92,7 +94,7 @@ public class JSONUtil {
     
     public static long getLong(JSONObject data, Object key, long errorValue) {
         Object value = data.get(key);
-        if (value != null && value instanceof Number) {
+        if (value instanceof Number) {
             return ((Number)value).longValue();
         }
         return errorValue;
@@ -100,7 +102,7 @@ public class JSONUtil {
     
     public static boolean getBoolean(JSONObject data, Object key, boolean errorValue) {
         Object value = data.get(key);
-        if (value != null && value instanceof Boolean) {
+        if (value instanceof Boolean) {
             return (Boolean)value;
         }
         return errorValue;
@@ -108,7 +110,7 @@ public class JSONUtil {
     
     public static JSONObject getOrEmpty(JSONObject data, Object key) {
         Object value = data.get(key);
-        if (value != null && value instanceof JSONObject) {
+        if (value instanceof JSONObject) {
             return (JSONObject) value;
         }
         return new JSONObject();
@@ -117,18 +119,13 @@ public class JSONUtil {
     @SuppressWarnings("unchecked") // Raw type
     public static String listToJSON(Object... args) {
         JSONArray o = new JSONArray();
-        for (Object a : args) {
-            o.add(a);
-        }
+        o.addAll(Arrays.asList(args));
         return o.toJSONString();
     }
     
     @SuppressWarnings("unchecked") // Raw type
     public static String listMapToJSON(Object... args) {
-        JSONObject m = new JSONObject();
-        for (int i=0; i<args.length; i+=2) {
-            m.put(args[i], i+1 < args.length ? args[i+1] : null);
-        }
+        JSONObject m = listMapToJSONObject(args);
         return m.toJSONString();
     }
     
@@ -143,7 +140,7 @@ public class JSONUtil {
     
     public static long getDatetime(JSONObject data, Object key, long errorValue) {
         Object value = data.get(key);
-        if (value != null && value instanceof String) {
+        if (value instanceof String) {
             try {
                 return DateTime.parseDatetime((String) value);
             }

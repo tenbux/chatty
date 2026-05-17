@@ -41,7 +41,7 @@ public abstract class CachedManager {
     public abstract boolean handleData(String data);
     
     public boolean load() {
-        return load(false);
+        return !load(false);
     }
     
     /**

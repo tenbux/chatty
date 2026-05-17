@@ -2,13 +2,12 @@
 package chatty.util;
 
 import chatty.util.ImageCache.ImageRequest;
-import java.awt.Dimension;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -68,8 +67,8 @@ public class ImageCacheTest {
         List<Integer> tries = new ArrayList<>();
         ImageRequest r = new ImageCache.ImageRequest(factor -> {
             tries.add(factor);
-            for (int i = 0; i < availableFactors.length; i++) {
-                if (availableFactors[i] == factor) {
+            for (int availableFactor : availableFactors) {
+                if (availableFactor == factor) {
                     return String.valueOf(factor);
                 }
             }

@@ -1,22 +1,16 @@
 
 package chatty.gui.components.settings;
 
-import chatty.util.colors.HtmlColors;
 import chatty.gui.colors.UsercolorItem;
 import chatty.gui.components.LinkLabel;
 import chatty.lang.Language;
 import chatty.util.colors.ColorCorrector;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.util.List;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTable;
+import chatty.util.colors.HtmlColors;
+
+import javax.swing.*;
 import javax.swing.table.TableCellRenderer;
+import java.awt.*;
+import java.util.List;
 
 /**
  * Provides a list to add/remove/sort usercolor items.
@@ -42,19 +36,17 @@ public class UsercolorSettings extends SettingsPanel {
         //===================
         // Custom Usercolors
         //===================
-        gbc = d.makeGbc(0, 0, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 0, 1, 1);
         gbc.anchor = GridBagConstraints.WEST;
         JCheckBox usercolorsEnabled = d.addSimpleBooleanSetting("customUsercolors",
                 "Enable custom usercolors", "");
         customPanel.add(usercolorsEnabled, gbc);
 
         data = new ItemColorEditor<>(d,
-                (id, color, enabled, bg, bgEnabled) -> {
-                    return new UsercolorItem(id, color);
-                }, false, null);
+                (id, color, enabled, bg, bgEnabled) -> new UsercolorItem(id, color), false, null);
         data.setRendererForColumn(0, new ItemIdRenderer());
         data.setPreferredSize(new Dimension(1,150));
-        gbc = d.makeGbc(0, 1, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 1, 1, 1);
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weightx = 1;
         gbc.weighty = 1;
@@ -63,37 +55,35 @@ public class UsercolorSettings extends SettingsPanel {
         SettingsUtil.addSubsettings(usercolorsEnabled, data);
         
         LinkLabel info = new LinkLabel(INFO_TEXT, d.getSettingsHelpLinkLabelListener());
-        customPanel.add(info, d.makeGbc(1, 1, 1, 1));
+        customPanel.add(info, SettingsDialog.makeGbc(1, 1, 1, 1));
         
         //================
         // Other Settings
         //================
         otherPanel.add(new JLabel(Language.getString("settings.string.nickColorCorrection")),
-                d.makeGbc(0, 0, 1, 1, GridBagConstraints.EAST));
+                SettingsDialog.makeGbc(0, 0, 1, 1, GridBagConstraints.EAST));
         
-        String[] colorCorrectionTypes = new String[ColorCorrector.TYPES.keySet().size()];
+        String[] colorCorrectionTypes = new String[ColorCorrector.TYPES.size()];
         ColorCorrector.TYPES.keySet().toArray(colorCorrectionTypes);
         otherPanel.add(d.addComboStringSetting("nickColorCorrection", false, colorCorrectionTypes),
-                d.makeGbc(1, 0, 1, 1));
+                SettingsDialog.makeGbc(1, 0, 1, 1));
         
         JButton colorCorrectionPreview = new JButton("Preview");
-        colorCorrectionPreview.addActionListener(e -> {
-            new UsercolorCorrectionPreview(d, defaultBackgroundColor);
-        });
+        colorCorrectionPreview.addActionListener(e -> new UsercolorCorrectionPreview(d, defaultBackgroundColor));
         otherPanel.add(colorCorrectionPreview,
-                d.makeGbc(2, 0, 1, 1));
+                SettingsDialog.makeGbc(2, 0, 1, 1));
         
         otherPanel.add(SettingsUtil.createLabel("nickColorBackground"),
-                d.makeGbc(0, 1, 1, 1, GridBagConstraints.EAST));
+                SettingsDialog.makeGbc(0, 1, 1, 1, GridBagConstraints.EAST));
         
         otherPanel.add(d.addComboLongSetting("nickColorBackground", 0, 1, 2),
-                d.makeGbc(1, 1, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(1, 1, 2, 1, GridBagConstraints.WEST));
 
         JCheckBox coloredNamesInUserlist = d.addSimpleBooleanSetting(
             "displayColoredNamesInUserlist",
             Language.getString("settings.label.displayColoredNamesInUserlist"),
             null);
-        otherPanel.add(coloredNamesInUserlist, d.makeGbc(0, 2, 2, 1, GridBagConstraints.WEST));
+        otherPanel.add(coloredNamesInUserlist, SettingsDialog.makeGbc(0, 2, 2, 1, GridBagConstraints.WEST));
     }
     
     public void setData(List<UsercolorItem> data) {

@@ -56,10 +56,6 @@ public class FFZWS extends JWSClient {
         handler.handleConnect();
     }
 
-    @Override
-    public void handleDisconnect(int code) {
-    }
-    
     private void reset() {
         synchronized(LOCK) {
             sentCount = 0;
@@ -99,11 +95,11 @@ public class FFZWS extends JWSClient {
         }
     }
     
-    public static interface MessageHandler {
-        public void handleReceived(String text);
-        public void handleSent(String sent);
-        public void handleCommand(int id, String command, String params, String originCommand);
-        public void handleConnect();
+    public interface MessageHandler {
+        void handleReceived(String text);
+        void handleSent(String sent);
+        void handleCommand(int id, String command, String params, String originCommand);
+        void handleConnect();
     }
     
 }

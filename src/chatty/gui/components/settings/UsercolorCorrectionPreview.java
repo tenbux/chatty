@@ -7,18 +7,11 @@ import chatty.lang.Language;
 import chatty.util.colors.ColorCorrection;
 import chatty.util.colors.ColorCorrector;
 import chatty.util.colors.HtmlColors;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.GridBagLayout;
-import java.awt.Window;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.SwingUtilities;
 
 /**
  * Show a preview of the different Nickcolor Correction settings.
@@ -100,15 +93,13 @@ public class UsercolorCorrectionPreview extends JDialog {
     // Testing
     //=========
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            new UsercolorCorrectionPreview(null, new Color(250, 250, 250)).addComponentListener(new ComponentAdapter() {
+        SwingUtilities.invokeLater(() -> new UsercolorCorrectionPreview(null, new Color(250, 250, 250)).addComponentListener(new ComponentAdapter() {
 
-                @Override
-                public void componentHidden(ComponentEvent e) {
-                    System.exit(0);
-                }
-            });
-        });
+            @Override
+            public void componentHidden(ComponentEvent e) {
+                System.exit(0);
+            }
+        }));
     }
     
 }

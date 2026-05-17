@@ -2,10 +2,10 @@
 package chatty.gui.laf;
 
 import chatty.gui.laf.LaF.LaFSettings;
-import java.awt.Component;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.logging.Logger;
-import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
 
 /**
  *
@@ -81,12 +81,10 @@ public class LaFChanger {
         SwingUtilities.invokeLater(() -> {
             LaF.setLookAndFeel(settingsBefore);
             LaF.updateLookAndFeel();
-            SwingUtilities.invokeLater(() -> {
-                JOptionPane.showMessageDialog(parentComponent,
-                                              error,
-                                              "Failed to apply new Look&Feel settings",
-                                              JOptionPane.WARNING_MESSAGE);
-            });
+            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parentComponent,
+                                          error,
+                                          "Failed to apply new Look&Feel settings",
+                                          JOptionPane.WARNING_MESSAGE));
         });
     }
     

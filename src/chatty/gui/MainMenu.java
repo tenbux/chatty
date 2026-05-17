@@ -3,37 +3,23 @@ package chatty.gui;
 
 import chatty.Chatty;
 import chatty.gui.components.routing.RoutingTargetInfo;
-import chatty.lang.Language;
 import chatty.gui.components.settings.SettingsUtil;
+import chatty.lang.Language;
 import chatty.util.dnd.DockLayout;
-import java.awt.Component;
-import java.awt.Cursor;
+
+import javax.swing.*;
+import javax.swing.event.MenuListener;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Consumer;
-import javax.swing.AbstractAction;
-import javax.swing.Action;
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.Icon;
-import javax.swing.ImageIcon;
-import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.KeyStroke;
-import javax.swing.Timer;
-import javax.swing.event.MenuListener;
 
 /**
  * The main menu of the application (actually several menus in a MenuBar).
@@ -41,15 +27,11 @@ import javax.swing.event.MenuListener;
  * @author tduva
  */
 public class MainMenu extends JMenuBar {
-    
-    private final JMenu main = new JMenu(Language.getString("menubar.menu.main"));
+
     protected final JMenu view = new JMenu(Language.getString("menubar.menu.view"));
     protected final JMenu customTabsMenu = new JMenu("Custom Tabs");
     protected final JMenu channels = new JMenu(Language.getString("menubar.menu.channels"));
-    private final JMenu srl = new JMenu(Language.getString("menubar.menu.srl"));
     protected final JMenu srlStreams = new JMenu("Races with..");
-    private final JMenu extra = new JMenu(Language.getString("menubar.menu.extra"));
-    private final JMenu help = new JMenu(Language.getString("menubar.menu.help"));
     protected final JMenu layoutsMenu = new JMenu("Layouts");
     
     private final JMenuItem highlights;
@@ -75,13 +57,17 @@ public class MainMenu extends JMenuBar {
         
         //this.setBackground(Color.black);
         //this.setForeground(Color.white);
-        
+
+        JMenu main = new JMenu(Language.getString("menubar.menu.main"));
         main.addActionListener(actionListener);
         view.addActionListener(actionListener);
         channels.addActionListener(actionListener);
         channels.addMenuListener((MenuListener)itemListener);
+        JMenu srl = new JMenu(Language.getString("menubar.menu.srl"));
         srl.addActionListener(actionListener);
+        JMenu extra = new JMenu(Language.getString("menubar.menu.extra"));
         extra.addActionListener(actionListener);
+        JMenu help = new JMenu(Language.getString("menubar.menu.help"));
         help.addActionListener(actionListener);
         
         view.addMenuListener((MenuListener)itemListener);
@@ -249,8 +235,8 @@ public class MainMenu extends JMenuBar {
         return item;
     }
     
-    public final JMenuItem addItem(JMenu menu, String key) {
-        return addItem(menu, key, Language.getString("menubar."+key));
+    public final void addItem(JMenu menu, String key) {
+        addItem(menu, key, Language.getString("menubar." + key));
     }
     
     public final JMenuItem addItem(JMenu menu, String key, String label) {
@@ -285,18 +271,16 @@ public class MainMenu extends JMenuBar {
     /**
      * Same as addCheckboxItem, but automatically sets the label based on the
      * setting name.
-     * 
+     *
      * @param menu
      * @param key
-     * @return 
      */
-    public final JMenuItem addCheckboxItemSetting(JMenu menu, String key) {
+    public final void addCheckboxItemSetting(JMenu menu, String key) {
         JMenuItem item = addCheckboxItem(menu, key, Language.getString("menubar.setting."+key));
         String tooltip = Language.getStringNull("menubar.setting."+key+".tip");
         if (tooltip != null) {
             item.setToolTipText(SettingsUtil.addTooltipLinebreaks(tooltip));
         }
-        return item;
     }
     
     /**
@@ -335,7 +319,7 @@ public class MainMenu extends JMenuBar {
      */
     public void setItemState(String setting, boolean state) {
         JMenuItem item = getMenuItem(setting);
-        if (item != null && item instanceof JCheckBoxMenuItem) {
+        if (item instanceof JCheckBoxMenuItem) {
             ((JCheckBoxMenuItem)item).setState(state);
         }
     }
@@ -427,12 +411,12 @@ public class MainMenu extends JMenuBar {
         }
         else {
             for (RoutingTargetInfo info : infos) {
-                String label = info.name;
-                if (info.messages > -1) {
+                String label = info.name();
+                if (info.messages() > -1) {
                     label = String.format("%s (%d)",
-                                          info.name, info.messages);
+                            info.name(), info.messages());
                 }
-                addItem(customTabsMenu, "customTab." + info.name, label);
+                addItem(customTabsMenu, "customTab." + info.name(), label);
             }
         }
     }
@@ -450,9 +434,7 @@ public class MainMenu extends JMenuBar {
     
     public void setSystemEventCount(int count) {
         if (count > 0) {
-            notifyIcons.addItem("chattyInfo", 0, "Events: "+String.valueOf(count), "warning.png", id -> {
-                actionListener.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_FIRST, "dialog.chattyInfo"));
-            });
+            notifyIcons.addItem("chattyInfo", 0, "Events: "+ count, "warning.png", id -> actionListener.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_FIRST, "dialog.chattyInfo")));
         }
         else {
             notifyIcons.removeItem("chattyInfo");
@@ -538,7 +520,7 @@ public class MainMenu extends JMenuBar {
         private int findInsertionPos(int targetPos) {
             for (int i = 0;i < getComponentCount(); i++) {
                 Component c = getComponent(i);
-                Integer cPos = targetPositions.get(c);
+                Integer cPos = (c instanceof JMenu jmenu) ? targetPositions.get(jmenu) : null;
                 if (cPos != null && targetPos <= cPos) {
                     return i;
                 }

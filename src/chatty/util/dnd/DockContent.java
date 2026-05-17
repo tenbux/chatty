@@ -18,7 +18,7 @@ public interface DockContent {
      * 
      * @return 
      */
-    public JComponent getComponent();
+    JComponent getComponent();
     
     /**
      * The title (used e.g. for tab names). Should be rather short and usually
@@ -26,56 +26,56 @@ public interface DockContent {
      * 
      * @return 
      */
-    public String getTitle();
+    String getTitle();
     
-    public String getLongTitle();
+    String getLongTitle();
     
-    public void setLongTitle(String title);
+    void setLongTitle(String title);
     
-    public DockPath getPath();
+    DockPath getPath();
     
-    public String getId();
+    String getId();
     
-    public void setId(String id);
+    void setId(String id);
     
-    public void setTargetPath(DockPath path);
+    void setTargetPath(DockPath path);
     
-    public DockPath getTargetPath();
+    DockPath getTargetPath();
     
-    public void setDockParent(DockChild parent);
+    void setDockParent(DockChild parent);
     
     /**
      * The context menu for the tab.
      * 
      * @return The menu, can be null to show no menu
      */
-    public JPopupMenu getContextMenu();
+    JPopupMenu getContextMenu();
     
     /**
      * Provides a custom tab component.
      * 
      * @return The tab component, can be null to use the default
      */
-    public DockTabComponent getTabComponent();
+    DockTabComponent getTabComponent();
     
     /**
      * This can be called to remove the content. Was exactly is performed may
      * depend on the component, but commonly this should call the DockManager to
      * remove the content.
      */
-    public void remove();
-    public void addListener(DockContentPropertyListener listener);
-    public void removeListener(DockContentPropertyListener listener);
-    public Color getForegroundColor();
-    public boolean canPopout();
+    void remove();
+    void addListener(DockContentPropertyListener listener);
+    void removeListener(DockContentPropertyListener listener);
+    Color getForegroundColor();
+    boolean canPopout();
     
-    public interface DockContentPropertyListener {
+    interface DockContentPropertyListener {
         
-        public enum Property {
+        enum Property {
             TITLE, LONG_TITLE, FOREGROUND
         }
         
-        public void propertyChanged(Property property, DockContent content);
+        void propertyChanged(Property property, DockContent content);
     }
     
 }

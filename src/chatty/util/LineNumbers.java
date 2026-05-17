@@ -3,30 +3,18 @@ package chatty.util;
 
 import chatty.gui.GuiUtil;
 import chatty.util.colors.ColorCorrectionNew;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.util.concurrent.ThreadLocalRandom;
-import javax.swing.BorderFactory;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.SwingUtilities;
+
+import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
 import javax.swing.text.JTextComponent;
+import java.awt.*;
+import java.awt.geom.Rectangle2D;
+import java.beans.PropertyChangeEvent;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Add line numbers to a JTextComponent:
@@ -116,8 +104,8 @@ public class LineNumbers extends JPanel {
         
         // Clip
         Rectangle clip = g.getClipBounds();
-        int startOffset = comp.viewToModel(new Point(0, clip.y));
-        int endOffset = comp.viewToModel(new Point(clip.x+clip.width, clip.y + clip.height));
+        int startOffset = comp.viewToModel2D(new Point(0, clip.y));
+        int endOffset = comp.viewToModel2D(new Point(clip.x+clip.width, clip.y + clip.height));
         int startLine = doc.getDefaultRootElement().getElementIndex(startOffset);
         
         // Go through all lines that need to be painted
@@ -127,11 +115,11 @@ public class LineNumbers extends JPanel {
                 break;
             }
             try {
-                Rectangle r = comp.modelToView(row.getStartOffset());
+                Rectangle2D r = comp.modelToView2D(row.getStartOffset());
                 String number = String.valueOf(i + 1);
                 int numberWidth = g.getFontMetrics().stringWidth(number);
                 int pos = availableWidth - numberWidth + insets.left;
-                g.drawString(number, pos, r.y + r.height - descent);
+                g.drawString(number, pos, (int)(r.getY() + r.getHeight()) - descent);
             }
             catch (BadLocationException ex) {
                 // Just don't draw
@@ -149,12 +137,12 @@ public class LineNumbers extends JPanel {
         SwingUtilities.invokeLater(() -> {
             try {
                 int endPos = comp.getDocument().getLength();
-                Rectangle rect = comp.modelToView(endPos);
+                Rectangle2D rect = comp.modelToView2D(endPos);
 
-                if (rect != null && rect.y != prevHeight) {
+                if (rect != null && (int)rect.getY() != prevHeight) {
                     updateSize();
                     getParent().repaint();
-                    prevHeight = rect.y;
+                    prevHeight = (int)rect.getY();
                 }
             }
             catch (BadLocationException ex) {
@@ -212,7 +200,7 @@ public class LineNumbers extends JPanel {
             text.setFont(Font.decode(Font.MONOSPACED));
             StringBuilder b = new StringBuilder();
             for (int i=0; i<100; i++) {
-                b.append("test text"+i);
+                b.append("test text").append(i);
                 if (ThreadLocalRandom.current().nextInt(4) == 0) {
                     b.append("\n");
                 }

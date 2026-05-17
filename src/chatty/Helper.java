@@ -8,35 +8,28 @@ import chatty.lang.Language;
 import chatty.util.DateTime;
 import chatty.util.Replacer;
 import chatty.util.StringUtil;
-import chatty.util.api.usericons.Usericon;
 import chatty.util.commands.Parameters;
 import chatty.util.dnd.DockLayout;
 import chatty.util.irc.MsgTags;
 import chatty.util.settings.FileManager.SaveResult;
 import chatty.util.settings.Settings;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLEncoder;
+
+import javax.swing.*;
+import java.awt.*;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.List;
 import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
 
 /**
  * Some Chatty-specific static helper methods.
@@ -60,9 +53,9 @@ public class Helper {
     public static ParseChannelHelper parseChannelHelper;
     
     public interface ParseChannelHelper {
-        public Collection<String> getFavorites();
-        public Collection<String> getNamesByCategory(String category);
-        public boolean isStreamLive(String stream);
+        Collection<String> getFavorites();
+        Collection<String> getNamesByCategory(String category);
+        boolean isStreamLive(String stream);
     }
     
     /**
@@ -88,14 +81,10 @@ public class Helper {
                 boolean onlyChans = false;
                 boolean onlyLive = false;
                 for (int i = 1; i < catSplit.length; i++) {
-                    if (catSplit[i].equals("#")) {
-                        onlyChans = true;
-                    }
-                    else if (catSplit[i].equals("!#")) {
-                        noChans = true;
-                    }
-                    else if (catSplit[i].equals("live")) {
-                        onlyLive = true;
+                    switch (catSplit[i]) {
+                        case "#" -> onlyChans = true;
+                        case "!#" -> noChans = true;
+                        case "live" -> onlyLive = true;
                     }
                 }
                 List<String> chans = new ArrayList<>();
@@ -190,13 +179,13 @@ public class Helper {
      * @return 
      */
     public static String buildStreamsString(Collection<String> set) {
-        String result = "";
+        StringBuilder result = new StringBuilder();
         String sep = "";
         for (String channel : set) {
-            result += sep+channel.replace("#", "");
+            result.append(sep).append(channel.replace("#", ""));
             sep = ", ";
         }
-        return result;
+        return result.toString();
     }
     
     public static final String USERNAME_REGEX = "[a-zA-Z0-9][a-zA-Z0-9_]+";
@@ -372,32 +361,16 @@ public class Helper {
      * @return 
      */
     public static String makeDisconnectReason(int reason, String reasonMessage) {
-        String result = "";
-        
-        switch (reason) {
-            case Irc.ERROR_UNKNOWN_HOST:
-                result = Language.getString("chat.error.unknownHost");
-                break;
-            case Irc.REQUESTED_DISCONNECT:
-                result = "Requested";
-                break;
-            case Irc.ERROR_CONNECTION_CLOSED:
-                result = "";
-                break;
-            case Irc.ERROR_REGISTRATION_FAILED:
-                result = Language.getString("chat.error.loginFailed");
-                break;
-            case Irc.ERROR_SOCKET_TIMEOUT:
-                result = Language.getString("chat.error.connectionTimeout");
-                break;
-            case Irc.SSL_ERROR:
-                result = "Could not establish secure connection ("+reasonMessage+")";
-                break;
-            case Irc.ERROR_SOCKET_ERROR:
-                result = reasonMessage;
-                break;
-        }
-        
+        String result = switch (reason) {
+            case Irc.ERROR_UNKNOWN_HOST -> Language.getString("chat.error.unknownHost");
+            case Irc.REQUESTED_DISCONNECT -> "Requested";
+            case Irc.ERROR_REGISTRATION_FAILED -> Language.getString("chat.error.loginFailed");
+            case Irc.ERROR_SOCKET_TIMEOUT -> Language.getString("chat.error.connectionTimeout");
+            case Irc.SSL_ERROR -> "Could not establish secure connection (" + reasonMessage + ")";
+            case Irc.ERROR_SOCKET_ERROR -> reasonMessage;
+            default -> "";
+        };
+
         if (!result.isEmpty()) {
             result = " ("+result+")";
         }
@@ -522,10 +495,10 @@ public class Helper {
         if (s == null) {
             return null;
         }
-        return htmlspecialchars_encode(s).replaceAll(" ", "&nbsp;").replaceAll("\n", "<br />");
+        return htmlspecialchars_encode(s).replace(" ", "&nbsp;").replace("\n", "<br />");
     }
     
-    private static final Pattern EMOJI_VARIATION_SELECTOR = Pattern.compile("[\uFE0E\uFE0F]");
+    private static final Pattern EMOJI_VARIATION_SELECTOR = Pattern.compile("[︎️]");
     
     /**
      * Remove both the text style and emoji style variation selector from the
@@ -567,8 +540,8 @@ public class Helper {
     }
     
     public static boolean arrayContainsInt(int[] array, int test) {
-        for (int i = 0; i < array.length; i++) {
-            if (array[i] == test) {
+        for (int j : array) {
+            if (j == test) {
                 return true;
             }
         }
@@ -597,24 +570,17 @@ public class Helper {
             return null;
         }
     }
-    
+
     /**
-     * Gets two {@code Integer} values on creation, which can be accessed with
-     * the {@code final} attributes {@code a} and {@code b}.
-     */
-    public static class IntegerPair {
-        public final int a;
-        public final int b;
-        
-        public IntegerPair(int a, int b) {
-            this.a = a;
-            this.b = b;
-        }
+         * Gets two {@code Integer} values on creation, which can be accessed with
+         * the {@code final} attributes {@code a} and {@code b}.
+         */
+        public record IntegerPair(int a, int b) {
     }
     
     
     
-    public static final void main(String[] args) {
+    public static void main(String[] args) {
 //        System.out.println(htmlspecialchars_encode("< >"));
 //        System.out.println(shortenTo("abcd", 0));
 //        System.out.println(shortenTo("abcd", 1));
@@ -652,49 +618,20 @@ public class Helper {
      * @return true if the id is known and matches the User, false otherwise
      */
     public static boolean matchUserStatus(String id, User user) {
-        if (id.equals("$mod")) {
-            if (user.isModerator()) {
-                return true;
-            }
-        } else if (id.equals("$sub")) {
-            if (user.isSubscriber()) {
-                return true;
-            }
-        } else if (id.equals("$turbo")) {
-            if (user.hasTurbo()) {
-                return true;
-            }
-        } else if (id.equals("$admin")) {
-            if (user.isAdmin()) {
-                return true;
-            }
-        } else if (id.equals("$broadcaster")) {
-            if (user.isBroadcaster()) {
-                return true;
-            }
-        } else if (id.equals("$staff")) {
-            if (user.isStaff()) {
-                return true;
-            }
-        } else if (id.equals("$bot")) {
-            if (user.isBot()) {
-                return true;
-            }
-        } else if (id.equals("$globalmod")) {
-            if (user.isGlobalMod()) {
-                return true;
-            }
-        } else if (id.equals("$anymod")) {
-            if (user.isAdmin() || user.isBroadcaster() || user.isGlobalMod()
-                    || user.isModerator() || user.isStaff()) {
-                return true;
-            }
-        } else if (id.equals("$vip")) {
-            if (user.hasTwitchBadge("vip")) {
-                return true;
-            }
-        }
-        return false;
+        return switch (id) {
+            case "$mod" -> user.isModerator();
+            case "$sub" -> user.isSubscriber();
+            case "$turbo" -> user.hasTurbo();
+            case "$admin" -> user.isAdmin();
+            case "$broadcaster" -> user.isBroadcaster();
+            case "$staff" -> user.isStaff();
+            case "$bot" -> user.isBot();
+            case "$globalmod" -> user.isGlobalMod();
+            case "$anymod" -> user.isAdmin() || user.isBroadcaster() || user.isGlobalMod()
+                    || user.isModerator() || user.isStaff();
+            case "$vip" -> user.hasTwitchBadge("vip");
+            default -> false;
+        };
     }
     
     public static String checkHttpUrl(String url) {
@@ -715,9 +652,9 @@ public class Helper {
      */
     public static URL createUrlNoError(String url) {
         try {
-            return new URL(url);
+            return URI.create(url).toURL();
         }
-        catch (MalformedURLException ex) {
+        catch (IllegalArgumentException | MalformedURLException ex) {
             return null;
         }
     }
@@ -908,11 +845,7 @@ public class Helper {
     }
     
     public static String encodeFilename(String input) {
-        try {
-            return URLEncoder.encode(input, "UTF-8");
-        } catch (UnsupportedEncodingException ex) {
-            throw new RuntimeException("Unsupported encoding lol");
-        }
+        return URLEncoder.encode(input, StandardCharsets.UTF_8);
     }
     
     public static String encodeFilename2(String input) {
@@ -948,7 +881,7 @@ public class Helper {
         return result;
     }
     
-    public static String ESCAPE_FOR_CHAIN_COMMAND = "escape-pipe";
+    public static final String ESCAPE_FOR_CHAIN_COMMAND = "escape-pipe";
     
     public static String escapeForChainCommand(String input) {
         if (input == null) {
@@ -975,7 +908,7 @@ public class Helper {
         return new String[]{list, command};
     }
     
-    public static String ESCAPE_FOR_FOREACH_COMMAND = "escape-greater";
+    public static final String ESCAPE_FOR_FOREACH_COMMAND = "escape-greater";
     
     public static String escapeForForeachCommand(String input) {
         if (input == null) {

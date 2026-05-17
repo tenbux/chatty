@@ -2,22 +2,16 @@
 package chatty.gui.components.settings;
 
 import chatty.Chatty;
-import chatty.Helper;
 import chatty.gui.GuiUtil;
 import chatty.lang.Language;
 import chatty.util.MiscUtil;
-import java.awt.Component;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.event.ActionEvent;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionListener;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
 
 /**
  * A String setting that represents a path. A JPanel with textfield and buttons
@@ -76,21 +70,17 @@ public class PathSetting extends JPanel implements StringSetting {
         gbc.insets.left += 6;
         add(openButton, gbc);
         
-        ActionListener buttonAction = new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (e.getSource() == changeButton) {
-                    chooseDirectory();
-                } else if (e.getSource() == resetButton) {
-                    setSettingValue("");
-                } else if (e.getSource() == openButton) {
-                    Path path = getCurrentPath();
-                    if (path == null) {
-                        path = Chatty.getPath(Chatty.PathType.SETTINGS);
-                    }
-                    MiscUtil.openFile(path.toFile(), parentComponent);
+        ActionListener buttonAction = e -> {
+            if (e.getSource() == changeButton) {
+                chooseDirectory();
+            } else if (e.getSource() == resetButton) {
+                setSettingValue("");
+            } else if (e.getSource() == openButton) {
+                Path path = getCurrentPath();
+                if (path == null) {
+                    path = Chatty.getPath(Chatty.PathType.SETTINGS);
                 }
+                MiscUtil.openFile(path.toFile(), parentComponent);
             }
         };
         changeButton.addActionListener(buttonAction);
@@ -179,7 +169,7 @@ public class PathSetting extends JPanel implements StringSetting {
     }
     
     public interface PathChangeListener {
-        public void pathChanged(Path newPath);
+        void pathChanged(Path newPath);
     }
     
 }

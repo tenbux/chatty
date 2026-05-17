@@ -1,7 +1,6 @@
 
 package chatty.gui.components.userinfo;
 
-import chatty.Room;
 import chatty.User;
 import chatty.gui.GuiUtil;
 import chatty.gui.MainGui;
@@ -12,12 +11,9 @@ import chatty.util.api.Follower;
 import chatty.util.api.FollowerInfo;
 import chatty.util.api.TwitchApi;
 import chatty.util.api.UserInfo;
-import chatty.util.commands.CustomCommand;
-import chatty.util.commands.Parameters;
 import chatty.util.settings.Settings;
-import java.awt.Component;
-import java.awt.Point;
-import java.awt.Window;
+
+import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
@@ -59,13 +55,7 @@ public class UserInfoManager {
             }
             
         };
-        userInfoListener = new UserInfoListener() {
-
-            @Override
-            public void anonCustomCommand(Room room, CustomCommand command, Parameters parameters) {
-                main.anonCustomCommand(room, command, parameters);
-            }
-        };
+        userInfoListener = (room, command, parameters) -> main.anonCustomCommand(room, command, parameters);
         userInfoRequester = new UserInfoRequester() {
 
             @Override
@@ -133,7 +123,7 @@ public class UserInfoManager {
             dialogs.add(dialogToShow);
             main.setWindowAttached(dialogToShow, true);
         }
-        if (settings.getBoolean("openUserDialogByMouse") && !dialogToShow.isPinned() && !keepPosition) {
+        if (settings.getBoolean("openUserDialogByMouse") && dialogToShow.isPinned() && !keepPosition) {
             GuiUtil.setLocationToMouse(dialogToShow);
         }
         saveLocationAndSize(dialogToShow);
@@ -142,7 +132,7 @@ public class UserInfoManager {
     
     private UserInfoDialog getFirstUnpinned() {
         for (UserInfoDialog dialog : dialogs) {
-            if (!dialog.isPinned()) {
+            if (dialog.isPinned()) {
                 return dialog;
             }
         }
@@ -152,7 +142,7 @@ public class UserInfoManager {
     private int numUnpinned() {
         int num = 0;
         for (UserInfoDialog dialog : dialogs) {
-            if (!dialog.isPinned()) {
+            if (dialog.isPinned()) {
                 num++;
             }
         }
@@ -170,7 +160,7 @@ public class UserInfoManager {
         }
         // Then try to find visible and unpinned one
         for (UserInfoDialog dialog : dialogs) {
-            if (!dialog.isPinned() && dialog.isVisible()) {
+            if (dialog.isPinned() && dialog.isVisible()) {
                 return dialog;
             }
         }
@@ -213,7 +203,7 @@ public class UserInfoManager {
         } else {
             dialog.setPinned(false);
         }
-        if (!dialog.isPinned() && numUnpinned() == 1) {
+        if (dialog.isPinned() && numUnpinned() == 1) {
             saveLocationAndSize(dialog);
         }
         RecentlyAffectedUsers.addUser(dialog.getUser());
@@ -221,7 +211,7 @@ public class UserInfoManager {
     
     private void saveLocationAndSize(Component c) {
         UserInfoDialog dialog = (UserInfoDialog)c;
-        if (!dialog.isPinned()) {
+        if (dialog.isPinned()) {
             dummyWindow.setSize(dialog.getSize());
             dummyWindow.setLocation(dialog.getLocation());
         }
@@ -229,10 +219,7 @@ public class UserInfoManager {
     
     private boolean canRemove(UserInfoDialog dialog) {
         int numUnpinned = numUnpinned();
-        if (!dialog.isPinned() && numUnpinned == 1) {
-            return false;
-        }
-        return true;
+        return !dialog.isPinned() || numUnpinned != 1;
     }
     
     private boolean isLocationUsed(Point location) {

@@ -2,15 +2,12 @@
 package chatty.util;
 
 import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
+
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
-import java.util.logging.Logger;
 
 /**
  * Watch for modifications to a single file.
@@ -31,24 +28,22 @@ public class FileWatcher implements Runnable {
      * modified. The watcher is run in it's own thread. The watcher accumulates
      * events so it takes a few seconds after a modification for the listener to
      * be informed.
-     * 
-     * @param file The file to watch
+     *
+     * @param file     The file to watch
      * @param listener The FileChangedListener to be informed
-     * @return true if the watcher was created successfully, false otherwise
      */
-    public static boolean createFileWatcher(Path file, FileChangedListener listener) {
+    public static void createFileWatcher(Path file, FileChangedListener listener) {
         if (listener == null || file == null) {
-            return false;
+            return;
         }
         try {
             FileWatcher watcher = new FileWatcher(file, listener);
-            Thread thread = new Thread(watcher);
+            Thread thread = new Thread(watcher, "FileWatcher");
+            thread.setDaemon(true);
             thread.start();
             LOGGER.info("Added file watcher for: "+file.toAbsolutePath());
-            return true;
         } catch (IOException ex) {
             LOGGER.warning("Error adding file watcher for: "+file.toAbsolutePath()+" ["+ex+"]");
-            return false;
         }
     }
     
@@ -80,7 +75,7 @@ public class FileWatcher implements Runnable {
              * modification date) from all triggering the listener.
              */
             try {
-                Thread.sleep(4000);
+                TimeUnit.SECONDS.sleep(4);
             } catch (InterruptedException ex) {
                 return;
             }
@@ -92,8 +87,7 @@ public class FileWatcher implements Runnable {
                     continue;
                 }
 
-                WatchEvent<Path> ev = (WatchEvent<Path>)event;
-                Path fileName = ev.context();
+                Path fileName = asPathEvent(event).context();
                 Path changedFile = directory.resolve(fileName);
                 if (changedFile.equals(file)) {
                     listener.fileChanged();
@@ -107,12 +101,17 @@ public class FileWatcher implements Runnable {
         }
     }
     
+    @SuppressWarnings("unchecked")
+    private static WatchEvent<Path> asPathEvent(WatchEvent<?> event) {
+        return (WatchEvent<Path>) event;
+    }
+
     public interface FileChangedListener {
         
         /**
          * Called by the watcher when one or more modifiactions are detected.
          */
-        public void fileChanged();
+        void fileChanged();
     }
     
     /**
@@ -120,15 +119,9 @@ public class FileWatcher implements Runnable {
      * 
      * @param args 
      */
-    public static final void main(String[] args) {
+    public static void main(String[] args) {
         final Path file = Paths.get("test/test.txt");
-        createFileWatcher(file, new FileChangedListener() {
-
-            @Override
-            public void fileChanged() {
-                System.out.println(file+" changed");
-            }
-        });
+        createFileWatcher(file, () -> System.out.println(file+" changed"));
     }
     
 }

@@ -8,35 +8,20 @@ import chatty.Room;
 import chatty.gui.GuiUtil;
 import chatty.gui.components.menus.ContextMenu;
 import chatty.gui.components.menus.ContextMenuListener;
-import chatty.lang.Language;
 import chatty.gui.components.menus.RoomsContextMenu;
 import chatty.gui.components.menus.TextSelectionMenu;
+import chatty.lang.Language;
 import chatty.util.BitEncoder;
 import chatty.util.DateTime;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-import javax.swing.table.AbstractTableModel;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.TableColumn;
-import javax.swing.table.TableModel;
-import javax.swing.table.TableRowSorter;
+import javax.swing.table.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
+import java.util.List;
 
 /**
  *
@@ -152,25 +137,21 @@ public class FavoritesDialog extends JDialog {
 
         removeButton.setToolTipText(Language.getString("favorites.button.remove.tip"));
         
-        ActionListener actionListener = new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (e.getSource() == addToFavoritesButton) {
-                    addToFavorites();
-                } else if (e.getSource() == removeFromFavoritesButton) {
-                    removeFromFavorites();
-                } else if (e.getSource() == removeButton) {
-                    remove();
-                } else if (e.getSource() == input) {
-                    addToFavorites();
-                } else if (e.getSource() == doneButton) {
-                    result = ACTION_DONE;
-                    setVisible(false);
-                } else if (e.getSource() == cancelButton) {
-                    result = ACTION_CANCEL;
-                    setVisible(false);
-                }
+        ActionListener actionListener = e -> {
+            if (e.getSource() == addToFavoritesButton) {
+                addToFavorites();
+            } else if (e.getSource() == removeFromFavoritesButton) {
+                removeFromFavorites();
+            } else if (e.getSource() == removeButton) {
+                remove();
+            } else if (e.getSource() == input) {
+                addToFavorites();
+            } else if (e.getSource() == doneButton) {
+                result = ACTION_DONE;
+                setVisible(false);
+            } else if (e.getSource() == cancelButton) {
+                result = ACTION_CANCEL;
+                setVisible(false);
             }
         };
 
@@ -206,7 +187,7 @@ public class FavoritesDialog extends JDialog {
     private void removeFromFavorites() {
         for (Favorite f : getSelected()) {
             data.remove(f);
-            Favorite r = favorites.removeFavorite(f.room);
+            Favorite r = favorites.removeFavorite(f.room());
             data.add(r);
         }
     }
@@ -249,13 +230,7 @@ public class FavoritesDialog extends JDialog {
         table.getTableHeader().setReorderingAllowed(false);
         table.getTableHeader().setDefaultRenderer(new MyDefaultTableHeaderCellRenderer());
         
-        table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                selectionChanged();
-            }
-        });
+        table.getSelectionModel().addListSelectionListener(e -> selectionChanged());
         table.addMouseListener(new MouseAdapter() {
             
             @Override
@@ -391,7 +366,7 @@ public class FavoritesDialog extends JDialog {
         int[] selected = table.getSelectedRows();
         for (int row : selected) {
             Favorite favorite = data.get(table.convertRowIndexToModel(row));
-            selectedChannels.add(favorite.room.getChannel());
+            selectedChannels.add(favorite.room().getChannel());
         }
         return selectedChannels;
     }
@@ -427,7 +402,7 @@ public class FavoritesDialog extends JDialog {
             if (table.getSelectedRow() != -1) {
                 Collection<Room> selected = new ArrayList<>();
                 for (Favorite f : getSelected()) {
-                    selected.add(f.room);
+                    selected.add(f.room());
                 }
                 ContextMenu m = new RoomsContextMenu(selected, contextMenuListener);
                 m.show(table, e.getX(), e.getY());
@@ -470,7 +445,7 @@ public class FavoritesDialog extends JDialog {
      */
     private static class FavoriteRenderer extends DefaultTableCellRenderer {
         
-        ImageIcon icon = new ImageIcon(getClass().getResource("/chatty/gui/star.png"));
+        final ImageIcon icon = new ImageIcon(getClass().getResource("/chatty/gui/star.png"));
         
         @Override
         public void setValue(Object value) {
@@ -481,7 +456,7 @@ public class FavoritesDialog extends JDialog {
                 else {
                     this.setIcon(null);
                 }
-                JLabel label = (JLabel)this;
+                JLabel label = this;
                 label.setHorizontalAlignment(JLabel.CENTER);
                 //this.setText(value.toString());
             }
@@ -506,7 +481,7 @@ public class FavoritesDialog extends JDialog {
             else {
                 setText(DateTime.agoText(time));
             }
-            JLabel label = (JLabel)this;
+            JLabel label = this;
             label.setHorizontalAlignment(JLabel.CENTER);
         }
         
@@ -597,11 +572,11 @@ public class FavoritesDialog extends JDialog {
         public Object getValueAt(int rowIndex, int columnIndex) {
             Favorite f = data.get(rowIndex);
             if (columnIndex == 0) {
-                return f.isFavorite;
+                return f.isFavorite();
             } else if (columnIndex == 1) {
-                return Helper.toStream(f.room.getDisplayName());
+                return Helper.toStream(f.room().getDisplayName());
             } else {
-                return f.lastJoined;
+                return f.lastJoined();
             }
         }
         

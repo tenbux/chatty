@@ -4,19 +4,12 @@
 
 package chatty.gui.components;
 
-import java.awt.Component;
-import java.util.List;
-import javax.swing.Icon;
-import javax.swing.JTable;
-import javax.swing.RowSorter;
+import javax.swing.*;
 import javax.swing.RowSorter.SortKey;
-import static javax.swing.SortOrder.ASCENDING;
-import static javax.swing.SortOrder.DESCENDING;
-import static javax.swing.SwingConstants.BOTTOM;
-import static javax.swing.SwingConstants.LEFT;
-import javax.swing.UIManager;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
+import java.awt.*;
+import java.util.List;
 
 /**
  * A default cell renderer for a JTableHeader.
@@ -112,8 +105,8 @@ public class ExtendableDefaultTableHeaderCellRenderer extends DefaultTableCellRe
         }
 
         List sortedColumns = rowSorter.getSortKeys();
-        if (sortedColumns.size() > 0) {
-            return (SortKey) sortedColumns.get(0);
+        if (!sortedColumns.isEmpty()) {
+            return (SortKey) sortedColumns.getFirst();
         }
         return null;
     }

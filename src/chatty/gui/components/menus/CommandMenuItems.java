@@ -5,11 +5,8 @@ import chatty.Helper;
 import chatty.util.commands.CustomCommand;
 import chatty.util.commands.CustomCommands;
 import chatty.util.commands.Parameters;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -173,14 +170,15 @@ public class CommandMenuItems {
     }
     
     public static void main(String[] args) {
-        List<CommandMenuItem> items = parse("/slap\n"
-                + "[Joshimuz]\n"
-                + " FAQ=FAQ: http://blahblah\n"
-                + "Message=/openUrl http://twitch.tv/inbox/compose?target=$$1");
+        List<CommandMenuItem> items = parse("""
+                /slap
+                [Joshimuz]
+                 FAQ=FAQ: http://blahblah
+                Message=/openUrl http://twitch.tv/inbox/compose?target=$$1""");
         for (CommandMenuItem item : items) {
             System.out.println(item);
         }
-        System.out.println(true || false && false);
+        System.out.println(true);
     }
     
     private static final Pattern PATTERN = Pattern.compile("([^\\[{=]+)"+POS_KEY_PATTERN+"=(.+)");
@@ -268,13 +266,12 @@ public class CommandMenuItems {
     }
 
     private static int getFactor(String factorString) {
-        switch (factorString) {
-            case "s": return 1;
-            case "m": return 60;
-            case "h": return 60*60;
-            case "d": return 60*60*24;
-            default: return 1;
-        }
+        return switch (factorString) {
+            case "m" -> 60;
+            case "h" -> 60 * 60;
+            case "d" -> 60 * 60 * 24;
+            default -> 1;
+        };
     }
     
     private static String timeFormat(int seconds) {
@@ -283,7 +280,7 @@ public class CommandMenuItems {
         }
         if (seconds < 60*60) {
             int minutes = seconds / 60;
-            return String.format("%dm", (int) minutes);
+            return String.format("%dm", minutes);
         }
         if (seconds < 60*60*24*2+1) {
             return String.format("%dh", seconds / (60*60));

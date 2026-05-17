@@ -8,25 +8,13 @@ import chatty.gui.components.settings.SettingsUtil;
 import chatty.gui.components.settings.StringEditor;
 import chatty.gui.components.settings.TableEditor;
 import chatty.util.StringUtil;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Window;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
+import java.util.*;
 import java.util.List;
-import java.util.Set;
-import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JDialog;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
 
 /**
  *
@@ -35,27 +23,19 @@ import javax.swing.SwingUtilities;
 public class AddressbookDialog extends JDialog {
     
     private final AddressbookEditor table;
-    private final JFrame owner;
     private final Addressbook addressbook;
     
     public AddressbookDialog(JFrame owner, Addressbook addressbook) {
         super(owner);
         setTitle("Addressbook");
         this.addressbook = addressbook;
-        this.owner = owner;
         table = new AddressbookEditor(this, new TableListener());
         table.setContextMenu(new ContextMenu());
-        table.setTableEditorEditAllHandler(new TableEditor.TableEditorEditAllHandler<AddressbookEntry>() {
+        table.setTableEditorEditAllHandler(new TableEditor.TableEditorEditAllHandler<>() {
 
             @Override
             public String toString(List<AddressbookEntry> data) {
-                Collections.sort(data, new Comparator<AddressbookEntry>() {
-
-                    @Override
-                    public int compare(AddressbookEntry o1, AddressbookEntry o2) {
-                        return o1.getName().compareTo(o2.getName());
-                    }
-                });
+                data.sort(Comparator.comparing(AddressbookEntry::getName));
                 StringBuilder b = new StringBuilder();
                 for (AddressbookEntry entry : data) {
                     b.append(Addressbook.makeLine(entry)).append("\n");
@@ -66,10 +46,10 @@ public class AddressbookDialog extends JDialog {
             @Override
             public List<AddressbookEntry> toData(String input) {
                 Addressbook.AddressbookParsedEntries parsed = Addressbook.getParsedEntries(input);
-                if (parsed.validEntries.isEmpty() && !parsed.invalidEntries.isEmpty()) {
+                if (parsed.validEntries().isEmpty() && !parsed.invalidEntries().isEmpty()) {
                     return null;
                 }
-                return parsed.validEntries;
+                return parsed.validEntries();
             }
 
             @Override
@@ -77,37 +57,33 @@ public class AddressbookDialog extends JDialog {
                 Editor editor = new Editor(AddressbookDialog.this);
                 editor.setAllowEmpty(true);
                 editor.setAllowLinebreaks(true);
-                editor.setTester(new Editor.Tester() {
-
-                    @Override
-                    public String test(Window parent, Component component, int x, int y, String value) {
-                        Addressbook.AddressbookParsedEntries parsed = Addressbook.getParsedEntries(value);
-                        Set<String> noCats = new HashSet<>();
-                        for (AddressbookEntry entry : parsed.validEntries) {
-                            if (entry.getCategories().isEmpty()) {
-                                noCats.add(entry.getName());
-                            }
+                editor.setTester((parent, component, x, y, value) -> {
+                    Addressbook.AddressbookParsedEntries parsed = Addressbook.getParsedEntries(value);
+                    Set<String> noCats = new HashSet<>();
+                    for (AddressbookEntry entry : parsed.validEntries()) {
+                        if (entry.getCategories().isEmpty()) {
+                            noCats.add(entry.getName());
                         }
-                        JOptionPane.showMessageDialog(component,
-                                String.format("%d valid entries\n %d without categories%s\n %d duplicate names%s\n\n%d invalid entries%s",
-                                        parsed.validEntries.size(),
-                                        noCats.size(),
-                                        makeEntriesInfo(noCats, "  "),
-                                        parsed.duplicateEntries.size(),
-                                        makeEntriesInfo(parsed.duplicateEntries, "  "),
-                                        parsed.invalidEntries.size(),
-                                        makeEntriesInfo(parsed.invalidEntries, " ")));
-                        return null;
                     }
+                    JOptionPane.showMessageDialog(component,
+                            String.format("%d valid entries\n %d without categories%s\n %d duplicate names%s\n\n%d invalid entries%s",
+                                    parsed.validEntries().size(),
+                                    noCats.size(),
+                                    makeEntriesInfo(noCats, "  "),
+                                    parsed.duplicateEntries().size(),
+                                    makeEntriesInfo(parsed.duplicateEntries(), "  "),
+                                    parsed.invalidEntries().size(),
+                                    makeEntriesInfo(parsed.invalidEntries(), " ")));
+                    return null;
                 });
                 return editor;
             }
-            
+
             private String makeEntriesInfo(Collection<?> entries, String leading) {
                 if (entries.isEmpty()) {
                     return "";
                 }
-                return StringUtil.shortenTo(":\n"+leading+StringUtil.join(entries, "\n"+leading), 100);
+                return StringUtil.shortenTo(":\n" + leading + StringUtil.join(entries, "\n" + leading), 100);
             }
 
             @Override
@@ -119,7 +95,7 @@ public class AddressbookDialog extends JDialog {
             public String getEditorHelp() {
                 return SettingsUtil.getInfo("info-addressbookEditAll.html", null);
             }
-            
+
         });
         
         setLayout(new GridBagLayout());
@@ -228,13 +204,9 @@ public class AddressbookDialog extends JDialog {
             loadData();
             setVisible(true);
         }
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                if (name != null) {
-                    table.edit(name);
-                }
+        SwingUtilities.invokeLater(() -> {
+            if (name != null) {
+                table.edit(name);
             }
         });
     }

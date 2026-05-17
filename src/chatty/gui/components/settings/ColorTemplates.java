@@ -4,16 +4,12 @@ package chatty.gui.components.settings;
 import chatty.gui.GuiUtil;
 import chatty.lang.Language;
 import chatty.util.settings.Settings;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 
 /**
  * Provides presets/templates for the given ColorSetting objects and saves it in
@@ -37,7 +33,6 @@ public class ColorTemplates extends JPanel {
     private final List<Preset> userPresets = new ArrayList<>();
     
     private final JButton saveButton = new JButton(Language.getString("settings.colorPresets.button.save"));
-    private final JButton saveAsButton = new JButton(Language.getString("settings.colorPresets.button.saveAs"));
     private final JButton removeButton = new JButton(Language.getString("settings.colorPresets.button.delete"));
     
     private final GenericComboSetting<Preset> selection = new GenericComboSetting<>();
@@ -55,9 +50,7 @@ public class ColorTemplates extends JPanel {
         
         for (StringSetting c : colorSettings) {
             if (c instanceof ColorSetting) {
-                ((ColorSetting)c).addListener(() -> {
-                    update();
-                });
+                ((ColorSetting)c).addListener(this::update);
             }
         }
         
@@ -86,13 +79,14 @@ public class ColorTemplates extends JPanel {
         gbc.insets = insets;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 0.3;
+        JButton saveAsButton = new JButton(Language.getString("settings.colorPresets.button.saveAs"));
         add(saveAsButton, gbc);
         
         gbc = GuiUtil.makeGbc(2, 1, 1, 1);
         gbc.insets = insets;
         add(removeButton, gbc);
-        
-        gbc = GuiUtil.makeGbc(0, 2, 3, 1);
+
+        GuiUtil.makeGbc(0, 2, 3, 1);
         JLabel saveNote = new JLabel(Language.getString("settings.colorPresets.info"));
         //add(saveNote, gbc);
         
@@ -105,21 +99,13 @@ public class ColorTemplates extends JPanel {
             removeButton.setEnabled(!hardcoded);
         });
         
-        selection.addActionListener(e -> {
-            loadSelectedPreset();
-        });
+        selection.addActionListener(e -> loadSelectedPreset());
         
-        saveButton.addActionListener(e -> {
-            overwriteCurrent();
-        });
+        saveButton.addActionListener(e -> overwriteCurrent());
         
-        saveAsButton.addActionListener(e -> {
-            addCurrentAsPreset();
-        });
+        saveAsButton.addActionListener(e -> addCurrentAsPreset());
         
-        removeButton.addActionListener(e -> {
-            removeSelectedPreset();
-        });
+        removeButton.addActionListener(e -> removeSelectedPreset());
         
         loadFromSettings();
         init();
@@ -300,10 +286,12 @@ public class ColorTemplates extends JPanel {
     
     private void loadFromSettings() {
         userPresets.clear();
-        List source = settings.getList(settingName);
+        @SuppressWarnings("unchecked")
+        List<Object> source = (List<Object>) settings.getList(settingName);
         for (Object o : source) {
-            if (o instanceof List) {
-                List<String> list = (List)o;
+            if (o instanceof List<?> rawList && rawList.stream().allMatch(e -> e instanceof String)) {
+                @SuppressWarnings("unchecked")
+                List<String> list = (List<String>) rawList;
                 Preset p = Preset.fromList(list);
                 if (p != null) {
                     userPresets.add(p);
@@ -311,49 +299,38 @@ public class ColorTemplates extends JPanel {
             }
         }
     }
-    
-    private static class Preset {
-        
-        private final String name;
-        private final List<String> colors;
-        private final List<Boolean> booleans;
-        
-        public Preset(String name, List<String> colors, List<Boolean> booleans) {
-            this.name = name;
-            this.colors = colors;
-            this.booleans = booleans;
-        }
-        
+
+    private record Preset(String name, List<String> colors, List<Boolean> booleans) {
+
         public List toList() {
-            List result = new ArrayList<>();
-            result.add(name);
-            result.addAll(colors);
-            result.addAll(booleans);
-            return result;
-        }
-        
-        @Override
-        public String toString() {
-            return name;
-        }
-        
-        public static Preset fromList(List list) {
-            if (list.size() > 1 && list.get(0) instanceof String) {
-                String name = (String)list.get(0);
-                List<String> colors = new ArrayList<>();
-                List<Boolean> booleans = new ArrayList<>();
-                for (Object o : list.subList(1, list.size())) {
-                    if (o instanceof String) {
-                        colors.add((String)o);
-                    } else if (o instanceof Boolean) {
-                        booleans.add((Boolean)o);
-                    }
-                }
-                return new Preset(name, colors, booleans);
+                List result = new ArrayList<>();
+                result.add(name);
+                result.addAll(colors);
+                result.addAll(booleans);
+                return result;
             }
-            return null;
-        }
-        
+
+        @Override
+            public String toString() {
+                return name;
+            }
+
+        public static Preset fromList(List list) {
+                if (list.size() > 1 && list.getFirst() instanceof String name) {
+                    List<String> colors = new ArrayList<>();
+                    List<Boolean> booleans = new ArrayList<>();
+                    for (Object o : list.subList(1, list.size())) {
+                        if (o instanceof String) {
+                            colors.add((String) o);
+                        } else if (o instanceof Boolean) {
+                            booleans.add((Boolean) o);
+                        }
+                    }
+                    return new Preset(name, colors, booleans);
+                }
+                return null;
+            }
+
     }
     
 }

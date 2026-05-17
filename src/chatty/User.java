@@ -2,24 +2,22 @@
 package chatty;
 
 import chatty.gui.Highlighter;
-import chatty.gui.colors.UsercolorManager;
-import chatty.util.api.usericons.Usericon;
-import chatty.util.api.usericons.UsericonManager;
-import chatty.util.colors.HtmlColors;
 import chatty.gui.NamedColor;
+import chatty.gui.colors.UsercolorManager;
 import chatty.gui.components.textpane.ModLogInfo;
 import chatty.util.Debugging;
 import chatty.util.StringUtil;
 import chatty.util.api.eventsub.payloads.ModActionPayload;
 import chatty.util.api.eventsub.payloads.SuspiciousMessagePayload;
+import chatty.util.api.usericons.Usericon;
+import chatty.util.api.usericons.UsericonManager;
+import chatty.util.colors.HtmlColors;
 import chatty.util.irc.IrcBadges;
 import chatty.util.irc.MsgTags;
-import java.awt.Color;
-import java.util.ArrayList;
-import java.util.Iterator;
+
+import java.awt.*;
+import java.util.*;
 import java.util.List;
-import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a single user on a specific channel.
@@ -63,7 +61,7 @@ public class User implements Comparable<User> {
     /**
      * The account name (all-lowercase).
      */
-    private volatile String nick;
+    private final String nick;
     
     /**
      * The nick, could contain different case or symbols.
@@ -497,14 +495,12 @@ public class User implements Comparable<User> {
              * has it's own line, so appending several by strings shouldn't be
              * necessary.
              */
-            if (m instanceof BanMessage) {
-                BanMessage bm = (BanMessage)m;
+            if (m instanceof BanMessage bm) {
                 if (bm.by == null && command.equals(Helper.makeBanCommand(this, bm.duration, bm.id))) {
                     lines.set(i, bm.addModLogInfo(data.created_by, ModLogInfo.getReason(data), data.getSourceChannel()));
                     return true;
                 }
-            } else if (m instanceof MsgDeleted) {
-                MsgDeleted md = (MsgDeleted)m;
+            } else if (m instanceof MsgDeleted md) {
                 if (md.by == null && command.equals(Helper.makeBanCommand(this, -2, md.targetMsgId))) {
                     lines.set(i, md.addModLogInfo(data.created_by, data.getSourceChannel()));
                     return true;
@@ -561,8 +557,7 @@ public class User implements Comparable<User> {
             if (System.currentTimeMillis() - m.getTime() > BAN_INFO_WAIT) {
                 return false;
             }
-            if (m instanceof TextMessage) {
-                TextMessage tm = (TextMessage) m;
+            if (m instanceof TextMessage tm) {
                 if (tm.id != null && tm.id.equals(data.aboutMessageId)) {
                     lines.set(i, tm.addLowTrust(data));
                     return true;
@@ -587,7 +582,7 @@ public class User implements Comparable<User> {
         }
         lines.add(line);
         if (lines.size() > userSettings.maxLines) {
-            lines.remove(0);
+            lines.removeFirst();
         }
         numberOfLines++;
     }
@@ -614,8 +609,7 @@ public class User implements Comparable<User> {
         long checkUntilTime = System.currentTimeMillis() - timeframe * 1000;
         for (int i=lines.size() - 1; i>=0; i--) {
             Message m = lines.get(i);
-            if (m instanceof TextMessage) {
-                TextMessage msg = (TextMessage)m;
+            if (m instanceof TextMessage msg) {
                 if (msg.getTime() < checkUntilTime) {
                     break;
                 }
@@ -648,8 +642,7 @@ public class User implements Comparable<User> {
                     return result;
                 }
             }
-            if (m instanceof TextMessage) {
-                TextMessage tm = (TextMessage) m;
+            if (m instanceof TextMessage tm) {
                 if (item.matchesTextOnly(tm.text, null)) {
                     result++;
                 }
@@ -687,8 +680,7 @@ public class User implements Comparable<User> {
             return null;
         }
         for (Message msg : lines) {
-            if (msg instanceof TextMessage) {
-                TextMessage textMsg = (TextMessage)msg;
+            if (msg instanceof TextMessage textMsg) {
                 if (msgId.equals(textMsg.id)) {
                     return textMsg;
                 }
@@ -705,8 +697,7 @@ public class User implements Comparable<User> {
             return null;
         }
         for (Message msg : lines) {
-            if (msg instanceof SubMessage) {
-                SubMessage textMsg = (SubMessage)msg;
+            if (msg instanceof SubMessage textMsg) {
                 if (msgId.equals(textMsg.id)) {
                     return textMsg;
                 }
@@ -735,8 +726,7 @@ public class User implements Comparable<User> {
             return null;
         }
         for (Message msg : lines) {
-            if (msg instanceof AutoModMessage) {
-                AutoModMessage autoModMsg = (AutoModMessage) msg;
+            if (msg instanceof AutoModMessage autoModMsg) {
                 if (msgId.equals(autoModMsg.id)) {
                     return autoModMsg;
                 }
@@ -773,7 +763,7 @@ public class User implements Comparable<User> {
     
     private long getLastLineTime() {
         if (lines != null && !lines.isEmpty()) {
-            return lines.get(lines.size() - 1).time;
+            return lines.getLast().time;
         }
         return -1;
     }
@@ -1074,11 +1064,7 @@ public class User implements Comparable<User> {
     }
     
     public synchronized void setMode(String mode) {
-        if (mode.equals("o")) {
-            setModerator(true);
-        } else {
-            setModerator(false);
-        }
+        setModerator(mode.equals("o"));
     }
     
     public synchronized boolean isLocalUser() {
@@ -1159,12 +1145,10 @@ public class User implements Comparable<User> {
         return isVip;
     }
     
-    public synchronized boolean setLocalUser(boolean localUser) {
+    public synchronized void setLocalUser(boolean localUser) {
         if (this.localUser != localUser) {
             this.localUser = localUser;
-            return true;
         }
-        return false;
     }
     
     public synchronized boolean setModerator(boolean mod) {
@@ -1287,7 +1271,7 @@ public class User implements Comparable<User> {
     private int makeScore(long time) {
         int ago = (int)(System.currentTimeMillis() - time) / 1000;
         int result = 1000 - ago / 120;
-        return result < 0 ? 0 : result;
+        return Math.max(result, 0);
     }
     
     public synchronized void setHighlighted() {
@@ -1419,11 +1403,11 @@ public class User implements Comparable<User> {
         }
         
         public static int getType(String modAction) {
-            switch (modAction) {
-                case "unban": return TYPE_UNBAN;
-                case "untimeout": return TYPE_UNTIMEOUT;
-            }
-            return TYPE_UNKNOWN;
+            return switch (modAction) {
+                case "unban" -> TYPE_UNBAN;
+                case "untimeout" -> TYPE_UNTIMEOUT;
+                default -> TYPE_UNKNOWN;
+            };
         }
         
     }
@@ -1619,8 +1603,8 @@ public class User implements Comparable<User> {
         
     }
     
-    public static interface SharedMessage {
-        public String getSourceChannel();
+    public interface SharedMessage {
+        String getSourceChannel();
     }
     
 //    public static final void main(String[] args) {

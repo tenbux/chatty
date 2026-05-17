@@ -4,45 +4,19 @@ package chatty.gui.components.settings;
 import chatty.gui.GuiUtil;
 import chatty.lang.Language;
 import chatty.util.StringUtil;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.KeyboardFocusManager;
-import java.awt.Point;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableRowSorter;
+import java.awt.*;
+import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import javax.swing.AbstractAction;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.KeyStroke;
-import javax.swing.ListSelectionModel;
-import javax.swing.RowFilter;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableRowSorter;
 
 /**
  * A table containing one element per row, with editing features.
@@ -70,7 +44,7 @@ public class TableEditor<T> extends JPanel {
     private ItemEditor<T> editor;
     private Supplier<ItemEditor<T>> editorCreator;
     private TableRowSorter<ListTableModel<T>> sorter;
-    private int sortingMode;
+    private final int sortingMode;
     private boolean currentlyFiltering;
     
     private String search = "";
@@ -118,13 +92,7 @@ public class TableEditor<T> extends JPanel {
         table.getTableHeader().setReorderingAllowed(false);
         
         // Selection Listener to update buttons
-        table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                updateButtons();
-            }
-        });
+        table.getSelectionModel().addListSelectionListener(e -> updateButtons());
         
         // Mouse Listener to edit items and open context menu
         table.addMouseListener(new MouseAdapter() {
@@ -181,13 +149,7 @@ public class TableEditor<T> extends JPanel {
                 search(e.getKeyChar());
             }
         });
-        searchTimer = new Timer(500, new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                checkResetSearch();
-            }
-        });
+        searchTimer = new Timer(500, e -> checkResetSearch());
         searchTimer.setRepeats(true);
 
         // Buttons Configuration
@@ -440,7 +402,7 @@ public class TableEditor<T> extends JPanel {
     
     private void updateFiltering() {
         String filterText = filterInput.getText();
-        RowFilter<ListTableModel<T>, Object> rf = null;
+        RowFilter<ListTableModel<T>, Object> rf;
         try {
             rf = RowFilter.regexFilter("(?ui)"+Pattern.quote(filterText));
         } catch (PatternSyntaxException ex) {
@@ -842,7 +804,7 @@ public class TableEditor<T> extends JPanel {
      * 
      * @param <T> The type of the item to edit
      */
-    public static interface ItemEditor<T> {
+    public interface ItemEditor<T> {
 
         /**
          * Opens the editor, which the user can use to add or change an item.
@@ -855,7 +817,7 @@ public class TableEditor<T> extends JPanel {
          * @return The changed or added item, or {@code null} if the action was
          * canceled
          */
-        public T showEditor(T preset, Component c, boolean edit, int column);
+        T showEditor(T preset, Component c, boolean edit, int column);
         
     }
     
@@ -868,7 +830,7 @@ public class TableEditor<T> extends JPanel {
      * 
      * @param <T> The type of the items to be edited
      */
-    public static interface TableEditorListener<T> {
+    public interface TableEditorListener<T> {
         
         /**
          * Called when an item has been added to the table. The table should
@@ -877,14 +839,14 @@ public class TableEditor<T> extends JPanel {
          * 
          * @param item The item that was added
          */
-        public void itemAdded(T item);
+        void itemAdded(T item);
         
         /**
          * Called when an item has been removed in the table.
          * 
          * @param item The item that was removed
          */
-        public void itemRemoved(T item);
+        void itemRemoved(T item);
         
         /**
          * Called when an item was edited in the table. The {@code oldItem}
@@ -894,16 +856,16 @@ public class TableEditor<T> extends JPanel {
          * @param oldItem The item before editing
          * @param newItem The item after editing
          */
-        public void itemEdited(T oldItem, T newItem);
+        void itemEdited(T oldItem, T newItem);
         
-        public void allItemsChanged(List<T> newItems);
+        void allItemsChanged(List<T> newItems);
         
-        public void itemsSet();
+        void itemsSet();
         
         /**
          * Called when the user requested the data in the table to be refreshed.
          */
-        public void refreshData();
+        void refreshData();
     }
     
     /**
@@ -912,7 +874,7 @@ public class TableEditor<T> extends JPanel {
      * 
      * @param <T> 
      */
-    public static interface TableEditorEditAllHandler<T> {
+    public interface TableEditorEditAllHandler<T> {
         
         /**
          * Turn the given entries into a String.
@@ -921,7 +883,7 @@ public class TableEditor<T> extends JPanel {
          * @return A non-null String that represents the entries, and that will
          * construct equal entries when given to {@link toData(String)}
          */
-        public String toString(List<T> data);
+        String toString(List<T> data);
         
         /**
          * Turn the given String into entries.
@@ -931,7 +893,7 @@ public class TableEditor<T> extends JPanel {
          * @return A list of entries, or null if the input is invalid, which
          * means the table entries will not be changed
          */
-        public List<T> toData(String input);
+        List<T> toData(String input);
         
         /**
          * Optionally create a StringEditor, so it can be configured as needed.
@@ -940,7 +902,7 @@ public class TableEditor<T> extends JPanel {
          * 
          * @return A StringEditor, or null
          */
-        public StringEditor getEditor();
+        StringEditor getEditor();
         
         /**
          * Get the title/description of the action being performed in the
@@ -948,14 +910,14 @@ public class TableEditor<T> extends JPanel {
          * 
          * @return 
          */
-        public String getEditorTitle();
+        String getEditorTitle();
         
         /**
          * Get the help being displayed in the editor.
          * 
          * @return 
          */
-        public String getEditorHelp();
+        String getEditorHelp();
         
     }
     

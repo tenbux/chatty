@@ -3,20 +3,12 @@ package chatty.util.api;
 
 import chatty.Helper;
 import chatty.util.StringUtil;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+
+import java.util.*;
+import java.util.logging.Logger;
 
 /**
  *
@@ -148,11 +140,11 @@ public class UserIDs {
             requestPending.removeAll(requestedNames);
             
             if (result == null) {
-                requestedNames.stream().forEach(n -> data.setError(n));
+                requestedNames.forEach(data::setError);
                 errors++;
             } else {
                 for (String name : requestedNames) {
-                    if (!result.keySet().contains(name)) {
+                    if (!result.containsKey(name)) {
                         data.setNotFound(name);
                     } else {
                         data.setId(name, result.get(name));
@@ -201,18 +193,16 @@ public class UserIDs {
             return;
         }
         Set<String> namesToRequest = new HashSet<>();
-        requests.stream().forEach(r -> {
-            r.usernames.stream().forEach(n -> {
-                if (!requestPending.contains(n) && data.shouldRequest(n) && namesToRequest.size() < 100) {
-                    if (Helper.isValidStream(n)) {
-                        namesToRequest.add(n);
-                        requestPending.add(n);
-                    } else {
-                        data.setNotFound(n);
-                    }
+        requests.forEach(r -> r.usernames.forEach(n -> {
+            if (!requestPending.contains(n) && data.shouldRequest(n) && namesToRequest.size() < 100) {
+                if (Helper.isValidStream(n)) {
+                    namesToRequest.add(n);
+                    requestPending.add(n);
+                } else {
+                    data.setNotFound(n);
                 }
-            });
-        });
+            }
+        }));
 
         if (!namesToRequest.isEmpty()) {
             api.requests.requestUserIDs(namesToRequest);
@@ -250,7 +240,7 @@ public class UserIDs {
             UserIdResult idResult = getCachedResult(r.usernames);
             if (idResult != null
                     && (!r.wait || !idResult.hasError())
-                    && (!onlyComplete || !eligibleForRequest(r))) {
+                    && (!onlyComplete || eligibleForRequest(r))) {
                 r.setResult(idResult);
                 result.add(r);
             }
@@ -279,12 +269,7 @@ public class UserIDs {
     private synchronized void clearUp() {
 //        System.out.println("Before cleanup: "+requests);
         if (!requests.isEmpty()) {
-            Iterator<Request> it = requests.iterator();
-            while (it.hasNext()) {
-                if (!eligibleForRequest(it.next())) {
-                    it.remove();
-                }
-            }
+            requests.removeIf(this::eligibleForRequest);
         }
 //        System.out.println("After cleanup: "+requests);
     }
@@ -299,14 +284,14 @@ public class UserIDs {
     private boolean eligibleForRequest(Request request) {
         for (String name : request.usernames) {
             if (data.shouldRequest(name)) {
-                return true;
+                return false;
             }
         }
-        return false;
+        return true;
     }
     
     public interface UserIdResultListener {
-        public void result(UserIdResult result);
+        void result(UserIdResult result);
     }
     
     public static class UserIdResult {
@@ -354,7 +339,7 @@ public class UserIDs {
         
         @Override
         public String toString() {
-            return data.toString()+"/"+getError();
+            return data +"/"+getError();
         }
     }
     
@@ -413,12 +398,10 @@ public class UserIDs {
             return data.get(name);
         }
         
-        public synchronized boolean setId(String name, String id) {
+        public synchronized void setId(String name, String id) {
             if (!data.containsKey(name) || get(name).id == null) {
                 data.put(name, new Entry(name, id));
-                return true;
             }
-            return false;
         }
         
         public synchronized void setNotFound(String name) {

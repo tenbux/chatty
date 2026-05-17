@@ -64,10 +64,7 @@ class RangeIdentifier implements Item {
         if (index != other.index) {
             return false;
         }
-        if (toEnd != other.toEnd) {
-            return false;
-        }
-        return true;
+        return toEnd == other.toEnd;
     }
 
     @Override

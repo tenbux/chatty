@@ -211,7 +211,7 @@ public class ChatLog {
             text += " ["+reason+"]";
         }
         if (info != null) {
-            text += " {"+DateTime.formatAccountAge(info.createdAt, Formatting.COMPACT)+"}";
+            text += " {"+DateTime.formatAccountAge(info.createdAt(), Formatting.COMPACT)+"}";
         }
         compact(channel, "BAN", text);
     }
@@ -252,11 +252,7 @@ public class ChatLog {
     }
     
     private Compact getCompact(String channel) {
-        Compact c = compactForChannels.get(channel);
-        if (c == null) {
-            c = new Compact(channel);
-            compactForChannels.put(channel, c);
-        }
+        Compact c = compactForChannels.computeIfAbsent(channel, Compact::new);
         return c;
     }
     
@@ -324,26 +320,24 @@ public class ChatLog {
         // Check channel files (whispers also fall under this because it allows
         // setting it for individual $username channels)
         String mode = settings.getString("logMode");
-        if (mode.equals("off")) {
-            return false;
-        }
-        else if (mode.equals("always")) {
-            return true;
-        }
-        else if (mode.equals("blacklist")) {
-            if (!settings.listContains("logBlacklist", channel)) {
+        switch (mode) {
+            case "off" -> {
+                return false;
+            }
+            case "always" -> {
                 return true;
             }
-            if (channel.startsWith("$") && !settings.listContains("logBlacklist", "$_whisper_")) {
-                return true;
+            case "blacklist" -> {
+                if (!settings.listContains("logBlacklist", channel)) {
+                    return true;
+                }
+                return channel.startsWith("$") && !settings.listContains("logBlacklist", "$_whisper_");
             }
-        }
-        else if (mode.equals("whitelist")) {
-            if (settings.listContains("logWhitelist", channel)) {
-                return true;
-            }
-            if (channel.startsWith("$") && settings.listContains("logWhitelist", "$_whisper_")) {
-                return true;
+            case "whitelist" -> {
+                if (settings.listContains("logWhitelist", channel)) {
+                    return true;
+                }
+                return channel.startsWith("$") && settings.listContains("logWhitelist", "$_whisper_");
             }
         }
         return false;

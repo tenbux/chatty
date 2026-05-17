@@ -78,7 +78,7 @@ public class ReplyManager {
     public synchronized static String getFirstUserMsg(String parentMsgId) {
         List<Reply> list = data.get(parentMsgId);
         if (list != null && !list.isEmpty()) {
-            return list.get(0).userMsg;
+            return list.getFirst().userMsg;
         }
         return null;
     }

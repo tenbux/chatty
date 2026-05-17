@@ -5,9 +5,11 @@ import chatty.util.ImageCache.ImageRequest;
 import chatty.util.ImageCache.ImageResult;
 import chatty.util.settings.Settings;
 import chatty.util.seventv.WebPUtil;
-import java.awt.Dimension;
-import java.awt.Image;
-import java.awt.MediaTracker;
+
+import javax.imageio.ImageIO;
+import javax.imageio.stream.ImageOutputStream;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -16,11 +18,7 @@ import java.io.InputStream;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.imageio.ImageIO;
-import javax.imageio.stream.ImageOutputStream;
-import javax.swing.ImageIcon;
 
 /**
  *
@@ -41,7 +39,7 @@ public class GifUtil {
      * @throws Exception When an error occured loading the image
      */
     public static ImageResult getGifFromUrl(ImageRequest request) throws Exception {
-        ImageResult result = null;
+        ImageResult result;
         URLConnection c = request.getLoadFromURL().openConnection();
         try (InputStream input = c.getInputStream()) {
             // Use readAllBytes() because GifDecoder doesn't handle streams well
@@ -56,7 +54,7 @@ public class GifUtil {
             }
             // Done with decode attempts
             if (result != null && !result.isValidImage()) {
-                result.icon.getImage().flush();
+                result.icon().getImage().flush();
                 return null;
             }
         }
@@ -201,10 +199,7 @@ public class GifUtil {
      * @return
      */
     private static int capDelay(int delay) {
-        if (delay <= 10) {
-            return 100;
-        }
-        return delay;
+        return GifSequenceWriter.capDelay(delay);
     }
     
     private static Settings settings;

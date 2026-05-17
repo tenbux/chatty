@@ -52,9 +52,9 @@ public class LogFile {
     /**
      * The time this LogFile instance was created.
      */
-    private Calendar currentTime;
+    private final Calendar currentTime;
     
-    private boolean lockFile = true;
+    private final boolean lockFile;
 
     /**
      * LogFile constructor.
@@ -109,7 +109,7 @@ public class LogFile {
      */
     public boolean write(String line) {
         if (!valid) {
-            LOGGER.warning("Log: Tried writing to invalid file " + file + "");
+            LOGGER.warning("Log: Tried writing to invalid file " + file);
             return false;
         }
 
@@ -156,9 +156,11 @@ public class LogFile {
      * @return Returns true if the file is successfully opened and locked.
      */
     private boolean tryFile(File file) {
+        LOGGER.info("Log: Trying to open " + file.getAbsolutePath());
+        RandomAccessFile raf = null;
+        boolean opened = false;
         try {
-            LOGGER.info("Log: Trying to open " + file.getAbsolutePath());
-            RandomAccessFile raf = new RandomAccessFile(file, "rw");
+            raf = new RandomAccessFile(file, "rw");
             raf.seek(raf.length());
             FileChannel channel = raf.getChannel();
             if (lockFile) {
@@ -166,15 +168,25 @@ public class LogFile {
                 if (lock != null) {
                     writer = new BufferedWriter(Channels.newWriter(channel, CHARSET));
                     valid = true;
+                    opened = true;
                     return true;
                 }
             } else {
                 writer = new BufferedWriter(Channels.newWriter(channel, CHARSET));
                 valid = true;
+                opened = true;
                 return true;
             }
         } catch (IOException ex) {
             LOGGER.warning("Log: Lock failed (" + file + " / " + ex + ")");
+        } finally {
+            if (!opened && raf != null) {
+                try {
+                    raf.close();
+                } catch (IOException ex) {
+                    LOGGER.warning("Log: Could not close " + file + " (" + ex.getLocalizedMessage() + ")");
+                }
+            }
         }
 
         LOGGER.warning("Log: Lock failed (" + file + ")");

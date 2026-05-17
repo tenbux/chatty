@@ -2,7 +2,6 @@
 package chatty.gui.components.settings;
 
 import chatty.Helper;
-import chatty.Room;
 import chatty.gui.GuiUtil;
 import chatty.gui.components.LinkLabel;
 import chatty.gui.components.LinkLabelListener;
@@ -11,33 +10,17 @@ import chatty.util.DateTime;
 import chatty.util.Timestamp;
 import chatty.util.api.StreamInfo;
 import chatty.util.api.StreamInfoHistoryItem;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import static java.awt.GridBagConstraints.EAST;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Window;
+
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import java.awt.*;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.swing.Box;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 
 /**
  *
@@ -56,36 +39,36 @@ public class MessageSettings extends SettingsPanel {
         //==========================
         DeletedMessagesModeSetting deletedMessagesModeSetting = new DeletedMessagesModeSetting(d);
         timeoutSettingsPanel.add(deletedMessagesModeSetting,
-                d.makeGbc(0, 0, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 0, 2, 1, GridBagConstraints.WEST));
 
         timeoutSettingsPanel.add(d.addSimpleBooleanSetting("banDurationAppended"),
-                d.makeGbcSub(0, 1, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbcSub(0, 1, 1, 1, GridBagConstraints.WEST));
 
         timeoutSettingsPanel.add(d.addSimpleBooleanSetting("banReasonAppended"),
-                d.makeGbcSub(1, 1, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbcSub(1, 1, 1, 1, GridBagConstraints.WEST));
 
         final JCheckBox timeoutMessages = d.addSimpleBooleanSetting("showBanMessages");
         timeoutSettingsPanel.add(timeoutMessages,
-                d.makeGbc(0, 3, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 3, 2, 1, GridBagConstraints.WEST));
         
         JCheckBox banDuration = d.addSimpleBooleanSetting(
                 "banDurationMessage");
         timeoutSettingsPanel.add(banDuration,
-                d.makeGbcSub(0, 4, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbcSub(0, 4, 1, 1, GridBagConstraints.WEST));
         
         JCheckBox banReason = d.addSimpleBooleanSetting(
                 "banReasonMessage");
         timeoutSettingsPanel.add(banReason,
-                d.makeGbcSub(1, 4, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbcSub(1, 4, 1, 1, GridBagConstraints.WEST));
         
         JCheckBox timeoutsCombine = d.addSimpleBooleanSetting(
                 "combineBanMessages");
         timeoutSettingsPanel.add(timeoutsCombine,
-                d.makeGbcSub(0, 5, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbcSub(0, 5, 1, 1, GridBagConstraints.WEST));
 
         timeoutSettingsPanel.add(d.addSimpleBooleanSetting(
                 "clearChatOnChannelCleared"),
-                d.makeGbc(0, 6, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 6, 2, 1, GridBagConstraints.WEST));
         
         SettingsUtil.addSubsettings(timeoutMessages, banDuration, banReason, timeoutsCombine);
         
@@ -101,16 +84,16 @@ public class MessageSettings extends SettingsPanel {
         // More
         otherSettingsPanel.add(d.addSimpleBooleanSetting(
                 "showModMessages"),
-                d.makeGbc(0, 1, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 1, 2, 1, GridBagConstraints.WEST));
 
         otherSettingsPanel.add(d.addSimpleBooleanSetting(
                 "showJoinsParts"),
-                d.makeGbc(2, 1, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(2, 1, 2, 1, GridBagConstraints.WEST));
 
         // Combining Characters
         JLabel combiningCharsLabel = new JLabel("Filter combining chars:");
         otherSettingsPanel.add(combiningCharsLabel,
-                d.makeGbc(0, 2, 1, 1));
+                SettingsDialog.makeGbc(0, 2, 1, 1));
 
         Map<Long, String> filterSetting = new LinkedHashMap<>();
         filterSetting.put(Long.valueOf(Helper.FILTER_COMBINING_CHARACTERS_OFF), "Off");
@@ -121,12 +104,12 @@ public class MessageSettings extends SettingsPanel {
         d.addLongSetting("filterCombiningCharacters", filterCombiningCharacters);
 
         otherSettingsPanel.add(filterCombiningCharacters,
-                d.makeGbc(1, 2, 1, 1));
+                SettingsDialog.makeGbc(1, 2, 1, 1));
         
         
         otherSettingsPanel.add(d.addSimpleBooleanSetting(
                 "printStreamStatus"),
-                d.makeGbc(0, 3, 4, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 3, 4, 1, GridBagConstraints.WEST));
     }
     
     public static JPanel createTimestampPanel(SettingsDialog d, String setting) {
@@ -177,26 +160,16 @@ public class MessageSettings extends SettingsPanel {
     
     private static class TimestampEditor extends JDialog {
         
-        private static final List<String> TIME_FORMATS = Arrays.asList(new String[]{
-            "HH:mm:ss", "HH:mm", "hh:mm:ss a", "hh:mm a", "h:mm a", "hh:mm:ssa", "hh:mma", "h:mma", ""
-        });
+        private static final List<String> TIME_FORMATS = Arrays.asList("HH:mm:ss", "HH:mm", "hh:mm:ss a", "hh:mm a", "h:mm a", "hh:mm:ssa", "hh:mma", "h:mma", "");
         
-        private static final List<String> DATE_FORMATS = Arrays.asList(new String[]{
-            "yyyy-MM-dd", "MMM d", "d MMM", "dd.MM.", ""
-        });
+        private static final List<String> DATE_FORMATS = Arrays.asList("yyyy-MM-dd", "MMM d", "d MMM", "dd.MM.", "");
         
         // Only for regex matching
-        private static final List<String> UPTIME_FORMATS = Arrays.asList(new String[]{
-            Timestamp.UPTIME_NO_CAPTURE.toString(), ""
-        });
+        private static final List<String> UPTIME_FORMATS = Arrays.asList(Timestamp.UPTIME_NO_CAPTURE.toString(), "");
         
-        private static final List<String> BEFORE = Arrays.asList(new String[]{
-            "[", " [", " "
-        });
+        private static final List<String> BEFORE = Arrays.asList("[", " [", " ");
         
-        private static final List<String> AFTER = Arrays.asList(new String[]{
-            "]", "] ", " "
-        });
+        private static final List<String> AFTER = Arrays.asList("]", "] ", " ");
         
         private final JTextField value = new JTextField(10);
         private final JTextField preview = new JTextField(10);
@@ -206,9 +179,7 @@ public class MessageSettings extends SettingsPanel {
         private final ComboStringSetting date;
         private final ComboStringSetting uptime;
         private final ComboLongSetting streamStatus;
-        private final JButton saveButton = new JButton(Language.getString("dialog.button.save"));
-        private final JButton cancelButton = new JButton(Language.getString("dialog.button.cancel"));
-        
+
         private boolean fillInProgress;
         private boolean save;
         
@@ -280,13 +251,13 @@ public class MessageSettings extends SettingsPanel {
             before.addActionListener(e -> formChanged());
             after.addActionListener(e -> formChanged());
             streamStatus.addActionListener(e -> updatePreview());
+            JButton saveButton = new JButton(Language.getString("dialog.button.save"));
             saveButton.addActionListener(e -> {
                 save = true;
                 setVisible(false);
             });
-            cancelButton.addActionListener(e -> {
-                setVisible(false);
-            });
+            JButton cancelButton = new JButton(Language.getString("dialog.button.cancel"));
+            cancelButton.addActionListener(e -> setVisible(false));
             
             preview.setEditable(false);
             
@@ -491,25 +462,15 @@ public class MessageSettings extends SettingsPanel {
         
         private List<String> sortFormats(List<String> formats) {
             List<String> sortedFormats = new ArrayList<>(formats);
-            Collections.sort(sortedFormats, new Comparator<String>() {
-
-                @Override
-                public int compare(String o1, String o2) {
-                    return -Integer.compare(o1.length(), o2.length());
-                }
-                
-            });
+            sortedFormats.sort((o1, o2) -> -Integer.compare(o1.length(), o2.length()));
             return sortedFormats;
         }
         
     }
     
     public static void main(String[] args) {
-        TimestampEditor s = new TimestampEditor(null, new LinkLabelListener() {
-            @Override
-            public void linkClicked(String type, String ref) {
-                
-            }
+        TimestampEditor s = new TimestampEditor(null, (type, ref) -> {
+
         });
         s.showDialog("[yyyy-MM-dd HH:mm]");
         System.exit(0);

@@ -31,7 +31,7 @@ public class DockStyledTabContainer<T extends JComponent> extends DockContentCon
         // Setting Constants
         //--------------------------
         // Used to encode several booleans in one integer
-        public final static int BOLD = 1 << 0;
+        public final static int BOLD = 1;
         public final static int ITALIC = 1 << 1;
         public final static int COLOR1 = 1 << 2;
         public final static int COLOR2 = 1 << 3;
@@ -135,7 +135,7 @@ public class DockStyledTabContainer<T extends JComponent> extends DockContentCon
         }
         
         public boolean hasNewHighlight() {
-            return hasHighlight;
+            return !hasHighlight;
         }
         
         public void setNewStatus(boolean newStatus) {
@@ -391,11 +391,10 @@ public class DockStyledTabContainer<T extends JComponent> extends DockContentCon
                 g.drawLine(fadeLength, y, getWidth() - fadeLength - 1, y);
                 for (int i = 0; i < fadeLength; i++) {
                     // Draw one pixel each left and right
-                    int xLeft = i;
                     int xRight = getWidth() - 1 - i;
                     int pixelAlpha = lowestAlpha + i * alphaStep;
                     g.setColor(new Color(lineColor.getRed(), lineColor.getGreen(), lineColor.getBlue(), pixelAlpha));
-                    g.drawLine(xLeft, y, xLeft, y);
+                    g.drawLine(i, y, i, y);
                     g.drawLine(xRight, y, xRight, y);
 //                    System.out.println(xLeft + " " + xRight + " " + pixelAlpha);
                 }

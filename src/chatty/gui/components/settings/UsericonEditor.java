@@ -3,20 +3,17 @@ package chatty.gui.components.settings;
 
 import chatty.Chatty;
 import chatty.Chatty.PathType;
-import chatty.util.api.usericons.Usericon;
-import chatty.util.api.usericons.Usericon.Type;
 import chatty.gui.GuiUtil;
-import chatty.gui.RegexDocumentFilter;
 import chatty.gui.components.LinkLabel;
 import chatty.gui.components.LinkLabelListener;
 import chatty.util.MiscUtil;
+import chatty.util.api.usericons.Usericon;
+import chatty.util.api.usericons.Usericon.Type;
 import chatty.util.api.usericons.UsericonFactory;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Window;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
@@ -25,20 +22,6 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.JToggleButton;
-import javax.swing.SwingConstants;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.text.PlainDocument;
 
 /**
  * Table to add/remove/edit usericons (badges).
@@ -192,7 +175,7 @@ class UsericonEditor extends TableEditor<Usericon> {
                 setText(icon.restrictionValue
                         +(icon.first ? " (first)" : "")
                         +(icon.stop ? " (stop)" : "")
-                        +(!icon.badgeTypeRestriction.isEmpty() ? " ["+icon.badgeTypeRestriction.toString()+"]" : "")
+                        +(!icon.badgeTypeRestriction.isEmpty() ? " ["+ icon.badgeTypeRestriction +"]" : "")
                 );
                 setForeground(defaultColor);
             }
@@ -234,9 +217,7 @@ class UsericonEditor extends TableEditor<Usericon> {
                 setIcon(null);
                 setText("No image");
             } else {
-                setIcon(icon.getIcon(1f, 0, (oldImage, newImage, sizeChanged) -> {
-                    comp.repaint();
-                }).getImageIcon());
+                setIcon(icon.getIcon(1f, 0, (oldImage, newImage, sizeChanged) -> comp.repaint()).getImageIcon());
                 setText(null);
             }
         }
@@ -335,13 +316,9 @@ class UsericonEditor extends TableEditor<Usericon> {
 
             fileName = new GenericComboSetting<>();
             fileName.setEditable(true);
-            fileName.addActionListener(new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    if (e.getActionCommand().equals("comboBoxChanged")) {
-                        update();
-                    }
+            fileName.addActionListener(e -> {
+                if (e.getActionCommand().equals("comboBoxChanged")) {
+                    update();
                 }
             });
 
@@ -372,22 +349,18 @@ class UsericonEditor extends TableEditor<Usericon> {
             gbc.weightx = 0.3;
             dialog.add(cancelButton, gbc);
             
-            ActionListener buttonAction = new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    if (e.getSource() == okButton) {
-                        save = true;
-                    }
-                    if (e.getSource() == okButton || e.getSource() == cancelButton) {
-                        dialog.setVisible(false);
-                    }
-                    else if (e.getSource() == openDir) {
-                        MiscUtil.openFile(Chatty.getPathCreate(PathType.IMAGE).toFile(), dialog);
-                    }
-                    else if (e.getSource() == scanDir) {
-                        scanFiles();
-                    }
+            ActionListener buttonAction = e -> {
+                if (e.getSource() == okButton) {
+                    save = true;
+                }
+                if (e.getSource() == okButton || e.getSource() == cancelButton) {
+                    dialog.setVisible(false);
+                }
+                else if (e.getSource() == openDir) {
+                    MiscUtil.openFile(Chatty.getPathCreate(PathType.IMAGE).toFile(), dialog);
+                }
+                else if (e.getSource() == scanDir) {
+                    scanFiles();
                 }
             };
             okButton.addActionListener(buttonAction);
@@ -481,13 +454,9 @@ class UsericonEditor extends TableEditor<Usericon> {
             panel.add(preview, gbc);
             
             final JToggleButton sourceInfoButton = new JToggleButton("Image Folder");
-            sourceInfoButton.addActionListener(new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    folderPanel.setVisible(sourceInfoButton.isSelected());
-                    updateSize();
-                }
+            sourceInfoButton.addActionListener(e -> {
+                folderPanel.setVisible(sourceInfoButton.isSelected());
+                updateSize();
             });
             GuiUtil.smallButtonInsets(sourceInfoButton);
             gbc = GuiUtil.makeGbc(2, 7, 1, 1);
@@ -503,7 +472,7 @@ class UsericonEditor extends TableEditor<Usericon> {
         }
         
         private void createIcon(boolean preview) {
-            String file = (String)fileName.getSettingValue();
+            String file = fileName.getSettingValue();
             if (preview) {
                 currentIcon = UsericonFactory.createCustomIcon(Type.UNDEFINED, null, null, file, null, null);
             } else if (type.getSettingValue() != null) {
@@ -536,9 +505,7 @@ class UsericonEditor extends TableEditor<Usericon> {
 //            } else if (currentIcon.image == null) {
 //                preview.setText(ERROR_LOADING_IMAGE);
             } else {
-                ImageIcon image = currentIcon.getIcon(1f, 0, (oldImage, newImage, sizeChanged) -> {
-                    preview.repaint();
-                }).getImageIcon();
+                ImageIcon image = currentIcon.getIcon(1f, 0, (oldImage, newImage, sizeChanged) -> preview.repaint()).getImageIcon();
                 preview.setIcon(image);
                 preview.setText(image.getIconWidth()+"x"+image.getIconHeight());
             }
@@ -596,7 +563,7 @@ class UsericonEditor extends TableEditor<Usericon> {
         private void scanFiles() {
             File file = Chatty.getPath(PathType.IMAGE).toFile();
             File[] files = file.listFiles(new ImageFilenameFilter());
-            String resultText = "";
+            String resultText;
             
             Object selected = fileName.getSelectedItem();
             fileName.removeAllItems();
@@ -637,10 +604,7 @@ class UsericonEditor extends TableEditor<Usericon> {
 
         @Override
         public boolean accept(File dir, String name) {
-            if (name.endsWith(".png")) {
-                return true;
-            }
-            return false;
+            return name.endsWith(".png");
         }
     }
     

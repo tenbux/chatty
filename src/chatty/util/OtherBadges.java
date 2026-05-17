@@ -5,14 +5,15 @@ import chatty.Chatty;
 import chatty.util.api.CachedManager;
 import chatty.util.api.usericons.Usericon;
 import chatty.util.api.usericons.UsericonFactory;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 
 /**
  *
@@ -48,14 +49,12 @@ public class OtherBadges {
          * on demand, but this will do for now.
          */
         new Thread(() -> {
-            if (forcedRefresh || !cache.load()) {
+            if (forcedRefresh || cache.load()) {
                 String url = "https://tduva.com/res/badges";
                 //url = "http://127.0.0.1/twitch/badges/badges";
                 UrlRequest request = new UrlRequest(url);
                 request.setLabel("Other Badges");
-                request.async((result, responseCode) -> {
-                    cache.dataReceived(result, forcedRefresh);
-                });
+                request.async((result, responseCode) -> cache.dataReceived(result, forcedRefresh));
             }
         }).start();
     }
@@ -104,8 +103,7 @@ public class OtherBadges {
 //                userids.add("36194025");
             }
 
-            Usericon icon = UsericonFactory.createThirdParty(id, version, url, url2, title, metaUrl, color, usernames, userids, position);
-            return icon;
+            return UsericonFactory.createThirdParty(id, version, url, url2, title, metaUrl, color, usernames, userids, position);
         } catch (Exception ex) {
             LOGGER.warning("Error parsing third-party badge: " + ex);
         }
@@ -113,7 +111,7 @@ public class OtherBadges {
     }
     
     public interface OtherBadgesListener {
-        public void received(List<Usericon> badges);
+        void received(List<Usericon> badges);
     }
     
 }

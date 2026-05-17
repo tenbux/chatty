@@ -1,10 +1,7 @@
 
 package chatty.gui.components.settings;
 
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JSlider;
-import javax.swing.event.ChangeEvent;
+import javax.swing.*;
 import javax.swing.event.ChangeListener;
 
 /**
@@ -16,7 +13,7 @@ import javax.swing.event.ChangeListener;
 public class SliderLongSetting extends JPanel implements LongSetting {
     
     private final JSlider slider;
-    private long value = 0;
+    private long value;
     private final JLabel valueLabel;
     private final static String LABEL_PREFIX = "<html><body style='"
             + "width: 30px;"
@@ -32,13 +29,9 @@ public class SliderLongSetting extends JPanel implements LongSetting {
         valueLabel = new JLabel(LABEL_PREFIX);
         valueLabel.setMinimumSize(valueLabel.getPreferredSize());
         
-        slider.addChangeListener(new ChangeListener() {
-
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                value = slider.getValue();
-                updateLabel();
-            }
+        slider.addChangeListener(e -> {
+            value = slider.getValue();
+            updateLabel();
         });
         
         add(slider);
@@ -63,7 +56,7 @@ public class SliderLongSetting extends JPanel implements LongSetting {
     }
     
     private void updateLabel() {
-        valueLabel.setText(LABEL_PREFIX+new Long(value).toString());
+        valueLabel.setText(LABEL_PREFIX+ value);
     }
     
     public void setMajorTickSpacing(int value) {

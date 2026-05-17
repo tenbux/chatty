@@ -27,7 +27,7 @@ interface Item {
      * @param parameters
      * @return
      */
-    public String replace(Parameters parameters);
+    String replace(Parameters parameters);
 
     /**
      * Returns all identifiers that start with the given prefix (can be empty to
@@ -36,14 +36,14 @@ interface Item {
      * @param prefix
      * @return A set of identifiers, empty if none are found
      */
-    public Set<String> getIdentifiersWithPrefix(String prefix);
+    Set<String> getIdentifiersWithPrefix(String prefix);
     
     /**
      * Returns all identifiers if this replacement is required.
      * 
      * @return 
      */
-    public Set<String> getRequiredIdentifiers();
+    Set<String> getRequiredIdentifiers();
     
     /**
      * If isRequired is true, returns all identifiers in the specified items.
@@ -52,7 +52,7 @@ interface Item {
      * @param input The items to look for identifiers in
      * @return A Set of identifiers, or null
      */
-    public static Set<String> getRequiredIdentifiers(boolean isRequired, Object... input) {
+    static Set<String> getRequiredIdentifiers(boolean isRequired, Object... input) {
         if (isRequired) {
             return getIdentifiersWithPrefix("", input);
         }
@@ -66,7 +66,7 @@ interface Item {
      * @param input Can be one or several {@code String} or {@code Item} objects
      * @return The prefixes, may be empty, but never {@code null}
      */
-    public static Set<String> getIdentifiersWithPrefix(String prefix, Object... input) {
+    static Set<String> getIdentifiersWithPrefix(String prefix, Object... input) {
         return getIdentifiersWithPrefix(prefix, false, input);
     }
     
@@ -78,31 +78,33 @@ interface Item {
      * @param input Can be one or several {@code String} or {@code Item} objects
      * @return The prefixes, may be empty, but never {@code null}
      */
-    public static Set<String> getIdentifiersWithPrefix(String prefix, boolean required, Object... input) {
+    static Set<String> getIdentifiersWithPrefix(String prefix, boolean required, Object... input) {
         Set<String> output = new HashSet<>();
         for (Object value : input) {
             if (value != null) {
-                if (value instanceof String) {
-                    if (((String) value).startsWith(prefix)) {
-                        output.add((String) value);
-                    }
-                }
-                else if (value instanceof List) {
-                    for (Object o : (List) value) {
-                        if (o instanceof Item) {
-                            addItemIdentifiers(prefix, required, (Item) o, output);
+                switch (value) {
+                    case String s -> {
+                        if (s.startsWith(prefix)) {
+                            output.add(s);
                         }
                     }
-                }
-                else if (value instanceof Item) {
-                    addItemIdentifiers(prefix, required, (Item) value, output);
+                    case List list -> {
+                        for (Object o : list) {
+                            if (o instanceof Item) {
+                                addItemIdentifiers(prefix, required, (Item) o, output);
+                            }
+                        }
+                    }
+                    case Item item -> addItemIdentifiers(prefix, required, item, output);
+                    default -> {
+                    }
                 }
             }
         }
         return output;
     }
 
-    public static void addItemIdentifiers(String prefix, boolean required, Item item, Set<String> result) {
+    static void addItemIdentifiers(String prefix, boolean required, Item item, Set<String> result) {
         Set<String> value;
         if (required) {
             value = item.getRequiredIdentifiers();
@@ -132,7 +134,7 @@ interface Item {
      * @return {@code true} if replacing can continue, {@code false} if it
      * should be stopped due to not available required values
      */
-    public static boolean checkReq(boolean isRequired, String... values) {
+    static boolean checkReq(boolean isRequired, String... values) {
         for (String value : values) {
             if (value == null) {
                 return false;

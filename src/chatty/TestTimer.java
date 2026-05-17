@@ -3,13 +3,7 @@ package chatty;
 
 import chatty.util.commands.CustomCommand;
 import chatty.util.commands.Parameters;
-import java.math.BigInteger;
-import java.security.SecureRandom;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -45,9 +39,7 @@ public class TestTimer implements Runnable {
     
     public static void testTimer(TwitchClient client, Room room, String command, int repeats, int delay) {
         CustomCommand cc = CustomCommand.parse(command);
-        new Thread(new TestTimer(i -> {
-            client.anonCustomCommand(room, cc, Parameters.create(String.valueOf(i)));
-        }, repeats, delay)).start();
+        new Thread(new TestTimer(i -> client.anonCustomCommand(room, cc, Parameters.create(String.valueOf(i))), repeats, delay)).start();
     }
     
 }

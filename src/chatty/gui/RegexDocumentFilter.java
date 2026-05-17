@@ -4,17 +4,15 @@ package chatty.gui;
 import chatty.gui.components.SimplePopup;
 import chatty.lang.Language;
 import chatty.util.StringUtil;
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.swing.JFrame;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
+
+import javax.swing.*;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
+import java.awt.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A document filter that removes text based on a regular expression.
@@ -37,9 +35,7 @@ public class RegexDocumentFilter extends DocumentFilter {
     public RegexDocumentFilter(String regex, Component popupOwner) {
         pattern = Pattern.compile(regex);
         if (popupOwner != null) {
-            popup = new SimplePopup(popupOwner, () -> {
-                latestFiltered = "";
-            });
+            popup = new SimplePopup(popupOwner, () -> latestFiltered = "");
         }
         else {
             popup = null;
@@ -54,7 +50,7 @@ public class RegexDocumentFilter extends DocumentFilter {
     public void insertString(DocumentFilter.FilterBypass fb, int off, String str, AttributeSet attr) {
         try {
             fb.insertString(off, getFiltered(str), attr);
-        } catch (BadLocationException | NullPointerException ex) {
+        } catch (BadLocationException | NullPointerException ignored) {
             
         }
     }
@@ -67,7 +63,7 @@ public class RegexDocumentFilter extends DocumentFilter {
             } else {
                 fb.replace(off, len, getFiltered(str), attr);
             }
-        } catch (BadLocationException | NullPointerException ex) {
+        } catch (BadLocationException | NullPointerException ignored) {
             
         }
     }
@@ -76,7 +72,7 @@ public class RegexDocumentFilter extends DocumentFilter {
         Matcher m = pattern.matcher(input);
         boolean result = m.find();
         if (result) {
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
             StringBuilder filtered = new StringBuilder();
             do {
                 m.appendReplacement(sb, "");

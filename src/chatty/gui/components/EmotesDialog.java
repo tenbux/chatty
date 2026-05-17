@@ -9,77 +9,33 @@ import chatty.gui.MainGui;
 import chatty.gui.components.menus.ContextMenu;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.menus.EmoteContextMenu;
-import chatty.gui.components.settings.SettingsUtil;
 import chatty.lang.Language;
-import chatty.util.ChattyMisc;
 import chatty.util.Debugging;
 import chatty.util.MiscUtil;
 import chatty.util.StringUtil;
 import chatty.util.TwitchEmotesApi;
 import chatty.util.TwitchEmotesApi.EmotesetInfo;
-import chatty.util.api.CheerEmoticon;
-import chatty.util.api.Emoticon;
-import chatty.util.api.Emoticons;
-import chatty.util.api.CachedImage;
+import chatty.util.api.*;
+import chatty.util.api.CachedImage.CachedImageUser;
 import chatty.util.api.CachedImage.ImageType;
+import chatty.util.api.Emoticon.TypeCategory;
+import chatty.util.api.EmoticonFavorites.Favorite;
 import chatty.util.colors.ColorCorrection;
 import chatty.util.colors.ColorCorrectionNew;
 import chatty.util.colors.HtmlColors;
-import java.awt.BorderLayout;
-import java.awt.CardLayout;
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Image;
-import java.awt.Insets;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.swing.BorderFactory;
-import javax.swing.ButtonGroup;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComponent;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
-import javax.swing.JSeparator;
-import javax.swing.JToggleButton;
-import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
+
+import javax.swing.*;
 import javax.swing.Timer;
 import javax.swing.border.Border;
-import chatty.util.api.CachedImage.CachedImageUser;
-import chatty.util.api.Emoticon.TypeCategory;
-import chatty.util.api.EmoticonFavorites.Favorite;
-import chatty.util.api.IgnoredEmotes;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
-import javax.swing.AbstractAction;
-import javax.swing.DefaultListModel;
-import javax.swing.JList;
-import javax.swing.JMenuItem;
-import javax.swing.JTextField;
-import javax.swing.KeyStroke;
+import java.awt.event.MouseEvent;
+import java.util.*;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Dialog showing emoticons that can be clicked on to insert them in the last
@@ -167,13 +123,9 @@ public class EmotesDialog extends JDialog {
         super(owner);
         
         this.main = main;
-        emoteUser = new CachedImageUser() {
-
-            @Override
-            public void iconLoaded(Image oldImage, Image newImage, boolean sizeChanged) {
+        emoteUser = (oldImage, newImage, sizeChanged) -> {
 //                repaint = true;
-                repaint();
-            }
+            repaint();
         };
         
         // TODO: Focusable or maybe just when clicked on emote to insert code?
@@ -217,14 +169,10 @@ public class EmotesDialog extends JDialog {
         //--------------------------
         // Buttons for those panels
         //--------------------------
-        ActionListener buttonAction = new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                EmotesPanel emotesPanel = buttons.get(e.getSource());
-                if (emotesPanel != null) {
-                    showPanel(emotesPanel);
-                }
+        ActionListener buttonAction = e -> {
+            EmotesPanel emotesPanel = buttons.get(e.getSource());
+            if (emotesPanel != null) {
+                showPanel(emotesPanel);
             }
         };
         
@@ -394,9 +342,7 @@ public class EmotesDialog extends JDialog {
             search = StringUtil.toLowerCase(searchField.getText());
             update();
         });
-        closeButton.addActionListener(e -> {
-            closeSearch();
-        });
+        closeButton.addActionListener(e -> closeSearch());
         
         searchPanel.add(label);
         searchPanel.add(searchField);
@@ -678,11 +624,7 @@ public class EmotesDialog extends JDialog {
             if (emote.subType == Emoticon.SubType.CHEER) {
                 setToolTipText(emote.getInfos().toString());
             }
-            if (emote.subType == Emoticon.SubType.CHEER) {
-                noInsert = true;
-            } else {
-                noInsert = false;
-            }
+            noInsert = emote.subType == Emoticon.SubType.CHEER;
             if (extraBorder != null) {
                 setBorder(BorderFactory.createCompoundBorder(BORDER, extraBorder));
             }
@@ -843,7 +785,7 @@ public class EmotesDialog extends JDialog {
         boolean addEmotesBySets(String titlePrefix, Set<EmotesetInfo> emotesets, boolean allowHide) {
             List<String> sets = new ArrayList<>();
             for (EmotesetInfo set : emotesets) {
-                sets.add(set.emoteset_id);
+                sets.add(set.emoteset_id());
             }
             Collections.sort(sets);
             List<Emoticon> sorted = new ArrayList<>();
@@ -1075,7 +1017,7 @@ public class EmotesDialog extends JDialog {
         void addEmotesSection(Collection<Emoticon> emotes, String title, String hideId) {
             Set<String> hideIds = null;
             if (hideId != null) {
-                hideIds = new HashSet<>(Arrays.asList(new String[]{hideId}));
+                hideIds = new HashSet<>(List.of(hideId));
             }
             addEmotesSection(emotes, title, hideIds);
         }
@@ -1112,7 +1054,7 @@ public class EmotesDialog extends JDialog {
             }
             List<Emoticon> emotes = new ArrayList<>(ignoredEmotes);
             String title = filterEmotesForSearch(emotes, "Ignored emotes");
-            Set<String> hideIds = new HashSet<>(Arrays.asList(new String[]{"$ignored$"}));
+            Set<String> hideIds = new HashSet<>(List.of("$ignored$"));
             addTitle(title, null, hideIds);
             if (isHidden(hideIds) && !emotes.isEmpty()) {
                 addEmotesPanel(emotes);
@@ -1131,10 +1073,8 @@ public class EmotesDialog extends JDialog {
         private String filterEmotesForSearch(Collection<Emoticon> emotes, String titlePrefix) {
             int numEmotes = emotes.size();
             if (!StringUtil.isNullOrEmpty(search)) {
-                emotes.removeIf(e -> {
-                    return !e.code.toLowerCase().contains(search)
-                            && !(e.type == Emoticon.Type.EMOJI && e.stringId.contains(search));
-                });
+                emotes.removeIf(e -> !e.code.toLowerCase().contains(search)
+                        && !(e.type == Emoticon.Type.EMOJI && e.stringId.contains(search)));
             }
             int numEmotesFiltered = emotes.size();
             String fullTitle;
@@ -1153,7 +1093,7 @@ public class EmotesDialog extends JDialog {
         List<Emoticon> sortEmotes(Collection<Emoticon> emotes) {
             // Copy so the original doesn't get changed
             List<Emoticon> sorted = new ArrayList<>(emotes);
-            Collections.sort(sorted, new SortEmotes());
+            sorted.sort(new SortEmotes());
             return sorted;
         }
         
@@ -1178,7 +1118,7 @@ public class EmotesDialog extends JDialog {
             reset();
             
             List<Emoticon> favs = new ArrayList<>(emoteManager.getFavorites());
-            Collections.sort(favs, new SortEmotes());
+            favs.sort(new SortEmotes());
             
             List<Emoticon> chanSpecificFavs = new ArrayList<>(emoteManager.getUsableEmotesByStream(currentStream));
             chanSpecificFavs.removeIf(emote -> !emoteManager.isFavorite(emote));
@@ -1210,7 +1150,7 @@ public class EmotesDialog extends JDialog {
         private void addNotFoundList(Collection<Emoticon> chanSpecificFavs) {
             Collection<Favorite> notFoundFavorites = getFilteredNotFound(chanSpecificFavs);
             if (!notFoundFavorites.isEmpty()) {
-                addTitle(Language.getString("emotesDialog.notFoundFavorites") + " (" + notFoundFavorites.size() + ")", null, Arrays.asList("$favsNotFound$"));
+                addTitle(Language.getString("emotesDialog.notFoundFavorites") + " (" + notFoundFavorites.size() + ")", null, List.of("$favsNotFound$"));
                 if (isHidden("$favsNotFound$")) {
                     // List
                     JList<Favorite> list = new JList<>();
@@ -1219,13 +1159,13 @@ public class EmotesDialog extends JDialog {
                     
                     DefaultListModel<Favorite> data = new DefaultListModel<>();
                     list.setModel(data);
-                    notFoundFavorites.forEach(fav -> data.addElement(fav));
+                    notFoundFavorites.forEach(data::addElement);
                     
                     Runnable removeAction = () -> {
                         // Remove selected entries
                         Collection<Favorite> toRemove = list.getSelectedValuesList();
                         emoteManager.removeFavorites(toRemove);
-                        toRemove.forEach(fav -> data.removeElement(fav));
+                        toRemove.forEach(data::removeElement);
                         // For updating title
                         updateEmotes();
                     };
@@ -1248,9 +1188,7 @@ public class EmotesDialog extends JDialog {
                     
                     // Remove Button
                     JButton removeButton = new JButton(Language.getString("emotesDialog.button.unfavoriteSelected"));
-                    removeButton.addActionListener(e -> {
-                        removeAction.run();
-                    });
+                    removeButton.addActionListener(e -> removeAction.run());
                     
                     // Layout
                     JPanel panel = new JPanel(new BorderLayout());
@@ -1336,9 +1274,9 @@ public class EmotesDialog extends JDialog {
             Map<String, Set<Emoticon>> perOwnerId = new HashMap<>();
             for (String emoteset : localUserEmotesets) {
                 EmotesetInfo newInfo = emoteManager.getInfoBySet(emoteset);
-                if (newInfo != null && newInfo.stream_id != null) {
+                if (newInfo != null && newInfo.stream_id() != null) {
                     Set<Emoticon> emotes = emoteManager.getEmoticonsBySet(emoteset);
-                    MiscUtil.getSetFromMap(perOwnerId, newInfo.stream_id).addAll(emotes);
+                    MiscUtil.getSetFromMap(perOwnerId, newInfo.stream_id()).addAll(emotes);
                 }
             }
             Map<String, String> prefixesByOwnerId = new HashMap<>();
@@ -1364,8 +1302,8 @@ public class EmotesDialog extends JDialog {
                     Set<Emoticon> emotes = emoteManager.getEmoticonsBySet(emoteset);
                     String emotePrefix = getPrefix(emotes);
                     EmotesetInfo newInfo = emoteManager.getInfoBySet(emoteset);
-                    if (newInfo != null && newInfo.stream_id != null && prefixesByOwnerId.containsKey(newInfo.stream_id)) {
-                        emotePrefix = prefixesByOwnerId.get(newInfo.stream_id);
+                    if (newInfo != null && newInfo.stream_id() != null && prefixesByOwnerId.containsKey(newInfo.stream_id())) {
+                        emotePrefix = prefixesByOwnerId.get(newInfo.stream_id());
                     }
                     if (emotePrefix == null) {
                         if (emotes.size() == 1) {
@@ -1398,7 +1336,7 @@ public class EmotesDialog extends JDialog {
                 Map.Entry<String, Set<EmotesetInfo>> entry = it.next();
                 String key = entry.getKey();
                 Set<EmotesetInfo> sets = entry.getValue();
-                String emoteset = sets.iterator().next().emoteset_id;
+                String emoteset = sets.iterator().next().emoteset_id();
                 if (sets.size() == 1 && emoteManager.getEmoticonsBySet(emoteset).size() == 1) {
                     unknownEmotesetsSingle.add(emoteset);
                 }
@@ -1416,18 +1354,18 @@ public class EmotesDialog extends JDialog {
             // Add emotes
             //------------
             List<String> sortedStreams = new ArrayList<>(perStream.keySet());
-            Collections.sort(sortedStreams, String.CASE_INSENSITIVE_ORDER);
+            sortedStreams.sort(String.CASE_INSENSITIVE_ORDER);
             for (String stream : sortedStreams) {
                 addEmotesBySets(stream, perStream.get(stream), true);
             }
             
             List<String> sortedInfos = new ArrayList<>(perInfo.keySet());
-            Collections.sort(sortedInfos, String.CASE_INSENSITIVE_ORDER);
+            sortedInfos.sort(String.CASE_INSENSITIVE_ORDER);
             for (String info : sortedInfos) {
                 addEmotesBySets(info, perInfo.get(info), true);
             }
             
-            Collections.sort(unknownEmotesets, SORT_EMOTESETS);
+            unknownEmotesets.sort(SORT_EMOTESETS);
             for (String emoteset : unknownEmotesets) {
                 addEmotesBySet(emoteset, true);
             }
@@ -1529,13 +1467,13 @@ public class EmotesDialog extends JDialog {
             Debugging.println("emoteinfo", "ADDSUBEMOTES %s", sets);
             // Subscriber Emotes
             if (sets != null && !sets.isEmpty()) {
-                boolean streamMatches = stream != null && stream.equals(sets.iterator().next().stream_name);
+                boolean streamMatches = stream != null && stream.equals(sets.iterator().next().stream_name());
                 if (streamMatches) {
                     // Split subemotes with and without access
                     Set<EmotesetInfo> withAccess = new HashSet<>();
                     Set<EmotesetInfo> noAccess = new HashSet<>();
                     for (EmotesetInfo set : sets) {
-                        if (localUserEmotesets.contains(set.emoteset_id)) {
+                        if (localUserEmotesets.contains(set.emoteset_id())) {
                             withAccess.add(set);
                         } else {
                             noAccess.add(set);
@@ -1628,9 +1566,7 @@ public class EmotesDialog extends JDialog {
             
             Collection<CheerEmoticon> cheerEmotes = emoteManager.getCheerEmotes();
             Collection<Emoticon> emotes = new ArrayList<>();
-            for (CheerEmoticon emote : cheerEmotes) {
-                emotes.add((Emoticon)emote);
-            }
+            emotes.addAll(cheerEmotes);
             //addEmotesPanel(emotes);
             
             relayout();
@@ -1656,7 +1592,7 @@ public class EmotesDialog extends JDialog {
                         continue;
                     }
                     if (!categories.containsKey(info)) {
-                        categories.put(info, new HashSet<Emoticon>());
+                        categories.put(info, new HashSet<>());
                     }
                     categories.get(info).add(emote);
                 }
@@ -1677,7 +1613,7 @@ public class EmotesDialog extends JDialog {
             super(name, updateOn);
         }
         
-        private GridBagConstraints lgbc = new GridBagConstraints();
+        private final GridBagConstraints lgbc = new GridBagConstraints();
         
         @Override
         protected void updateEmotes() {
@@ -1737,7 +1673,7 @@ public class EmotesDialog extends JDialog {
             if (!emote.hasGlobalEmoteset()) {
                 String emoteset = emote.emoteset;
                 if (!emoteset.equals(Emoticon.SET_UNKNOWN)) {
-                    String info = String.valueOf(emoteset);
+                    String info = emoteset;
                     if (Emoticons.isTurboEmoteset(emoteset)) {
                         info += " (Turbo)";
                     }

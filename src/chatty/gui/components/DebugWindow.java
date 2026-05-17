@@ -4,17 +4,16 @@ package chatty.gui.components;
 import chatty.gui.components.textpane.ChannelTextPane;
 import chatty.util.DateTime;
 import chatty.util.Debugging;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.event.ItemListener;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultCaret;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
+import java.awt.*;
+import java.awt.event.ItemListener;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -54,9 +53,7 @@ public class DebugWindow extends JFrame {
         
         // Other Debug Stuff (Debugging class)
         otherLog = createLogArea();
-        Debugging.registerForOutput(line -> {
-            SwingUtilities.invokeLater(() -> printLine(otherLog, line));
-        });
+        Debugging.registerForOutput(line -> SwingUtilities.invokeLater(() -> printLine(otherLog, line)));
         
         // Timer Log
         timerLog = createLogArea();

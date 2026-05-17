@@ -5,32 +5,21 @@ import chatty.Helper;
 import chatty.gui.GuiUtil;
 import chatty.gui.Highlighter;
 import chatty.gui.components.textpane.ChannelTextPane;
-import chatty.util.colors.HtmlColors;
-import chatty.util.ImageCache;
-import chatty.util.ImageCache.ImageRequest;
-import chatty.util.ImageCache.ImageResult;
 import chatty.util.StringUtil;
 import chatty.util.api.CachedImage;
 import chatty.util.api.CachedImageManager;
+import chatty.util.colors.HtmlColors;
 import chatty.util.irc.IrcBadges;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Image;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.swing.ImageIcon;
 
 /**
  * A single usericon (badge) with an image and information on where (channel)
@@ -82,12 +71,12 @@ public class Usericon implements Comparable {
         FIRSTMSG(18, "First Message in Channel", "FMG", "'", null, null),
         UNDEFINED(-1, "Undefined", "UDF", null, null, null);
         
-        public Color color;
-        public String label;
-        public String shortLabel;
-        public int id;
-        public String symbol;
-        public String badgeId;
+        public final Color color;
+        public final String label;
+        public final String shortLabel;
+        public final int id;
+        public final String symbol;
+        public final String badgeId;
         
         Type(int id, String label, String shortLabel, String symbol,
                 String badgeId, Color color) {
@@ -308,16 +297,8 @@ public class Usericon implements Comparable {
         this.baseImageSize = builder.baseImageSize;
         
         // If no url is set, assume that no image is supposed to be used
-        if (builder.url == null) {
-            removeBadge = true;
-        } else {
-            removeBadge = false;
-        }
-        if (fileName != null && fileName.startsWith("$")) {
-            hasRegularImage = false;
-        } else {
-            hasRegularImage = true;
-        }
+        removeBadge = builder.url == null;
+        hasRegularImage = fileName == null || !fileName.startsWith("$");
         
         //-------------
         // Restriction
@@ -485,9 +466,7 @@ public class Usericon implements Comparable {
              * versions.
              */
             customKey = customKey+"/"+opacity;
-            imageModifier = (icon) -> {
-                return ChannelTextPane.getIconWithOpacity(icon, opacity).getImage();
-            };
+            imageModifier = (icon) -> ChannelTextPane.getIconWithOpacity(icon, opacity).getImage();
         }
         return images.getIcon(scale, maxHeight, customKey, CachedImage.ImageType.STATIC, imageModifier, user);
     }
@@ -529,13 +508,13 @@ public class Usericon implements Comparable {
      * @return 
      */
     private ImageIcon substituteColor(ImageIcon icon) {
-        if (type == Type.OTHER && badgeType.id == null) {
+        if (type == Type.OTHER && badgeType.id() == null) {
             LOGGER.warning("Badge of type OTHER has no id set: "+this);
             return icon;
         }
-        if (type == Type.OTHER && badgeType.id.equals("announcement")) {
+        if (type == Type.OTHER && badgeType.id().equals("announcement")) {
             Color search = Color.BLACK;
-            Color target = HtmlColors.decode(badgeType.version);
+            Color target = HtmlColors.decode(badgeType.version());
             if (!search.equals(target)) {
                 return GuiUtil.substituteColor(icon, search, target);
             }
@@ -554,8 +533,7 @@ public class Usericon implements Comparable {
      */
     @Override
     public int compareTo(Object o) {
-        if (o instanceof Usericon) {
-            Usericon icon = (Usericon)o;
+        if (o instanceof Usericon icon) {
             if (icon.source > source) {
                 return 1;
             } else if (icon.source < source) {
@@ -577,8 +555,8 @@ public class Usericon implements Comparable {
     public String toString() {
         return String.format("%s[%s,%s]/%s/%s/%s(%s)", 
                 typeToString(type),
-                badgeType.id,
-                badgeType.version,
+                badgeType.id(),
+                badgeType.version(),
                 source,
                 channelRestriction,
                 restriction,
@@ -588,13 +566,13 @@ public class Usericon implements Comparable {
     public String readableLenientType() {
         Type type = this.type;
         if (type == Type.TWITCH) {
-            type = typeFromBadgeId(badgeType.id);
+            type = typeFromBadgeId(badgeType.id());
         }
         if (type == null) {
-            return badgeType.id;
+            return badgeType.id();
         }
         if (type == Type.OTHER) {
-            return "Other/"+badgeType.id;
+            return "Other/"+ badgeType.id();
         }
         return type.label;
     }
@@ -611,8 +589,8 @@ public class Usericon implements Comparable {
         if (type.symbol != null) {
             return type.symbol;
         }
-        if (typeFromBadgeId(badgeType.id) != null) {
-            return typeFromBadgeId(badgeType.id).symbol;
+        if (typeFromBadgeId(badgeType.id()) != null) {
+            return typeFromBadgeId(badgeType.id()).symbol;
         }
         return "?";
     }
@@ -638,7 +616,7 @@ public class Usericon implements Comparable {
         badgesDef.forEach((id, version) -> {
             Type type = typeFromBadgeId(id);
             if (type != null) {
-                if (b.length() > 0) {
+                if (!b.isEmpty()) {
                     b.append("|");
                 }
                 b.append(type.shortLabel);
@@ -647,7 +625,7 @@ public class Usericon implements Comparable {
                 }
             }
         });
-        if (b.length() > 0) {
+        if (!b.isEmpty()) {
             b.insert(0, "[");
             b.append("]");
         }
@@ -782,14 +760,14 @@ public class Usericon implements Comparable {
         
         public Builder setUsernames(Collection<String> usernames) {
             if (usernames != null) {
-                this.usernames = Collections.unmodifiableSet(new HashSet<>(usernames));
+                this.usernames = Set.copyOf(usernames);
             }
             return this;
         }
         
         public Builder setUserids(Collection<String> userids) {
             if (userids != null) {
-                this.userids = Collections.unmodifiableSet(new HashSet<>(userids));
+                this.userids = Set.copyOf(userids);
             }
             return this;
         }

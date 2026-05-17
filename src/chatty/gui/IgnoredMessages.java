@@ -1,11 +1,9 @@
 
 package chatty.gui;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import javax.swing.*;
 import java.util.HashMap;
 import java.util.Map;
-import javax.swing.Timer;
 
 /**
  * Counts ignored messges and outputs that number in regular intervals (if > 0).
@@ -32,13 +30,7 @@ public class IgnoredMessages {
     public IgnoredMessages(MainGui g) {
         this.g = g;
         
-        Timer timer = new Timer(DELAY*1000, new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                output();
-            }
-        });
+        Timer timer = new Timer(DELAY*1000, e -> output());
         timer.setRepeats(true);
         timer.start();
     }

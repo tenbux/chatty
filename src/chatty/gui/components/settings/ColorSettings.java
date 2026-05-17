@@ -122,14 +122,12 @@ public class ColorSettings extends SettingsPanel {
     private final SettingsDialog d;
     private final Map<String, ColorSetting> colorSettings = new HashMap<>();
     private ColorChooser colorChooser;
-    private final JPanel mainPanel;
     private final JPanel colorsPanel;
-    private final ColorTemplates presets;
-    
+
     public ColorSettings(SettingsDialog d, Settings settings) {
         this.d = d;
 
-        mainPanel = addTitledPanel(Language.getString("settings.section.colors"), 0);
+        JPanel mainPanel = addTitledPanel(Language.getString("settings.section.colors"), 0);
         colorsPanel = new JPanel(new GridBagLayout());
         
         GridBagConstraints gbc;
@@ -201,61 +199,61 @@ public class ColorSettings extends SettingsPanel {
         // Template definition
         //=====================
         // The order the settings are added in matters for presets
-        presets = new ColorTemplates(settings, "colorPresets",
+        ColorTemplates presets = new ColorTemplates(settings, "colorPresets",
                 new StringSetting[]{
-                    backgroundColor,
-                    addColorSetting(
-                            "foregroundColor",
-                            ColorSetting.FOREGROUND,
-                            "backgroundColor",
-                            Language.getString("settings.colors.foreground"),
-                            0, 1),
-                    addColorSetting(
-                            "infoColor",
-                            ColorSetting.FOREGROUND,
-                            "backgroundColor",
-                            Language.getString("settings.colors.info"),
-                            6, 0),
-                    addColorSetting(
-                            "compactColor",
-                            ColorSetting.FOREGROUND,
-                            "backgroundColor",
-                            Language.getString("settings.colors.compact"),
-                            6, 1),
-                    highlightColor,
-                    addColorSetting(
-                            "inputBackgroundColor",
-                            ColorSetting.BACKGROUND,
-                            "inputForegroundColor",
-                            Language.getString("settings.colors.inputBackground"),
-                            7, 0),
-                    addColorSetting(
-                            "inputForegroundColor",
-                            ColorSetting.FOREGROUND,
-                            "inputBackgroundColor",
-                            Language.getString("settings.colors.inputForeground"),
-                            7, 1),
-                    addColorSetting(
-                            "searchResultColor",
-                            ColorSetting.BACKGROUND,
-                            "foregroundColor",
-                            Language.getString("settings.colors.searchResult"),
-                            14, 0),
-                    addColorSetting(
-                            "searchResultColor2",
-                            ColorSetting.BACKGROUND,
-                            "foregroundColor",
-                            Language.getString("settings.colors.searchResult2"),
-                            14, 1),
-                    backgroundColor2,
-                    highlightBackgroundColor,
-                    separatorColor,
-                    timestampColor,
-                    timestampInheritSelection
+                        backgroundColor,
+                        addColorSetting(
+                                "foregroundColor",
+                                ColorSetting.FOREGROUND,
+                                "backgroundColor",
+                                Language.getString("settings.colors.foreground"),
+                                0, 1),
+                        addColorSetting(
+                                "infoColor",
+                                ColorSetting.FOREGROUND,
+                                "backgroundColor",
+                                Language.getString("settings.colors.info"),
+                                6, 0),
+                        addColorSetting(
+                                "compactColor",
+                                ColorSetting.FOREGROUND,
+                                "backgroundColor",
+                                Language.getString("settings.colors.compact"),
+                                6, 1),
+                        highlightColor,
+                        addColorSetting(
+                                "inputBackgroundColor",
+                                ColorSetting.BACKGROUND,
+                                "inputForegroundColor",
+                                Language.getString("settings.colors.inputBackground"),
+                                7, 0),
+                        addColorSetting(
+                                "inputForegroundColor",
+                                ColorSetting.FOREGROUND,
+                                "inputBackgroundColor",
+                                Language.getString("settings.colors.inputForeground"),
+                                7, 1),
+                        addColorSetting(
+                                "searchResultColor",
+                                ColorSetting.BACKGROUND,
+                                "foregroundColor",
+                                Language.getString("settings.colors.searchResult"),
+                                14, 0),
+                        addColorSetting(
+                                "searchResultColor2",
+                                ColorSetting.BACKGROUND,
+                                "foregroundColor",
+                                Language.getString("settings.colors.searchResult2"),
+                                14, 1),
+                        backgroundColor2,
+                        highlightBackgroundColor,
+                        separatorColor,
+                        timestampColor,
+                        timestampInheritSelection
                 },
                 new BooleanSetting[]{
-                    alternateBackground, messageSeparator, highlightBackground,
-                    timestampColorEnabled
+                        alternateBackground, messageSeparator, highlightBackground,
+                        timestampColorEnabled
                 }
         );
         
@@ -390,21 +388,21 @@ public class ColorSettings extends SettingsPanel {
         // Boolean Settings
         //------------------
         // Alternating Backgrounds boolean setting
-        gbc = d.makeGbc(0, 2, 2, 1);
+        gbc = SettingsDialog.makeGbc(0, 2, 2, 1);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(-1,10,0,0);
         SettingsUtil.addSubsettings(alternateBackground, backgroundColor2);
         colorsPanel.add(alternateBackground, gbc);
         
         // Message Separator boolean setting
-        gbc = d.makeGbc(0, 4, 2, 1);
+        gbc = SettingsDialog.makeGbc(0, 4, 2, 1);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(-1,10,0,0);
         SettingsUtil.addSubsettings(messageSeparator, separatorColor);
         colorsPanel.add(messageSeparator, gbc);
         
         // Highlight Background boolean setting
-        gbc = d.makeGbc(0, 12, 2, 1);
+        gbc = SettingsDialog.makeGbc(0, 12, 2, 1);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(-1,10,0,0);
         highlightBackground.addItemListener(e -> {
@@ -420,13 +418,13 @@ public class ColorSettings extends SettingsPanel {
         colorsPanel.add(highlightBackground, gbc);
         
         // Timestamp boolean setting
-        gbc = d.makeGbc(0, 9, 2, 1);
+        gbc = SettingsDialog.makeGbc(0, 9, 2, 1);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(-1,10,0,0);
         SettingsUtil.addSubsettings(timestampColorEnabled, timestampColor, timestampInheritSelection);
         colorsPanel.add(timestampColorEnabled, gbc);
         
-        gbc = d.makeGbc(1, 9, 2, 1);
+        gbc = SettingsDialog.makeGbc(1, 9, 2, 1);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(-1,10,0,0);
         colorsPanel.add(SettingsUtil.createPanel("timestampColorInherit", timestampInheritSelection), gbc);
@@ -434,7 +432,7 @@ public class ColorSettings extends SettingsPanel {
         //--------------------------
         // Background Switch Button
         //--------------------------
-        gbc = d.makeGbc(1, 1, 1, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(1, 1, 1, 1, GridBagConstraints.WEST);
         JButton switchButton = new JButton(Language.getString("settings.colors.button.switchBackgrounds"));
         GuiUtil.smallButtonInsets(switchButton);
         switchButton.addActionListener(e -> {
@@ -447,31 +445,31 @@ public class ColorSettings extends SettingsPanel {
         //----------------------
         // Color Panel Headings
         //----------------------
-        gbc = d.makeGbc(0, 5, 2, 1);
+        gbc = SettingsDialog.makeGbc(0, 5, 2, 1);
         gbc.insets = new Insets(10, 0, 2, 0);
         colorsPanel.add(new JLabel(Language.getString("settings.colors.heading.misc")), gbc);
         
-        gbc = d.makeGbc(0, 10, 2, 1);
+        gbc = SettingsDialog.makeGbc(0, 10, 2, 1);
         gbc.insets = new Insets(10, 0, 2, 0);
         colorsPanel.add(new JLabel(Language.getString("settings.colors.heading.highlights")), gbc);
         
-        gbc = d.makeGbc(0, 13, 2, 1);
+        gbc = SettingsDialog.makeGbc(0, 13, 2, 1);
         gbc.insets = new Insets(10, 0, 2, 0);
         colorsPanel.add(new JLabel(Language.getString("settings.colors.heading.searchResult")), gbc);
 
         //------------
         // Main Panel
         //------------
-        gbc = d.makeGbc(0, 0, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 0, 1, 1);
         mainPanel.add(presets, gbc);
         
-        gbc = d.makeGbc(0, 1, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 1, 1, 1);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1;
         gbc.anchor = GridBagConstraints.CENTER;
         mainPanel.add(colorsPanel, gbc);
 
-        gbc = d.makeGbc(0, 20, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 20, 1, 1);
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.insets = new Insets(15, 5, 5, 5);
         mainPanel.add(new JLabel(HTML_PREFIX+Language.getString("settings.colors.lookandfeel")), gbc);
@@ -494,7 +492,7 @@ public class ColorSettings extends SettingsPanel {
         colorSetting.addListener(new MyColorSettingListener(setting));
         d.addStringSetting(setting, colorSetting);
         colorSettings.put(setting, colorSetting);
-        GridBagConstraints gbc = d.makeGbc(column, row, 1, 1, GridBagConstraints.WEST);
+        GridBagConstraints gbc = SettingsDialog.makeGbc(column, row, 1, 1, GridBagConstraints.WEST);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1;
         gbc.insets = new Insets(3,4,2,4);

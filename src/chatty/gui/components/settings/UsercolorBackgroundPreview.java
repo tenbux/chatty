@@ -4,21 +4,12 @@ package chatty.gui.components.settings;
 import chatty.gui.NamedColor;
 import chatty.util.colors.ColorCorrectionNew;
 import chatty.util.colors.HtmlColors;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Window;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.util.List;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.SwingUtilities;
 
 /**
  * Show a preview of the different Nickcolor Correction settings.
@@ -63,9 +54,8 @@ public class UsercolorBackgroundPreview extends JDialog {
                 int difference = Math.abs(ColorCorrectionNew.getLightnessDifference(fgColor, bgColor));
                 if (difference < 90) {
                     Color actualBgColor = bgColor;
-                    Color actualFgColor = fgColor;
                     if (difference < threshold) {
-                        if (ColorCorrectionNew.getLightness(actualFgColor) > 128) {
+                        if (ColorCorrectionNew.getLightness(fgColor) > 128) {
                             actualBgColor = Color.BLACK;
                         } else {
                             actualBgColor = Color.WHITE;
@@ -76,7 +66,7 @@ public class UsercolorBackgroundPreview extends JDialog {
                         //actualBgColor = Color.WHITE;
 //                        actualFgColor = Color.WHITE;
                     }
-                    JLabel label = createLabel("Test", actualFgColor, actualBgColor);
+                    JLabel label = createLabel("Test", fgColor, actualBgColor);
                     label.setToolTipText(String.valueOf(difference));
                     main.add(label, gbc);
                     gbc.gridy++;
@@ -97,15 +87,13 @@ public class UsercolorBackgroundPreview extends JDialog {
     // Testing
     //=========
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            new UsercolorBackgroundPreview(null).addComponentListener(new ComponentAdapter() {
+        SwingUtilities.invokeLater(() -> new UsercolorBackgroundPreview(null).addComponentListener(new ComponentAdapter() {
 
-                @Override
-                public void componentHidden(ComponentEvent e) {
-                    System.exit(0);
-                }
-            });
-        });
+            @Override
+            public void componentHidden(ComponentEvent e) {
+                System.exit(0);
+            }
+        }));
     }
     
 }

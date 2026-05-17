@@ -4,21 +4,13 @@ package chatty.gui.components;
 import chatty.gui.MainGui;
 import chatty.lang.Language;
 import chatty.util.api.TokenInfo;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
 
 /**
  *
@@ -28,8 +20,7 @@ public class TokenDialog extends JDialog {
     
     private final static ImageIcon OK_IMAGE = new ImageIcon(TokenDialog.class.getResource("ok.png"));
     private final static ImageIcon NO_IMAGE = new ImageIcon(TokenDialog.class.getResource("no.png"));
-    
-    private final JLabel nameLabel = new JLabel(Language.getString("login.accountName"));
+
     private final JLabel name = new JLabel("<no account>");
     private final LinkLabel accessLabel;
     private final JPanel access;
@@ -61,7 +52,8 @@ public class TokenDialog extends JDialog {
                 + "reduce access remove login and request again.", owner.getLinkLabelListener());
         
         GridBagConstraints gbc;
-        
+
+        JLabel nameLabel = new JLabel(Language.getString("login.accountName"));
         add(nameLabel, makeGridBagConstraints(0,0,1,1,GridBagConstraints.WEST));
         add(name, makeGridBagConstraints(0,1,2,1,GridBagConstraints.CENTER,new Insets(0,5,5,5)));
         

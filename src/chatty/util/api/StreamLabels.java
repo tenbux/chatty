@@ -4,16 +4,12 @@ package chatty.util.api;
 import chatty.Chatty;
 import chatty.util.JSONUtil;
 import chatty.util.StringUtil;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+
+import java.util.*;
+import java.util.logging.Logger;
 
 /**
  *
@@ -23,17 +19,17 @@ public class StreamLabels {
     
     private static final Logger LOGGER = Logger.getLogger(StreamLabels.class.getName());
     
-    private static final List<String> EDITABLE = new ArrayList<>(Arrays.asList(new String[]{
+    private static final List<String> EDITABLE = new ArrayList<>(List.of(
         "DrugsIntoxication",
         "SexualThemes",
         "ViolentGraphic",
         "Gambling",
         "ProfanityVulgarity"
-    }));
+    ));
 
-    private static final List<String> AUTO = new ArrayList<>(Arrays.asList(new String[]{
+    private static final List<String> AUTO = new ArrayList<>(List.of(
         "MatureGame"
-    }));
+    ));
     
     public static List<StreamLabel> copyEditableLabelsOnly(List<StreamLabel> labels) {
         List<StreamLabel> editableLabels = new ArrayList<>(labels);
@@ -43,7 +39,7 @@ public class StreamLabels {
     
     public static List<StreamLabel> copyAutoLabelsOnly(List<StreamLabel> labels) {
         List<StreamLabel> editableLabels = new ArrayList<>(labels);
-        editableLabels.removeIf(label -> label.isEditable());
+        editableLabels.removeIf(StreamLabel::isEditable);
         return editableLabels;
     }
     
@@ -57,72 +53,55 @@ public class StreamLabels {
         AUTO.forEach(id -> labels.add(new StreamLabel(id)));
         return labels;
     }
-    
-    public static class StreamLabel implements Comparable<StreamLabel> {
-        
+
+    public record StreamLabel(String id) implements Comparable<StreamLabel> {
+
         public static final StreamLabel EMPTY = new StreamLabel("");
-        
-        private final String id;
-        
-        public StreamLabel(String id) {
-            this.id = id;
-        }
-        
-        public String getId() {
-            return id;
-        }
-        
+
         public String getDisplayName() {
-            StreamLabelInfo info = getInfo(id);
-            return info != null ? info.name : id;
-        }
-        
+                StreamLabelInfo info = getInfo(id);
+                return info != null ? info.name : id;
+            }
+
         public String getDescription() {
-            StreamLabelInfo info = getInfo(id);
-            return info != null ? info.description : null;
-        }
-        
+                StreamLabelInfo info = getInfo(id);
+                return info != null ? info.description : null;
+            }
+
         public boolean isValid() {
-            return !StringUtil.isNullOrEmpty(id) && !id.contains(" ");
-        }
-        
+                return !StringUtil.isNullOrEmpty(id) && !id.contains(" ");
+            }
+
         public boolean isEditable() {
-            return isEditableLabel(id);
-        }
-        
-        @Override
-        public String toString() {
-            return getId();
-        }
-        
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
+                return isEditableLabel(id);
             }
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final StreamLabel other = (StreamLabel) obj;
-            return Objects.equals(this.id, other.id);
-        }
 
         @Override
-        public int hashCode() {
-            int hash = 5;
-            hash = 23 * hash + Objects.hashCode(this.id);
-            return hash;
-        }
+            public String toString() {
+                return id();
+            }
 
         @Override
-        public int compareTo(StreamLabel o) {
-            return id.compareToIgnoreCase(o.id);
-        }
+            public boolean equals(Object obj) {
+                if (this == obj) {
+                    return true;
+                }
+                if (obj == null) {
+                    return false;
+                }
+                if (getClass() != obj.getClass()) {
+                    return false;
+                }
+                final StreamLabel other = (StreamLabel) obj;
+                return Objects.equals(this.id, other.id);
+            }
 
-    }
+        @Override
+            public int compareTo(StreamLabel o) {
+                return id.compareToIgnoreCase(o.id);
+            }
+
+        }
     
     private static final String CACHE_FILE = Chatty.getPathCreate(Chatty.PathType.CACHE).resolve("streamlabels").toString();
     public static final int CACHE_EXPIRES_AFTER = 60*60*24*7;
@@ -139,7 +118,7 @@ public class StreamLabels {
     };
     
     public static void request(Requests requests) {
-        if (!cache.load()) {
+        if (cache.load()) {
             requests.getContentLabels();
         }
     }
@@ -178,19 +157,9 @@ public class StreamLabels {
         }
         return null;
     }
-    
-    public static class StreamLabelInfo {
-        
-        public final String id;
-        public final String name;
-        public final String description;
-        
-        public StreamLabelInfo(String id, String name, String description) {
-            this.id = id;
-            this.name = name;
-            this.description = description;
-        }
-        
+
+    public record StreamLabelInfo(String id, String name, String description) {
+
     }
     
 }

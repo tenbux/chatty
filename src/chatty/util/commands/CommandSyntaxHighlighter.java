@@ -3,15 +3,10 @@ package chatty.util.commands;
 
 import chatty.util.SyntaxHighlighter;
 import chatty.util.colors.ColorCorrectionNew;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Font;
+
+import javax.swing.*;
+import java.awt.*;
 import java.text.ParseException;
-import javax.swing.JComponent;
-import javax.swing.JDialog;
-import javax.swing.JFrame;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 
 /**
  *
@@ -31,7 +26,7 @@ public class CommandSyntaxHighlighter extends SyntaxHighlighter {
                 errorOffset = input.length() - 1;
             }
             int errorOffset2 = errorOffset;
-            items.removeIf(item -> item.start >= errorOffset2 || item.end >= errorOffset2);
+            items.removeIf(item -> item.start() >= errorOffset2 || item.end() >= errorOffset2);
             add(errorOffset, errorOffset + 1, Type.ERROR);
         }
     }

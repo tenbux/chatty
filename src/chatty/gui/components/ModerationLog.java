@@ -7,26 +7,15 @@ import chatty.gui.MainGui;
 import chatty.util.DateTime;
 import chatty.util.api.eventsub.payloads.ModActionPayload;
 import chatty.util.dnd.DockContent;
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Window;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.swing.BorderFactory;
-import javax.swing.JDialog;
-import javax.swing.JScrollBar;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.SwingUtilities;
+
+import javax.swing.*;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultCaret;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
+import java.awt.*;
+import java.util.*;
+import java.util.List;
 
 /**
  *
@@ -194,7 +183,7 @@ public class ModerationLog extends JDialog {
         }
         cache.get(channel).add(line);
         if (cache.get(channel).size() > MAX_NUMBER_LINES) {
-            cache.get(channel).remove(0);
+            cache.get(channel).removeFirst();
         }
     }
     
@@ -217,13 +206,7 @@ public class ModerationLog extends JDialog {
     private void scrollDown() {
         scroll.validate();
         scroll.getVerticalScrollBar().setValue(scroll.getVerticalScrollBar().getMaximum());
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                scroll.getVerticalScrollBar().setValue(scroll.getVerticalScrollBar().getMaximum());
-            }
-        });
+        SwingUtilities.invokeLater(() -> scroll.getVerticalScrollBar().setValue(scroll.getVerticalScrollBar().getMaximum()));
     }
     
     /**

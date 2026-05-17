@@ -7,10 +7,9 @@ import chatty.util.api.TwitchApi;
 import chatty.util.settings.SettingChangeListener;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -46,7 +45,7 @@ public class StreamStatusWriter implements SettingChangeListener {
     
     private static final Logger LOGGER = Logger.getLogger(StreamStatusWriter.class.getName());
     
-    private static final Charset CHARSET = Charset.forName("UTF-8");
+    private static final java.nio.charset.Charset CHARSET = StandardCharsets.UTF_8;
     private static final Pattern p = Pattern.compile("(\\w+) ([0-9_A-Za-z\\.]+)( online| offline)?( [^\\n]+)?");
     
     private boolean enabled;
@@ -102,10 +101,7 @@ public class StreamStatusWriter implements SettingChangeListener {
             String stream = StringUtil.toLowerCase(m.group(1));
             String file = m.group(2);
             String online = StringUtil.trim(m.group(3));
-            boolean forOnline = true;
-            if ("offline".equals(online)) {
-                forOnline = false;
-            }
+            boolean forOnline = !"offline".equals(online);
             String content = StringUtil.trim(m.group(4));
             content = content == null ? "" : content;
             items.add(new Item(stream, file, content, forOnline));
@@ -142,21 +138,17 @@ public class StreamStatusWriter implements SettingChangeListener {
     /**
      * Check if the given StreamInfo matches the Item's requirements, and if so,
      * then write it.
-     * 
+     *
      * @param info The StreamInfo to get the info from
      * @param item The Item to check if the StreamInfo should be used
-     * @return true if a file was written, false if the requirements didn't
-     * match
      */
-    private boolean checkItemAndWrite(StreamInfo info, Item item) {
+    private void checkItemAndWrite(StreamInfo info, Item item) {
         if (item.stream.equalsIgnoreCase(info.getStream())) {
             if ((item.forOnline && info.getOnline())
                     || !item.forOnline && !info.getOnline()) {
                 write(item.file, makeContent(info, item.content));
-                return true;
             }
         }
-        return false;
     }
     
     /**
@@ -213,52 +205,37 @@ public class StreamStatusWriter implements SettingChangeListener {
             test();
         }
     }
-    
-    private static class Item {
-        
-        public final String stream;
-        public final String file;
-        public final String content;
-        public final boolean forOnline;
-        
-        public Item(String stream, String file, String content, boolean forOnline) {
-            this.stream = stream;
-            this.file = file;
-            this.content = content;
-            this.forOnline = forOnline;
-        }
-        
-        @Override
-        public String toString() {
-            return stream+"/"+file+"/"+forOnline+"/"+content;
-        }
+
+    private record Item(String stream, String file, String content, boolean forOnline) {
 
         @Override
-        public int hashCode() {
-            int hash = 5;
-            hash = 17 * hash + Objects.hashCode(this.file);
-            hash = 17 * hash + (this.forOnline ? 1 : 0);
-            return hash;
-        }
+            public String toString() {
+                return stream + "/" + file + "/" + forOnline + "/" + content;
+            }
 
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
+            @Override
+            public int hashCode() {
+                int hash = 5;
+                hash = 17 * hash + Objects.hashCode(this.file);
+                hash = 17 * hash + (this.forOnline ? 1 : 0);
+                return hash;
             }
-            if (getClass() != obj.getClass()) {
-                return false;
+
+            @Override
+            public boolean equals(Object obj) {
+                if (obj == null) {
+                    return false;
+                }
+                if (getClass() != obj.getClass()) {
+                    return false;
+                }
+                final Item other = (Item) obj;
+                if (!Objects.equals(this.file, other.file)) {
+                    return false;
+                }
+                return this.forOnline == other.forOnline;
             }
-            final Item other = (Item) obj;
-            if (!Objects.equals(this.file, other.file)) {
-                return false;
-            }
-            if (this.forOnline != other.forOnline) {
-                return false;
-            }
-            return true;
-        }
-        
+
     }
     
 }

@@ -4,23 +4,15 @@ package chatty.util.api.usericons;
 import chatty.Helper;
 import chatty.User;
 import chatty.gui.GuiUtil;
-import chatty.util.api.usericons.Usericon.Type;
 import chatty.gui.MainGui;
 import chatty.util.Pair;
-import chatty.util.StringUtil;
+import chatty.util.api.usericons.Usericon.Type;
 import chatty.util.irc.IrcBadges;
 import chatty.util.irc.MsgTags;
 import chatty.util.settings.Settings;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+
+import java.util.*;
 import java.util.logging.Logger;
-import javax.swing.SwingUtilities;
 
 /**
  *
@@ -70,9 +62,7 @@ public class UsericonManager {
         if (icon != null) {
             // Remove icon if it already exists, so it can actually be
             // updated if necessary.
-            if (defaultIcons.contains(icon)) {
-                defaultIcons.remove(icon);
-            }
+            defaultIcons.remove(icon);
             defaultIcons.add(icon);
         }
     }
@@ -181,7 +171,7 @@ public class UsericonManager {
         Set<String> result = new TreeSet<>();
         for (Usericon icon : defaultIcons) {
             if (icon.type == Usericon.Type.TWITCH) {
-                result.add(icon.badgeType.id);
+                result.add(icon.badgeType.id());
                 result.add(icon.badgeType.toString());
             }
         }
@@ -202,19 +192,19 @@ public class UsericonManager {
         if (tags != null && tags.isHighlightedMessage()) {
             Usericon icon = getIcon(Usericon.Type.HL, null, null, user, tags);
             if (icon != null) {
-                icons.add(0, icon);
+                icons.addFirst(icon);
             }
         }
         if (tags != null && tags.isTrue("first-msg")
                 && localUser != null && localUser.hasChannelModeratorRights()) {
             Usericon icon = getIcon(Usericon.Type.FIRSTMSG, null, null, user, tags);
             if (icon != null) {
-                icons.add(0, icon);
+                icons.addFirst(icon);
             }
         }
         Usericon channelIcon = getChannelIcon(user.getChannel(), channelLogoSize);
         if (channelIcon != null) {
-            icons.add(0, channelIcon);
+            icons.addFirst(channelIcon);
         }
         return icons;
     }
@@ -377,7 +367,7 @@ public class UsericonManager {
             if (iconMatchesUser(icon, user, tags)) {
                 // This may or may not return the same icon, depending on
                 // whether Custom Usericons replace it
-                Usericon transformed = getIcon(Type.OTHER, icon.badgeType.id, icon.badgeType.version, user, tags);
+                Usericon transformed = getIcon(Type.OTHER, icon.badgeType.id(), icon.badgeType.version(), user, tags);
                 if (transformed != null) {
                     insert(icons, transformed);
                 }
@@ -422,10 +412,10 @@ public class UsericonManager {
      * otherwise
      */
     private boolean iconMatchesUser(Usericon icon, User user, MsgTags tags) {
-        if (icon.badgeTypeRestriction.id != null) {
+        if (icon.badgeTypeRestriction.id() != null) {
             IrcBadges badges = user.getTwitchBadges();
-            String id = icon.badgeTypeRestriction.id;
-            String version = icon.badgeTypeRestriction.version;
+            String id = icon.badgeTypeRestriction.id();
+            String version = icon.badgeTypeRestriction.version();
             if (badges == null) {
                 return false;
             }
@@ -469,25 +459,15 @@ public class UsericonManager {
         } else if (icon.matchType == Usericon.MatchType.ALL) {
             return true;
         } else if (icon.matchType == Usericon.MatchType.NAME) {
-            if (icon.restrictionValue.equalsIgnoreCase(user.getName())) {
-                return true;
-            }
+            return icon.restrictionValue.equalsIgnoreCase(user.getName());
         } else if (icon.matchType == Usericon.MatchType.CATEGORY) {
-            if (user.hasCategory(icon.category)) {
-                return true;
-            }
+            return user.hasCategory(icon.category);
         } else if (icon.matchType == Usericon.MatchType.MATCH) {
-            if (icon.match.matches(user, tags)) {
-                return true;
-            }
+            return icon.match.matches(user, tags);
         } else if (icon.matchType == Usericon.MatchType.STATUS) {
-            if (Helper.matchUserStatus(icon.restrictionValue, user)) {
-                return true;
-            }
+            return Helper.matchUserStatus(icon.restrictionValue, user);
         } else if (icon.matchType == Usericon.MatchType.COLOR) {
-            if (user.getColor().equals(icon.colorRestriction)) {
-                return true;
-            }
+            return user.getColor().equals(icon.colorRestriction);
         }
         return false;
     }
@@ -498,9 +478,7 @@ public class UsericonManager {
             return true;
         }
         else if (icon.type == requestedType) {
-            if (icon.badgeType.matchesLenient(id, version)) {
-                return true;
-            }
+            return icon.badgeType.matchesLenient(id, version);
         }
         
         /**
@@ -512,9 +490,7 @@ public class UsericonManager {
          * TWITCH badge with mod/1 (for custom and fallback icons).
          */
         else if (requestedType == Usericon.Type.TWITCH && icon.type.badgeId != null) {
-            if (icon.type == Usericon.typeFromBadgeId(id) && icon.badgeType.equals(null, null)) {
-                return true;
-            }
+            return icon.type == Usericon.typeFromBadgeId(id) && icon.badgeType.equals(null, null);
         }
         return false;
     }
@@ -621,13 +597,13 @@ public class UsericonManager {
     public synchronized boolean hideBadge(Usericon usericon) {
         boolean alreadyHidden = false;
         for (Usericon icon : hiddenBadges) {
-            if (iconsMatchesAdvancedType(icon, usericon.type, usericon.badgeType.id, usericon.badgeType.version)) {
+            if (iconsMatchesAdvancedType(icon, usericon.type, usericon.badgeType.id(), usericon.badgeType.version())) {
                 alreadyHidden = true;
             }
         }
         if (!alreadyHidden) {
-            Usericon customUsericon = UsericonFactory.createCustomIcon(usericon.type, usericon.badgeType.id, "", "", "", "");
-            hiddenBadges.add(0, customUsericon);
+            Usericon customUsericon = UsericonFactory.createCustomIcon(usericon.type, usericon.badgeType.id(), "", "", "", "");
+            hiddenBadges.addFirst(customUsericon);
             saveHiddenBadgesToSettings();
             return true;
         }

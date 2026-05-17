@@ -1,12 +1,7 @@
 
 package chatty.util;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.WeakHashMap;
+import java.util.*;
 
 /**
  *
@@ -16,7 +11,7 @@ public class HalfWeakSet<T> implements Set<T> {
 
     private final Set<T> strong = new HashSet<>();
     private final Set<T> weak = Collections.newSetFromMap(
-        new WeakHashMap<T, Boolean>());
+            new WeakHashMap<>());
     
     @Override
     public int size() {
@@ -139,11 +134,7 @@ public class HalfWeakSet<T> implements Set<T> {
         test.add(b);
         test.add(c);
         test.markWeak(a);
-        
-        a = null;
-        b = null;
-        c = null;
-        
+
         for (Object item : test) {
             System.out.println(item);
         }

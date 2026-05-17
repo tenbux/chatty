@@ -1,7 +1,7 @@
 
 package chatty.gui.components;
 
-/**
+/*
  * Copy from the OpenJDK with an added method to get access to the used JLabel
  * in order to be able to set an icon. This is used for the Live Streams list.
  * The installPropertyChangeListeners() method has been commented out.
@@ -32,22 +32,13 @@ package chatty.gui.components;
  * questions.
  */
 
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Insets;
-import java.awt.Rectangle;
-import java.awt.geom.Path2D;
-import java.beans.ConstructorProperties;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.UIManager;
+import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.Border;
 import javax.swing.plaf.basic.BasicHTML;
+import java.awt.*;
+import java.awt.geom.Path2D;
+import java.beans.ConstructorProperties;
 
 /**
  * A class which implements an arbitrary border
@@ -353,8 +344,7 @@ public class LiveStreamsTitledBorder extends AbstractBorder
                 }
                 else {
                     Graphics g2 = g.create();
-                    if (g2 instanceof Graphics2D) {
-                        Graphics2D g2d = (Graphics2D) g2;
+                    if (g2 instanceof Graphics2D g2d) {
                         Path2D path = new Path2D.Float();
                         path.append(new Rectangle(borderX, borderY, borderW, labelY - borderY), false);
                         path.append(new Rectangle(borderX, labelY, labelX - borderX - TEXT_SPACING, labelH), false);
@@ -652,17 +642,13 @@ public class LiveStreamsTitledBorder extends AbstractBorder
     public Component.BaselineResizeBehavior getBaselineResizeBehavior(
             Component c) {
         super.getBaselineResizeBehavior(c);
-        switch (getPosition()) {
-            case LiveStreamsTitledBorder.ABOVE_TOP:
-            case LiveStreamsTitledBorder.TOP:
-            case LiveStreamsTitledBorder.BELOW_TOP:
-                return Component.BaselineResizeBehavior.CONSTANT_ASCENT;
-            case LiveStreamsTitledBorder.ABOVE_BOTTOM:
-            case LiveStreamsTitledBorder.BOTTOM:
-            case LiveStreamsTitledBorder.BELOW_BOTTOM:
-                return JComponent.BaselineResizeBehavior.CONSTANT_DESCENT;
-        }
-        return Component.BaselineResizeBehavior.OTHER;
+        return switch (getPosition()) {
+            case LiveStreamsTitledBorder.ABOVE_TOP, LiveStreamsTitledBorder.TOP, LiveStreamsTitledBorder.BELOW_TOP ->
+                    Component.BaselineResizeBehavior.CONSTANT_ASCENT;
+            case LiveStreamsTitledBorder.ABOVE_BOTTOM, LiveStreamsTitledBorder.BOTTOM,
+                 LiveStreamsTitledBorder.BELOW_BOTTOM -> JComponent.BaselineResizeBehavior.CONSTANT_DESCENT;
+            default -> Component.BaselineResizeBehavior.OTHER;
+        };
     }
 
     private int getPosition() {
@@ -677,8 +663,7 @@ public class LiveStreamsTitledBorder extends AbstractBorder
                 return i;
             }
         }
-        else if (value instanceof String) {
-            String s = (String) value;
+        else if (value instanceof String s) {
             if (s.equalsIgnoreCase("ABOVE_TOP")) {
                 return ABOVE_TOP;
             }
@@ -764,8 +749,7 @@ public class LiveStreamsTitledBorder extends AbstractBorder
         if (border == null) {
             insets.set(0, 0, 0, 0);
         }
-        else if (border instanceof AbstractBorder) {
-            AbstractBorder ab = (AbstractBorder) border;
+        else if (border instanceof AbstractBorder ab) {
             insets = ab.getBorderInsets(c, insets);
         }
         else {

@@ -1,18 +1,18 @@
 
 package chatty.util.api;
 
-import chatty.util.DateTime;
 import chatty.util.JSONUtil;
 import chatty.util.StringUtil;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 
 /**
  *
@@ -39,7 +39,7 @@ public class BlockedTermsManager {
     }
     
     public void getBlockedTerms(String streamId, String streamName, boolean refresh, Consumer<BlockedTerms> listener) {
-        BlockedTerms cached = null;
+        BlockedTerms cached;
         synchronized(cache) {
             cached = cache.get(streamName);
         }
@@ -59,7 +59,7 @@ public class BlockedTermsManager {
 
     public void resultReceived(String streamId, String streamName, String json, int responseCode) {
         BlockedTerms result = getResult(streamId, streamName, json, responseCode);
-        Consumer<BlockedTerms> listener = null;
+        Consumer<BlockedTerms> listener;
         synchronized(cache) {
             listener = currentListener;
         }
@@ -164,8 +164,7 @@ public class BlockedTermsManager {
                 JSONObject root = (JSONObject) parser.parse(json);
                 JSONArray data = (JSONArray) root.get("data");
                 for (Object o : data) {
-                    if (o instanceof JSONObject) {
-                        JSONObject entry = (JSONObject) o;
+                    if (o instanceof JSONObject entry) {
                         BlockedTerm blockedTerm = BlockedTerm.parse(entry, streamName);
                         if (blockedTerm != null) {
                             terms.add(blockedTerm);
@@ -186,59 +185,40 @@ public class BlockedTermsManager {
         }
         
     }
-    
-    public static class BlockedTerm {
-        
-        public final String id;
-        public final long createdAt;
-        public final long updatedAt;
-        public final long expiresAt;
-        public final String text;
-        public final String moderatorId;
-        public final String streamId;
-        public final String streamLogin;
-        
-        public BlockedTerm(String id, long createdAt, long updatedAt, long expiresAt, String text, String moderatorId, String streamId, String streamLogin) {
-            this.id = id;
-            this.createdAt = createdAt;
-            this.updatedAt = updatedAt;
-            this.expiresAt = expiresAt;
-            this.text = text;
-            this.moderatorId = moderatorId;
-            this.streamId = streamId;
-            this.streamLogin = streamLogin;
-        }
-        
-//        public BlockedTerm(String text, String streamLogin) {
-//            this.id = null;
-//            this.createdAt = System.currentTimeMillis();
-//            this.updatedAt = -1;
-//            this.expiresAt = -1;
-//            this.text = text;
-//            this.moderatorId = null;
-//            this.streamId = null;
-//            this.streamLogin = streamLogin;
-//        }
-        
+
+    public record BlockedTerm(String id, long createdAt, long updatedAt, long expiresAt, String text,
+                              String moderatorId, String streamId, String streamLogin) {
+
+        //        public BlockedTerm(String text, String streamLogin) {
+    //            this.id = null;
+    //            this.createdAt = System.currentTimeMillis();
+    //            this.updatedAt = -1;
+    //            this.expiresAt = -1;
+    //            this.text = text;
+    //            this.moderatorId = null;
+    //            this.streamId = null;
+    //            this.streamLogin = streamLogin;
+    //        }
+
         public static BlockedTerm parse(JSONObject data, String streamLogin) {
-            String id = JSONUtil.getString(data, "id");
-            long createdAt = JSONUtil.getDatetime(data, "created_at", -1);
-            long updatedAt = JSONUtil.getDatetime(data, "updated_at", -1);
-            long expiresAt = JSONUtil.getDatetime(data, "expires_at", -1);
-            String text = JSONUtil.getString(data, "text");
-            String moderatorId = JSONUtil.getString(data, "moderator_id");
-            String streamId = JSONUtil.getString(data, "broadcaster_id");
-            if (!StringUtil.isNullOrEmpty(id, text, streamId)) {
-                return new BlockedTerm(id, createdAt, updatedAt, expiresAt, text, moderatorId, streamId, streamLogin);
+                String id = JSONUtil.getString(data, "id");
+                long createdAt = JSONUtil.getDatetime(data, "created_at", -1);
+                long updatedAt = JSONUtil.getDatetime(data, "updated_at", -1);
+                long expiresAt = JSONUtil.getDatetime(data, "expires_at", -1);
+                String text = JSONUtil.getString(data, "text");
+                String moderatorId = JSONUtil.getString(data, "moderator_id");
+                String streamId = JSONUtil.getString(data, "broadcaster_id");
+                if (!StringUtil.isNullOrEmpty(id, text, streamId)) {
+                    return new BlockedTerm(id, createdAt, updatedAt, expiresAt, text, moderatorId, streamId, streamLogin);
+                }
+                return null;
             }
-            return null;
-        }
-        
+
         @Override
-        public String toString() {
-            return text;
-        }
-        
+            public String toString() {
+                return text;
+            }
+
     }
     
 }

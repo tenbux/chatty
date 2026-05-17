@@ -1,15 +1,9 @@
 
 package chatty.util.api;
 
-import chatty.util.MiscUtil;
-import static chatty.util.MiscUtil.biton;
 import chatty.util.StringUtil;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+
+import java.util.*;
 
 /**
  *
@@ -36,19 +30,17 @@ public class IgnoredEmotes {
     
     public Collection<String> getData() {
         List<String> result = new ArrayList<>();
-        items.forEach(item -> {
-            result.add(item.toString());
-        });
+        items.forEach(item -> result.add(item.toString()));
         return result;
     }
     
-    public String add(Emoticon emote, int context) {
+    public void add(Emoticon emote, int context) {
         remove(emote);
         Item item = Item.create(emote, context);
         if (item.context > 0) {
             items.add(item);
         }
-        return item.toString();
+        item.toString();
     }
     
     public List<Item> getMatches(Emoticon emote) {
@@ -61,8 +53,8 @@ public class IgnoredEmotes {
         return result;
     }
     
-    public boolean remove(Emoticon emote) {
-        return items.removeIf(item -> item.matches(emote, 0));
+    public void remove(Emoticon emote) {
+        items.removeIf(item -> item.matches(emote, 0));
     }
     
     public boolean isIgnored(Emoticon emote, int context) {
@@ -73,168 +65,149 @@ public class IgnoredEmotes {
         }
         return false;
     }
-    
-    public static class Item {
-        
+
+    public record Item(String code, String id, Emoticon.Type type, int context) {
+
         public static Item parse(String input) {
-            // Kappa id:1234
-            // KEKW type:ffz id:12345
-            // a:b
-            String id = null;
-            Emoticon.Type type = null;
-            String code = null;
-            int context = CHAT | EMOTE_DIALOG | TAB_COMPLETION;
-            String[] split = input.split(" ");
-            for (String item : split) {
-                int prefixStart = item.indexOf(":");
-                if (prefixStart > 0 && prefixStart + 1 < item.length()) {
-                    String prefix = item.substring(0, prefixStart);
-                    String value = item.substring(prefixStart+1);
-                    switch (prefix) {
-                        case "id":
-                            id = value;
-                            break;
-                        case "type":
-                            type = getType(value);
-                            break;
-                        case "for":
-                            context = getContext(value);
-                            break;
+                // Kappa id:1234
+                // KEKW type:ffz id:12345
+                // a:b
+                String id = null;
+                Emoticon.Type type = null;
+                String code = null;
+                int context = CHAT | EMOTE_DIALOG | TAB_COMPLETION;
+                String[] split = input.split(" ");
+                for (String item : split) {
+                    int prefixStart = item.indexOf(":");
+                    if (prefixStart > 0 && prefixStart + 1 < item.length()) {
+                        String prefix = item.substring(0, prefixStart);
+                        String value = item.substring(prefixStart + 1);
+                        switch (prefix) {
+                            case "id":
+                                id = value;
+                                break;
+                            case "type":
+                                type = getType(value);
+                                break;
+                            case "for":
+                                context = getContext(value);
+                                break;
+                        }
+                    } else {
+                        code = item;
                     }
                 }
-                else {
-                    code = item;
+                if (id != null || code != null) {
+                    return new Item(code, type, id, context);
                 }
-            }
-            if (id != null || code != null) {
-                return new Item(code, type, id, context);
-            }
-            return null;
-        }
-        
-        public static Item create(Emoticon emote, int context) {
-            String code = emote.code;
-            if (emote instanceof CheerEmoticon) {
-                code = ((CheerEmoticon) emote).getSimpleCode();
-            }
-            return new Item(code, emote.type, emote.stringId, context);
-        }
-        
-        private static Emoticon.Type getType(String value) {
-            for (Emoticon.Type type : Emoticon.Type.values()) {
-                if (value.equalsIgnoreCase(type.id)) {
-                    return type;
-                }
-            }
-            return null;
-        }
-        
-        private static int getContext(String value) {
-            int result = 0;
-            if (value.contains("c")) {
-                result += CHAT;
-            }
-            if (value.contains("t")) {
-                result += TAB_COMPLETION;
-            }
-            if (value.contains("d")) {
-                result += EMOTE_DIALOG;
-            }
-            return result;
-        }
-        
-        private static String fromContext(int in) {
-            if (in == ALL) {
                 return null;
             }
-            if (in == 0) {
-                return "0";
+
+        public static Item create(Emoticon emote, int context) {
+                String code = emote.code;
+                if (emote instanceof CheerEmoticon) {
+                    code = ((CheerEmoticon) emote).getSimpleCode();
+                }
+                return new Item(code, emote.type, emote.stringId, context);
             }
-            String result = "";
-            if ((in & CHAT) != 0) {
-                result += "c";
+
+        private static Emoticon.Type getType(String value) {
+                for (Emoticon.Type type : Emoticon.Type.values()) {
+                    if (value.equalsIgnoreCase(type.id)) {
+                        return type;
+                    }
+                }
+                return null;
             }
-            if ((in & TAB_COMPLETION) != 0) {
-                result += "t";
+
+        private static int getContext(String value) {
+                int result = 0;
+                if (value.contains("c")) {
+                    result += CHAT;
+                }
+                if (value.contains("t")) {
+                    result += TAB_COMPLETION;
+                }
+                if (value.contains("d")) {
+                    result += EMOTE_DIALOG;
+                }
+                return result;
             }
-            if ((in & EMOTE_DIALOG) != 0) {
-                result += "d";
+
+        private static String fromContext(int in) {
+                if (in == ALL) {
+                    return null;
+                }
+                if (in == 0) {
+                    return "0";
+                }
+                String result = "";
+                if ((in & CHAT) != 0) {
+                    result += "c";
+                }
+                if ((in & TAB_COMPLETION) != 0) {
+                    result += "t";
+                }
+                if ((in & EMOTE_DIALOG) != 0) {
+                    result += "d";
+                }
+                return result;
             }
-            return result;
-        }
-        
-        public final String code;
-        public final String id;
-        public final Emoticon.Type type;
-        public final int context;
-        
+
         private Item(String code, Emoticon.Type type, String id, int context) {
-            this.code = code;
-            this.type = type;
-            this.id = id;
-            this.context = context;
-        }
-        
+                this(code, id, type, context);
+            }
+
         public boolean matches(Emoticon emote, int context) {
-            if (context > 0 && (this.context & context) == 0) {
-                return false;
+                if (context > 0 && (this.context & context) == 0) {
+                    return false;
+                }
+                if (type != null && type != emote.type) {
+                    return false;
+                }
+                if (id != null
+                        && (emote.stringId == null || !emote.stringId.equals(id))) {
+                    return false;
+                }
+                if (emote instanceof CheerEmoticon) {
+                    return code != null && ((CheerEmoticon) emote).getSimpleCode().equals(code);
+                }
+                return code != null && code.equals(emote.code);
             }
-            if (type != null && type != emote.type) {
-                return false;
-            }
-            if (id != null
-                    && (emote.stringId == null || !emote.stringId.equals(id))) {
-                return false;
-            }
-            if (emote instanceof CheerEmoticon) {
-                return code != null && ((CheerEmoticon) emote).getSimpleCode().equals(code);
-            }
-            return code != null && code.equals(emote.code);
-        }
-        
-        @Override
-        public String toString() {
-            String result = code != null ? code : "";
-            result = StringUtil.append(result, " ", "for:", fromContext(context));
-            result = StringUtil.append(result, " ", "type:", type != null ? type.id : null);
-            result = StringUtil.append(result, " ", "id:", id);
-            return result;
-        }
 
         @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
+            public String toString() {
+                String result = code != null ? code : "";
+                result = StringUtil.append(result, " ", "for:", fromContext(context));
+                result = StringUtil.append(result, " ", "type:", type != null ? type.id : null);
+                result = StringUtil.append(result, " ", "id:", id);
+                return result;
             }
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final Item other = (Item) obj;
-            if (this.context != other.context) {
-                return false;
-            }
-            if (!Objects.equals(this.code, other.code)) {
-                return false;
-            }
-            if (!Objects.equals(this.id, other.id)) {
-                return false;
-            }
-            return this.type == other.type;
-        }
 
-        @Override
-        public int hashCode() {
-            int hash = 7;
-            hash = 97 * hash + Objects.hashCode(this.code);
-            hash = 97 * hash + Objects.hashCode(this.id);
-            hash = 97 * hash + Objects.hashCode(this.type);
-            hash = 97 * hash + this.context;
-            return hash;
-        }
-        
+            @Override
+            public boolean equals(Object obj) {
+                if (this == obj) {
+                    return true;
+                }
+                if (obj == null) {
+                    return false;
+                }
+                if (getClass() != obj.getClass()) {
+                    return false;
+                }
+                final Item other = (Item) obj;
+                if (this.context != other.context) {
+                    return false;
+                }
+                if (!Objects.equals(this.code, other.code)) {
+                    return false;
+                }
+                if (!Objects.equals(this.id, other.id)) {
+                    return false;
+                }
+                return this.type == other.type;
+            }
+
     }
     
     public static void main(String[] args) {

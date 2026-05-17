@@ -1,22 +1,23 @@
 
 package chatty;
 
-import static chatty.Irc.SSL_ERROR;
 import chatty.util.DateTime;
-import chatty.util.Debugging;
 import chatty.util.RingBuffer;
 import chatty.util.StringUtil;
+
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.logging.Logger;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
+
+import static chatty.Irc.SSL_ERROR;
 
 /**
  * A single connection to a server that can receive and send data.
@@ -57,11 +58,11 @@ public class Connection implements Runnable {
         this.secured = secured;
     }
     
-    private final void info(String message) {
+    private void info(String message) {
         LOGGER.info(idPrefix+message);
     }
     
-    private final void warning(String message) {
+    private void warning(String message) {
         LOGGER.warning(idPrefix+message);
     }
     
@@ -74,7 +75,7 @@ public class Connection implements Runnable {
      */
     @Override
     public void run() {
-        Charset charset = Charset.forName("UTF-8");
+        var charset = StandardCharsets.UTF_8;
         try {
             info("Trying to connect to "+address+(secured ? " (secured)" : ""));
             // Try to connect and open streams
@@ -285,18 +286,9 @@ public class Connection implements Runnable {
         }
         return msg;
     }
-    
-    private static class Msg {
-        
-        public final long time;
-        public final String raw;
-        public final boolean sent;
-        
-        public Msg(long time, String raw, boolean sent) {
-            this.time = time;
-            this.raw = raw;
-            this.sent = sent;
-        }
+
+    private record Msg(long time, String raw, boolean sent) {
+
     }
     
 }

@@ -3,44 +3,19 @@ package chatty.gui.components.completion;
 
 import chatty.Helper;
 import chatty.gui.components.completion.AutoCompletionServer.CompletionItems;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Image;
-import java.awt.Insets;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.Window;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+
+import javax.swing.*;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.JTextComponent;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.geom.Rectangle2D;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiConsumer;
-import javax.swing.AbstractListModel;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JWindow;
-import javax.swing.ListCellRenderer;
-import javax.swing.ListSelectionModel;
-import javax.swing.ScrollPaneConstants;
-import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.JTextComponent;
 
 /**
  * Provides the window for auto completion.
@@ -51,7 +26,6 @@ public class AutoCompletionWindow {
     
     private boolean show;
     private int maxResultsShown = 5;
-    private Color foregroundColor = Color.BLACK;
     private Color backgroundColor = new Color(230, 230, 230);
     
     // Listeners/References
@@ -134,7 +108,6 @@ public class AutoCompletionWindow {
     }
     
     public void setForegroundColor(Color color) {
-        this.foregroundColor = color;
         listRenderer.setForeground(color);
         countLabel.setForeground(color);
         helpLabel.setForeground(color);
@@ -183,7 +156,7 @@ public class AutoCompletionWindow {
             createInfoWindow();
         }
         listRenderer.setCommonPrefix(commonPrefix);
-        listData.setData(results.items);
+        listData.setData(results.items());
     }
 
     protected void show(int index, boolean scroll) {
@@ -195,9 +168,7 @@ public class AutoCompletionWindow {
         updateHelp(index);
         if (!infoWindow.isVisible()) {
             updateWindowSettings();
-            SwingUtilities.invokeLater(() -> {
-                setWindowPosition(startPos);
-            });
+            SwingUtilities.invokeLater(() -> setWindowPosition(startPos));
         }
     }
     
@@ -219,9 +190,9 @@ public class AutoCompletionWindow {
          * Using getMagicCaretPosition() to get the location didn't always seem
          * to work, possibly depending on timing?
          */
-        Rectangle r;
+        Rectangle2D r;
         try {
-            r = textField.modelToView(index);
+            r = textField.modelToView2D(index);
         } catch (BadLocationException ex) {
             System.out.println("null lol");
             return;
@@ -231,7 +202,7 @@ public class AutoCompletionWindow {
         if (r == null) {
             return;
         }
-        Point location = new Point(r.x, r.y);
+        Point location = new Point((int) r.getX(), (int) r.getY());
         
         infoScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         
@@ -290,7 +261,7 @@ public class AutoCompletionWindow {
      * TODO: Popup closes when input switches to next line from completion
      */
     protected void updateHelp(int resultIndex) {
-        if (LocalDateTime.now().get(ChronoField.MINUTE_OF_HOUR) > 50) {
+        if (LocalDateTime.now().getMinute() > 50) {
             helpLabel.setText("Shift-click to insert several results");
         } else if (resultIndex == -1) {
             helpLabel.setText("Use TAB or mouse to select");
@@ -483,7 +454,7 @@ public class AutoCompletionWindow {
     /**
      * List item renderer.
      */
-    private static class MyRenderer implements ListCellRenderer {
+    private static class MyRenderer implements ListCellRenderer<AutoCompletionServer.CompletionItem> {
         
         private final JPanel panel = new JPanel();
         private final MyIcon icon = new MyIcon();
@@ -506,38 +477,37 @@ public class AutoCompletionWindow {
         }
         
         @Override
-        public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+        public Component getListCellRendererComponent(JList<? extends AutoCompletionServer.CompletionItem> list, AutoCompletionServer.CompletionItem value, int index, boolean isSelected, boolean cellHasFocus) {
             // This normally shouldn't happen, but it has before (in renderers in general)
             if (value == null) {
                 icon.setIcon(null);
                 text.setText(null);
                 return panel;
             }
-            AutoCompletionServer.CompletionItem item = (AutoCompletionServer.CompletionItem)value;
             if (!commonPrefix.isEmpty()) {
-                if (item.hasInfo()) {
+                if (value.hasInfo()) {
                     text.setText(String.format("<html><body><u>%s</u>%s&nbsp;<span style='font-size:0.8em;'>(%s)</span>",
                             enc(commonPrefix),
-                            enc(item.getCode().substring(commonPrefix.length())),
-                            enc(item.getInfo())));
+                            enc(value.getCode().substring(commonPrefix.length())),
+                            enc(value.getInfo())));
                 } else {
                     text.setText(String.format("<html><body><u>%s</u>%s",
                             enc(commonPrefix),
-                            enc(item.getCode().substring(commonPrefix.length()))));
+                            enc(value.getCode().substring(commonPrefix.length()))));
                 }
             } else {
-                if (item.hasInfo()) {
+                if (value.hasInfo()) {
                     text.setText(String.format("<html><body>%s&nbsp;<span style='font-size:0.8em;'>(%s)</span>",
-                            enc(item.getCode()),
-                            enc(item.getInfo())));
+                            enc(value.getCode()),
+                            enc(value.getInfo())));
                 } else {
-                    text.setText(item.getCode());
+                    text.setText(value.getCode());
                 }
             }
-            panel.getAccessibleContext().setAccessibleName(item.getCode());
-            panel.getAccessibleContext().setAccessibleDescription(item.getInfo());
+            panel.getAccessibleContext().setAccessibleName(value.getCode());
+            panel.getAccessibleContext().setAccessibleDescription(value.getInfo());
             
-            ImageIcon image = item.getImage(list);
+            ImageIcon image = value.getImage(list);
             icon.setIcon(image);
             if (image != null) {
                 // For animated GIFs
@@ -576,11 +546,7 @@ public class AutoCompletionWindow {
         }
         
         public void setCommonPrefix(String prefix) {
-            if (prefix == null) {
-                this.commonPrefix = "";
-            } else {
-                this.commonPrefix = prefix;
-            }
+            this.commonPrefix = Objects.requireNonNullElse(prefix, "");
         }
         
     }

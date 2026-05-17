@@ -5,15 +5,8 @@ import chatty.util.SpecialMap;
 import chatty.util.StringUtil;
 import chatty.util.api.Emoticon.Type;
 import chatty.util.settings.Settings;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -38,7 +31,7 @@ public class EmoticonFavorites {
      * Favorites that have not been matched with loaded emotes yet (or
      * channel-specific emotes). By emote type/id.
      */
-    private final SpecialMap<Type, Map<String, Favorite>> notFoundByTypeId = new SpecialMap<>(new HashMap<>(), () -> new HashMap<>());
+    private final SpecialMap<Type, Map<String, Favorite>> notFoundByTypeId = new SpecialMap<>(new HashMap<>(), HashMap::new);
     
     /**
      * Favorites of global emotes that have been matches with loaded emotes.
@@ -138,7 +131,7 @@ public class EmoticonFavorites {
             if (item.get(1) instanceof String || item.get(1) == null) {
                 emoteset = (String)item.get(1);
             } else {
-                emoteset = String.valueOf((Number)item.get(1));
+                emoteset = String.valueOf(item.get(1));
             }
             if (emoteset != null) {
                 if (emoteset.equals("-2")) {
@@ -220,14 +213,13 @@ public class EmoticonFavorites {
         }
     }
     
-    private boolean findFavorites(Collection<Emoticon> emotes) {
+    private void findFavorites(Collection<Emoticon> emotes) {
         for (Emoticon emote : emotes) {
             checkFavorite(emote);
             if (getNotFoundCount() == 0) {
-                return true;
+                return;
             }
         }
-        return false;
     }
     
     private void checkFavorite(Emoticon emote) {
@@ -299,7 +291,7 @@ public class EmoticonFavorites {
     }
     
     public void removeFavorites(Collection<Favorite> toRemove) {
-        toRemove.forEach(fav -> favorites.remove(fav));
+        toRemove.forEach(favorites::remove);
         notFoundByName.values().removeAll(toRemove);
         notFoundByTypeId.values().forEach(m -> m.values().removeAll(toRemove));
     }
@@ -335,12 +327,9 @@ public class EmoticonFavorites {
      * @return 
      */
     public Collection<Favorite> getNotFound() {
-        List<Favorite> result = new ArrayList<>();
-        result.addAll(notFoundByName.values());
+        List<Favorite> result = new ArrayList<>(notFoundByName.values());
         notFoundByTypeId.values().forEach(m -> result.addAll(m.values()));
-        Collections.sort(result, (o1, o2) -> {
-            return o1.code.compareToIgnoreCase(o2.code);
-        });
+        result.sort((o1, o2) -> o1.code.compareToIgnoreCase(o2.code));
         return result;
     }
 

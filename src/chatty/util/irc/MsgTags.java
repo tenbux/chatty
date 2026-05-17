@@ -2,12 +2,9 @@
 package chatty.util.irc;
 
 import chatty.util.StringUtil;
+
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Implementation of IRCv3 tags with Twitch-specific methods.
@@ -267,85 +264,57 @@ public class MsgTags extends IrcMsgTags {
     }
     
     public static Object createLinksObject(Link... links) {
-        List<Link> result = new ArrayList<>();
-        for (Link link : links) {
-            result.add(link);
-        }
+        List<Link> result = new ArrayList<>(Arrays.asList(links));
         return result;
     }
-    
-    public static class Link {
-        
+
+    public record Link(Type type, String target, String label, int startIndex, int endIndex) {
+
         public enum Type {
-            JOIN, URL
-        }
-        
-        public final Type type;
-        public final String target;
-        public final String label;
-        public final int startIndex;
-        public final int endIndex;
-        
+                JOIN, URL
+            }
+
         public Link(Type type, String target, int startIndex, int endIndex) {
-            this.type = type;
-            this.target = target;
-            this.label = "";
-            this.startIndex = startIndex;
-            this.endIndex = endIndex;
-        }
-        
+                this(type, target, "", startIndex, endIndex);
+            }
+
         public Link(Type type, String target, String label) {
-            this.type = type;
-            this.target = target;
-            this.label = label;
-            this.startIndex = -1;
-            this.endIndex = -1;
-        }
-        
+                this(type, target, label, -1, -1);
+            }
+
         @Override
-        public String toString() {
-            return String.format("[%s.%s %s](%d-%d)",
-                                 type, target, label, startIndex, endIndex);
-        }
-        
+            public String toString() {
+                return String.format("[%s.%s %s](%d-%d)",
+                        type, target, label, startIndex, endIndex);
+            }
+
         @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
+            public boolean equals(Object obj) {
+                if (this == obj) {
+                    return true;
+                }
+                if (obj == null) {
+                    return false;
+                }
+                if (getClass() != obj.getClass()) {
+                    return false;
+                }
+                final Link other = (Link) obj;
+                if (this.startIndex != other.startIndex) {
+                    return false;
+                }
+                if (this.endIndex != other.endIndex) {
+                    return false;
+                }
+                if (!Objects.equals(this.target, other.target)) {
+                    return false;
+                }
+                if (!Objects.equals(this.label, other.label)) {
+                    return false;
+                }
+                return this.type == other.type;
             }
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final Link other = (Link) obj;
-            if (this.startIndex != other.startIndex) {
-                return false;
-            }
-            if (this.endIndex != other.endIndex) {
-                return false;
-            }
-            if (!Objects.equals(this.target, other.target)) {
-                return false;
-            }
-            if (!Objects.equals(this.label, other.label)) {
-                return false;
-            }
-            return this.type == other.type;
-        }
-        
-        @Override
-        public int hashCode() {
-            int hash = 3;
-            hash = 79 * hash + Objects.hashCode(this.type);
-            hash = 79 * hash + Objects.hashCode(this.target);
-            hash = 79 * hash + Objects.hashCode(this.label);
-            hash = 79 * hash + this.startIndex;
-            hash = 79 * hash + this.endIndex;
-            return hash;
-        }
-        
+
     }
     
 }

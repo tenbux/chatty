@@ -1,25 +1,19 @@
 
 package chatty.gui.components.updating;
 
-import chatty.util.colors.HtmlColors;
-import chatty.gui.laf.LaF;
 import chatty.gui.UrlOpener;
+import chatty.gui.laf.LaF;
 import chatty.lang.Language;
 import chatty.util.DateTime;
 import chatty.util.GitHub.Release;
 import chatty.util.GitHub.Releases;
+import chatty.util.colors.HtmlColors;
 import com.github.rjeschke.txtmark.Processor;
-import java.awt.BorderLayout;
-import java.awt.Font;
-import java.awt.Window;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextPane;
+
+import javax.swing.*;
 import javax.swing.event.HyperlinkEvent;
-import javax.swing.event.HyperlinkListener;
 import javax.swing.text.html.HTMLDocument;
+import java.awt.*;
 
 /**
  *
@@ -83,17 +77,13 @@ public class Changes extends JDialog {
                 + "margin-bottom: 4px;"
                 + "}";
         ((HTMLDocument)textPane.getDocument()).getStyleSheet().addRule(fontRule);
-        textPane.addHyperlinkListener(new HyperlinkListener() {
-
-            @Override
-            public void hyperlinkUpdate(HyperlinkEvent e) {
-                if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                    // Jump to another place in the document
-                    String url = e.getURL().toString();
-                    String protocol = e.getURL().getProtocol();
-                    if (protocol.equals("http") || protocol.equals("https")) {
-                        UrlOpener.openUrlPrompt(Changes.this, url, true);
-                    }
+        textPane.addHyperlinkListener(e -> {
+            if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                // Jump to another place in the document
+                String url = e.getURL().toString();
+                String protocol = e.getURL().getProtocol();
+                if (protocol.equals("http") || protocol.equals("https")) {
+                    UrlOpener.openUrlPrompt(Changes.this, url, true);
                 }
             }
         });

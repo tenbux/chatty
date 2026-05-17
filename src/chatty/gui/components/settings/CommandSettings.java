@@ -10,19 +10,13 @@ import chatty.gui.components.menus.CommandMenuItems;
 import chatty.gui.components.menus.ContextMenu;
 import chatty.gui.components.menus.TestContextMenu;
 import chatty.gui.components.userinfo.UserInfoDialog;
-import chatty.gui.components.userinfo.UserInfoListener;
-import chatty.util.StringUtil;
 import chatty.util.commands.CommandSyntaxHighlighter;
 import chatty.util.commands.CustomCommand;
 import chatty.util.commands.CustomCommands;
-import chatty.util.commands.Parameters;
-import java.awt.Component;
-import java.awt.GridBagConstraints;
-import java.awt.Window;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.List;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 
 /**
  *
@@ -56,15 +50,9 @@ public class CommandSettings extends SettingsPanel {
         
         GridBagConstraints gbc;
         
-        gbc = d.makeGbc(0, 0, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 0, 1, 1);
         ListSelector items = d.addListSetting("commands", "Custom Command", 400, 150, true, true);
-        items.setDataFormatter(new DataFormatter<String>() {
-
-            @Override
-            public String format(String input) {
-                return input.trim();
-            }
-        });
+        items.setDataFormatter(input -> input.trim());
         items.setTester(createCommandTester());
         items.setInfo(INFO_COMMANDS);
         items.setInfoLinkLabelListener(d.getLinkLabelListener());
@@ -76,14 +64,10 @@ public class CommandSettings extends SettingsPanel {
         
         JPanel menus = addTitledPanel("Menu/Button Commands", 1);
         
-        Editor.Tester menuTester = new Editor.Tester() {
-
-            @Override
-            public String test(Window parent, Component component, int x, int y, String value) {
-                ContextMenu m = new TestContextMenu(value);
-                m.show(component, x, y);
-                return null;
-            }
+        Editor.Tester menuTester = (parent, component, x, y, value) -> {
+            ContextMenu m = new TestContextMenu(value);
+            m.show(component, x, y);
+            return null;
         };
         
         Editor.Tester userDialogTester = new Editor.Tester() {
@@ -93,15 +77,11 @@ public class CommandSettings extends SettingsPanel {
             @Override
             public String test(Window parent, Component component, int x, int y, String value) {
                 updateErrors(value);
-                UserInfoDialog dialog = new UserInfoDialog(parent, new UserInfoListener() {
-
-                    @Override
-                    public void anonCustomCommand(Room room, CustomCommand command, Parameters parameters) {
-                        CustomCommands.addChans(room, parameters);
-                        String result = String.format("<html><body><p style='font-family:monospaced;'>%s</p>",
-                                formatCommandInfo(command.replace(parameters)));
-                        JOptionPane.showMessageDialog(parent, result, "Command result", JOptionPane.INFORMATION_MESSAGE);
-                    }
+                UserInfoDialog dialog = new UserInfoDialog(parent, (room, command, parameters) -> {
+                    CustomCommands.addChans(room, parameters);
+                    String result = String.format("<html><body><p style='font-family:monospaced;'>%s</p>",
+                            formatCommandInfo(command.replace(parameters)));
+                    JOptionPane.showMessageDialog(parent, result, "Command result", JOptionPane.INFORMATION_MESSAGE);
                 }, null, d.settings, null);
                 dialog.setUserDefinedButtonsDef(value, true);
                 GuiUtil.setLocationRelativeTo(dialog, parent);
@@ -143,11 +123,11 @@ public class CommandSettings extends SettingsPanel {
     private void addSetting(String settingName, String infoName, int y, JPanel panel, Editor.Tester tester) {
         GridBagConstraints gbc;
         JLabel label = SettingsUtil.createLabel(settingName);
-        gbc = d.makeGbc(0, y, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, y, 1, 1);
         gbc.anchor = GridBagConstraints.EAST;
         panel.add(label, gbc);
         
-        gbc = d.makeGbc(1, y, 1, 1);
+        gbc = SettingsDialog.makeGbc(1, y, 1, 1);
         EditorStringSetting setting = d.addEditorStringSetting(
                 settingName, 20, true, label.getText(), true,
                 getInfo(infoName), tester);
@@ -157,14 +137,10 @@ public class CommandSettings extends SettingsPanel {
     }
     
     public static Editor.Tester createCommandTester() {
-        return new Editor.Tester() {
-
-            @Override
-            public String test(Window parent, Component component, int x, int y, String value) {
-                CustomCommand command = CustomCommands.parseCommandWithName(value);
-                showCommandInfoPopup(component, command);
-                return null;
-            }
+        return (parent, component, x, y, value) -> {
+            CustomCommand command = CustomCommands.parseCommandWithName(value);
+            showCommandInfoPopup(component, command);
+            return null;
         };
     }
     

@@ -4,31 +4,20 @@ package chatty.gui.components.settings;
 import chatty.gui.GuiUtil;
 import chatty.gui.RegexDocumentFilter;
 import chatty.gui.components.routing.RoutingTargetSettings;
-import static chatty.gui.components.settings.SettingsUtil.createLabel;
-import static chatty.gui.components.settings.TableEditor.SORTING_MODE_MANUAL;
 import chatty.lang.Language;
 import chatty.util.FileUtil;
 import chatty.util.StringUtil;
-import java.awt.Component;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import javax.swing.BorderFactory;
-import javax.swing.ButtonGroup;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JRadioButton;
-import javax.swing.JTextField;
+
+import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.AbstractDocument;
+import java.awt.*;
+import java.awt.event.ActionListener;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import static chatty.gui.components.settings.SettingsUtil.createLabel;
 
 /**
  *
@@ -40,13 +29,12 @@ public class RoutingSettingsTable<T extends RoutingTargetSettings> extends Table
     private static final int NAME_COLUMN = 0;
     private static final int SETTINGS_COLUMN = 1;
     private static final int LOG_COLUMN = 2;
-    
-    private final MyTableModel<T> data;
+
     private MyItemEditor<T> editor;
     
     public RoutingSettingsTable(JDialog owner, Component info) {
         super(SORTING_MODE_MANUAL, false);
-        this.data = new MyTableModel<>();
+        MyTableModel<T> data = new MyTableModel<>();
         
         setModel(data);
         setItemEditor(() -> {
@@ -68,15 +56,12 @@ public class RoutingSettingsTable<T extends RoutingTargetSettings> extends Table
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
             RoutingTargetSettings entry = get(rowIndex);
-            switch (columnIndex) {
-                case NAME_COLUMN:
-                    return entry.getName();
-                case SETTINGS_COLUMN:
-                    return entry.makeSettingsInfo();
-                case LOG_COLUMN:
-                    return entry.getFullLogFilename();
-            }
-            return "";
+            return switch (columnIndex) {
+                case NAME_COLUMN -> entry.getName();
+                case SETTINGS_COLUMN -> entry.makeSettingsInfo();
+                case LOG_COLUMN -> entry.getFullLogFilename();
+                default -> "";
+            };
         }
         
 //        @Override
@@ -153,16 +138,12 @@ public class RoutingSettingsTable<T extends RoutingTargetSettings> extends Table
                 }
             });
             
-            ActionListener listener = new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    if (e.getSource() == ok) {
-                        dialog.setVisible(false);
-                        save = true;
-                    } else if (e.getSource() == cancel) {
-                        dialog.setVisible(false);
-                    }
+            ActionListener listener = e -> {
+                if (e.getSource() == ok) {
+                    dialog.setVisible(false);
+                    save = true;
+                } else if (e.getSource() == cancel) {
+                    dialog.setVisible(false);
                 }
             };
             ok.addActionListener(listener);
@@ -348,7 +329,7 @@ public class RoutingSettingsTable<T extends RoutingTargetSettings> extends Table
                         logFile.getText(),
                         getMultiChannelValue(),
                         channelFixed.isSelected(),
-                        preset != null ? preset.showAll : false,
+                        preset != null && preset.showAll,
                         channelLogo.getSettingValue().intValue(),
                         showChannelName.getSettingValue().intValue());
             }

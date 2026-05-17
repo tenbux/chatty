@@ -20,8 +20,8 @@ public class RaceEntrantContextMenu extends ContextMenu {
         this.listener = listener;
         streams = new ArrayList<>();
         for (Entrant entrant : entrants) {
-            if (!entrant.twitch.isEmpty()) {
-                streams.add(entrant.twitch);
+            if (!entrant.twitch().isEmpty()) {
+                streams.add(entrant.twitch());
             }
         }
         if (streams.isEmpty()) {

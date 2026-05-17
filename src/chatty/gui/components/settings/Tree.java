@@ -2,18 +2,8 @@
 package chatty.gui.components.settings;
 
 import chatty.gui.components.settings.SettingsDialog.Page;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.swing.BorderFactory;
-import javax.swing.JLabel;
-import javax.swing.JTree;
+
+import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.event.TreeExpansionEvent;
 import javax.swing.event.TreeWillExpandListener;
@@ -21,6 +11,11 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.ExpandVetoException;
 import javax.swing.tree.TreePath;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.*;
+import java.util.List;
 
 /**
  * Helper class for the JTree that is used to switch between setting pages.
@@ -74,7 +69,7 @@ public class Tree {
         tree.addTreeWillExpandListener(new TreeWillExpandListener() {
 
             @Override
-            public void treeWillExpand(TreeExpansionEvent event) throws ExpandVetoException {
+            public void treeWillExpand(TreeExpansionEvent event) {
             }
 
             @Override
@@ -123,8 +118,7 @@ public class Tree {
                                                       boolean leaf, int row,
                                                       boolean hasFocus) {
             Component c = super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
-            if (c instanceof JLabel) {
-                JLabel label = (JLabel) c;
+            if (c instanceof JLabel label) {
                 label.setBorder(BORDER);
                 if (value instanceof DefaultMutableTreeNode) {
                     Object userObject = ((DefaultMutableTreeNode) value).getUserObject();

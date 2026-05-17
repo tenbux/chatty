@@ -1,9 +1,8 @@
 
 package chatty.util.commands;
 
-import chatty.User;
 import chatty.util.StringUtil;
-import chatty.util.api.usericons.Usericon;
+
 import java.util.Objects;
 import java.util.Set;
 
@@ -76,10 +75,7 @@ class Identifier implements Item {
             return false;
         }
         final Identifier other = (Identifier) obj;
-        if (!Objects.equals(this.name, other.name)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.name, other.name);
     }
 
     @Override

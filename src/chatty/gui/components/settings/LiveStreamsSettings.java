@@ -6,14 +6,11 @@ import chatty.gui.components.LiveStreamsDialog;
 import chatty.gui.components.LiveStreamsDialog.OpenAction;
 import chatty.lang.Language;
 import chatty.util.commands.CustomCommand;
-import java.awt.GridBagConstraints;
-import java.util.HashMap;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
 
 /**
  *
@@ -22,7 +19,6 @@ import javax.swing.JPanel;
 public class LiveStreamsSettings extends SettingsPanel {
     
     private final LinkLabel userReadPermission;
-    private final JCheckBox requestFollowedStreams;
 
     public LiveStreamsSettings(SettingsDialog d) {
         
@@ -52,17 +48,13 @@ public class LiveStreamsSettings extends SettingsPanel {
         openCommand.setLinkLabelListener(d.getLinkLabelListener());
         SettingsUtil.addLabeledComponent(listSettings, "liveStreamsCommand", 0, 1, 1, GridBagConstraints.EAST, openCommand, true);
         
-        SettingsUtil.addSubsettings(streamsAction, (t) -> {
-            return t.equals(OpenAction.COMMAND.key);
-        }, openCommand);
+        SettingsUtil.addSubsettings(streamsAction, (t) -> t.equals(OpenAction.COMMAND.key), openCommand);
         
         SimpleBooleanSetting notificationAction = d.addSimpleBooleanSetting("liveStreamsNotificationAction");
         listSettings.add(notificationAction,
                 SettingsDialog.makeGbc(0, 2, 2, 1, GridBagConstraints.WEST));
         
-        SettingsUtil.addSubsettings(streamsAction, (t) -> {
-            return !t.equals(OpenAction.INFO.key);
-        }, notificationAction);
+        SettingsUtil.addSubsettings(streamsAction, (t) -> !t.equals(OpenAction.INFO.key), notificationAction);
         
         listSettings.add(d.addSimpleBooleanSetting("liveStreamsChatIcon"),
                 SettingsDialog.makeGbc(0, 3, 2, 1, GridBagConstraints.WEST));
@@ -88,14 +80,14 @@ public class LiveStreamsSettings extends SettingsPanel {
         //--------------------------
         // Followed Streams
         //--------------------------
-        gbc = d.makeGbc(0, 0, 1, 1, GridBagConstraints.WEST);
-        requestFollowedStreams = d.addSimpleBooleanSetting("requestFollowedStreams",
+        gbc = SettingsDialog.makeGbc(0, 0, 1, 1, GridBagConstraints.WEST);
+        JCheckBox requestFollowedStreams = d.addSimpleBooleanSetting("requestFollowedStreams",
                 "Request followed streams", "Allows Chatty to know "
                         + "about live streams you follow to notify you and "
                         + "display a list of them");
         follows.add(requestFollowedStreams, gbc);
         
-        gbc = d.makeGbc(1, 0, 1, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(1, 0, 1, 1, GridBagConstraints.WEST);
         userReadPermission = new LinkLabel("", d.getLinkLabelListener());
         follows.add(userReadPermission, gbc);
     }

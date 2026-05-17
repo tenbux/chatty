@@ -3,13 +3,9 @@ package chatty.gui.components;
 
 import chatty.ChannelState;
 import chatty.Room;
-import chatty.gui.MouseClickedListener;
-import chatty.gui.StyleManager;
-import chatty.gui.StyleServer;
-import chatty.gui.MainGui;
 import chatty.User;
 import chatty.gui.Channels.DockChannelContainer;
-import chatty.gui.GuiUtil;
+import chatty.gui.*;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.menus.TextSelectionMenu;
 import chatty.gui.components.textpane.ChannelTextPane;
@@ -21,23 +17,12 @@ import chatty.util.api.TokenInfo;
 import chatty.util.api.eventsub.payloads.SuspiciousMessagePayload;
 import chatty.util.commands.CustomCommand;
 import chatty.util.commands.Parameters;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.Point;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+
+import javax.swing.*;
+import javax.swing.text.JTextComponent;
+import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JPanel;
-import javax.swing.JScrollBar;
-import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
-import javax.swing.Popup;
-import javax.swing.PopupFactory;
-import javax.swing.Timer;
-import javax.swing.text.JTextComponent;
 
 /**
  * A single channel window, combining styled text pane, userlist and input box.
@@ -124,9 +109,7 @@ public final class Channel extends JPanel {
         modPanelButton.setToolTipText("Channel Modes");
         modPanelButton.setVisible(false);
         inputPanel.add(modPanelButton, BorderLayout.EAST);
-        modPanelButton.addActionListener(e -> {
-            openModPanel();
-        });
+        modPanelButton.addActionListener(e -> openModPanel());
         
         // Add components
         add(mainPane, BorderLayout.CENTER);
@@ -170,9 +153,7 @@ public final class Channel extends JPanel {
         if (modPanel == null) {
             modPanel = new ModerationPanel(main, main.getSettings());
             modPanel.setBorder(BorderFactory.createRaisedSoftBevelBorder());
-            modPanel.addCommandListener(s -> {
-                main.anonCustomCommand(room, CustomCommand.parse(s), Parameters.create(""));
-            });
+            modPanel.addCommandListener(s -> main.anonCustomCommand(room, CustomCommand.parse(s), Parameters.create("")));
             
             text.addFocusListener(new FocusAdapter() {
 
@@ -345,7 +326,7 @@ public final class Channel extends JPanel {
         return users.getNumUsers();
     }
     
-    public final void updateUserlistSettings() {
+    public void updateUserlistSettings() {
         users.setDisplayNamesMode(main.getSettings().getLong("displayNamesModeUserlist"));
     }
 
@@ -456,19 +437,15 @@ public final class Channel extends JPanel {
         int now = scrollbar.getValue();
         int height = scrollbar.getVisibleAmount();
         height = height - height / 10;
-        int newValue = 0;
-        switch (action) {
-            case "pageUp":
-                newValue = now - height;
-                break;
-            case "pageDown":
-                newValue = now + height;
-                break;
-        }
+        int newValue = switch (action) {
+            case "pageUp" -> now - height;
+            case "pageDown" -> now + height;
+            default -> 0;
+        };
         scrollbar.setValue(newValue);
     }
     
-    public final void setUserlistWidth(int width, int minWidth) {
+    public void setUserlistWidth(int width, int minWidth) {
         userlist.setPreferredSize(new Dimension(width, 10));
         userlist.setMinimumSize(new Dimension(minWidth, 0));
         userlistMinWidth = minWidth;
@@ -482,13 +459,7 @@ public final class Channel extends JPanel {
      */
     private void setTextPreferredSizeTemporarily() {
         text.setPreferredSize(new Dimension(0, 0));
-        Timer t = new Timer(5000, new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                text.setPreferredSize(null);
-            }
-        });
+        Timer t = new Timer(5000, e -> text.setPreferredSize(null));
         t.setRepeats(false);
         t.start();
     }
@@ -506,20 +477,20 @@ public final class Channel extends JPanel {
     /**
      * Toggle visibility for the text input box.
      */
-    public final void toggleInput() {
+    public void toggleInput() {
         inputPanel.setVisible(!inputPanel.isVisible());
         revalidate();
     }
     
     private boolean inputPreviouslyShown = true;
     
-    public final void hideInput() {
+    public void hideInput() {
         inputPreviouslyShown = inputPanel.isVisible();
         inputPanel.setVisible(false);
         revalidate();
     }
     
-    public final void restoreInput() {
+    public void restoreInput() {
         inputPanel.setVisible(inputPreviouslyShown);
         revalidate();
     }
@@ -530,7 +501,7 @@ public final class Channel extends JPanel {
      * 
      * @param enable 
      */
-    public final void setUserlistEnabled(boolean enable) {
+    public void setUserlistEnabled(boolean enable) {
         if (enable == userlistEnabled) {
             return;
         }
@@ -556,7 +527,7 @@ public final class Channel extends JPanel {
     /**
      * Toggle the userlist.
      */
-    public final void toggleUserlist() {
+    public void toggleUserlist() {
         setUserlistEnabled(!userlistEnabled);
     }
     

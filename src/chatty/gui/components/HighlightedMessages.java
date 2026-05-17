@@ -1,57 +1,33 @@
 
 package chatty.gui.components;
 
-import chatty.Room;
 import chatty.User;
-import chatty.gui.Channels;
-import chatty.gui.DockStyledTabContainer;
-import chatty.gui.DockedDialogHelper;
-import chatty.gui.DockedDialogManager;
-import chatty.gui.GuiUtil;
+import chatty.gui.*;
 import chatty.gui.Highlighter.Match;
-import chatty.gui.MainGui;
-import chatty.gui.components.textpane.UserMessage;
-import chatty.gui.StyleServer;
-import chatty.gui.components.menus.ContextMenu;
-import chatty.gui.components.menus.ContextMenuAdapter;
-import chatty.gui.components.menus.ContextMenuHelper;
-import chatty.gui.components.textpane.ChannelTextPane;
-import chatty.gui.components.menus.ContextMenuListener;
-import chatty.gui.components.menus.HighlightsContextMenu;
+import chatty.gui.components.menus.*;
 import chatty.gui.components.routing.RoutingTargetSettings;
+import chatty.gui.components.textpane.ChannelTextPane;
 import chatty.gui.components.textpane.InfoMessage;
 import chatty.gui.components.textpane.MyStyleConstants;
-import chatty.util.Debugging;
-import chatty.util.MiscUtil;
+import chatty.gui.components.textpane.UserMessage;
 import chatty.util.StringUtil;
 import chatty.util.Timestamp;
 import chatty.util.api.Emoticons.TagEmotes;
-import chatty.util.api.StreamInfo;
-import chatty.util.api.usericons.Usericon;
 import chatty.util.colors.ColorCorrector;
 import chatty.util.dnd.DockContent;
-import chatty.util.dnd.DockContentContainer;
 import chatty.util.irc.MsgTags;
-import chatty.util.settings.Settings;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Window;
+
+import javax.swing.*;
+import javax.swing.text.MutableAttributeSet;
+import javax.swing.text.SimpleAttributeSet;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.text.MessageFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
-import javax.swing.JDialog;
-import javax.swing.JScrollPane;
-import javax.swing.SwingUtilities;
-import javax.swing.text.MutableAttributeSet;
-import javax.swing.text.SimpleAttributeSet;
 
 /**
  * Window showing all highlighted (or ignored) messages.
@@ -73,7 +49,7 @@ public class HighlightedMessages extends JDialog {
      */
     private int displayedCount;
     private int newCount;
-    private boolean setChatIconsYet = false;
+    private final boolean setChatIconsYet = false;
     
     private final String title;
     private final String label;
@@ -120,21 +96,23 @@ public class HighlightedMessages extends JDialog {
 
             @Override
             public MutableAttributeSet getStyle(String type) {
-                if (type.equals("highlight")) {
-                    return getStyle("standard");
-                }
-                if (type.equals("paragraph")) {
-                    MutableAttributeSet attr = new SimpleAttributeSet(styleServer.getStyle(type));
-                    MyStyleConstants.setHighlightBackground(attr, null);
-                    return attr;
-                }
-                if (type.equals("settings")) {
-                    MutableAttributeSet attr = new SimpleAttributeSet(styleServer.getStyle(type));
-                    // For crossing out messages for timeouts, but never show separate message
-                    attr.addAttribute(ChannelTextPane.Setting.SHOW_BANMESSAGES, false);
-                    attr.addAttribute(ChannelTextPane.Setting.CHANNEL_LOGO_SIZE, channelLogo());
-                    attr.addAttribute(ChannelTextPane.Setting.SHOW_CHANNEL_NAME, showChannelName());
-                    return attr;
+                switch (type) {
+                    case "highlight" -> {
+                        return getStyle("standard");
+                    }
+                    case "paragraph" -> {
+                        MutableAttributeSet attr = new SimpleAttributeSet(styleServer.getStyle(type));
+                        MyStyleConstants.setHighlightBackground(attr, null);
+                        return attr;
+                    }
+                    case "settings" -> {
+                        MutableAttributeSet attr = new SimpleAttributeSet(styleServer.getStyle(type));
+                        // For crossing out messages for timeouts, but never show separate message
+                        attr.addAttribute(ChannelTextPane.Setting.SHOW_BANMESSAGES, false);
+                        attr.addAttribute(ChannelTextPane.Setting.CHANNEL_LOGO_SIZE, channelLogo());
+                        attr.addAttribute(ChannelTextPane.Setting.SHOW_CHANNEL_NAME, showChannelName());
+                        return attr;
+                    }
                 }
                 return styleServer.getStyle(type);
             }
@@ -165,22 +143,12 @@ public class HighlightedMessages extends JDialog {
             
             @Override
             public void menuItemClicked(ActionEvent e) {
-                switch (e.getActionCommand()) {
-                    case "clearHighlights":
-                        clear();
-                        break;
-                    default:
-                        break;
+                if (e.getActionCommand().equals("clearHighlights")) {
+                    clear();
                 }
-                ContextMenuHelper.handleNumericOption(e.getActionCommand(), "logoSize", size -> {
-                    updateSettings(showLegacy(), size, showChannelName());
-                });
-                ContextMenuHelper.handleNumericOption(e.getActionCommand(), "showChannelName", length -> {
-                    updateSettings(showLegacy(), channelLogo(), length);
-                });
-                ContextMenuHelper.handleNumericOption(e.getActionCommand(), "legacyChannelName", on -> {
-                    updateSettings(on, channelLogo(), showChannelName());
-                });
+                ContextMenuHelper.handleNumericOption(e.getActionCommand(), "logoSize", size -> updateSettings(showLegacy(), size, showChannelName()));
+                ContextMenuHelper.handleNumericOption(e.getActionCommand(), "showChannelName", length -> updateSettings(showLegacy(), channelLogo(), length));
+                ContextMenuHelper.handleNumericOption(e.getActionCommand(), "legacyChannelName", on -> updateSettings(on, channelLogo(), showChannelName()));
                 helper.menuAction(e);
                 super.menuItemClicked(e);
             }
@@ -407,11 +375,11 @@ public class HighlightedMessages extends JDialog {
     private static final int CHANNEL_NAME_INDEX = 2;
     
     private String settingName() {
-        switch (type) {
-            case HIGHLIGHTS: return "highlightDialog";
-            case IGNORED: return "ignoreDialog";
-        }
-        return null;
+        return switch (type) {
+            case HIGHLIGHTS -> "highlightDialog";
+            case IGNORED -> "ignoreDialog";
+            default -> null;
+        };
     }
     
     private long showLegacy() {

@@ -1,11 +1,11 @@
 
 package chatty.util;
 
+import javax.swing.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
-import javax.swing.SwingUtilities;
 
 /**
  *
@@ -54,9 +54,7 @@ public class BatchAction {
                     }
                     if (r != null) {
                         if (edt) {
-                            SwingUtilities.invokeLater(() -> {
-                                r.run();
-                            });
+                            SwingUtilities.invokeLater(r);
                         }
                         else {
                             r.run();

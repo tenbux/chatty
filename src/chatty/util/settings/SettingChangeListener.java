@@ -8,5 +8,5 @@ package chatty.util.settings;
  */
 public interface SettingChangeListener {
     
-    public void settingChanged(String setting, int type, Object value);
+    void settingChanged(String setting, int type, Object value);
 }

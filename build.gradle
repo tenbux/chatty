@@ -10,7 +10,16 @@ plugins {
 compileJava.options.encoding = 'UTF-8'
 compileTestJava.options.encoding = 'UTF-8'
 
-sourceCompatibility = 1.8
+// Required for JNA on Java 21+ (native access restrictions)
+tasks.withType(JavaExec).configureEach {
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+test {
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+sourceCompatibility = 21
+targetCompatibility = 21
 
 // Tells Netbeans what the main class is
 ext.mainClass = 'chatty.Chatty'
@@ -42,7 +51,7 @@ sourceSets {
 
 // Method that gets the version name from Chatty.java. It's defined after the sourceSets block because it uses its path
 def extractVersion = { ->
-    File chattyClassFile = new File((File) sourceSets.main.java.srcDirs.first(), 'chatty/Chatty.java');
+    File chattyClassFile = new File((File) sourceSets.main.java.srcDirs.first(), 'chatty/Chatty.java')
 
     // Use this regex to extract the version from the file
     Matcher matcher = chattyClassFile.text =~ /(?m)^\s*public static final String VERSION = "(.*?)";/
@@ -55,23 +64,24 @@ version = extractVersion()
 
 dependencies {
     implementation fileTree(dir: 'assets/lib', include: ['*.jar'])
-    implementation 'net.java.dev.jna:jna:5.12.1'
-    implementation 'net.java.dev.jna:jna-platform:5.12.1'
-    implementation 'com.formdev:flatlaf:3.2.5'
+    implementation 'net.java.dev.jna:jna:5.14.0'
+    implementation 'net.java.dev.jna:jna-platform:5.14.0'
+    implementation 'com.formdev:flatlaf:3.4.1'
 
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13.2'
 }
 
 // The wrapper is a small batch/bash script that can be used to run Gradle on machines where it hasn't been directly
 // installed. It allows you to specify the project's Gradle version for everyone that has checked out the project.
 wrapper {
-    gradleVersion = '6.5.1'
+    gradleVersion = '8.8'
 }
 
 jar {
     manifest {
         attributes(
                 'Main-Class': mainClass,
+                'Enable-Native-Access': 'ALL-UNNAMED',
 		//'SplashScreen-Image': 'chatty/splash/splash.png'
         )
     }
@@ -123,17 +133,17 @@ task release(group: 'build') {
 
 def windowsBundleTarget = new File(buildDir, 'javapackager')
 def windowsBundleSource = new File(windowsBundleTarget, 'bundles/Chatty')
-def standaloneSuffix = "_legacy";
-def isJPackage = false;
+def standaloneSuffix = "_legacy"
+def isJPackage = false
 if (project.hasProperty('jpackagePath')) {
     windowsBundleTarget = new File(buildDir, 'jpackage')
     windowsBundleSource = new File(windowsBundleTarget, 'Chatty')
-    standaloneSuffix = "";
-    isJPackage = true;
+    standaloneSuffix = ""
+    isJPackage = true
 }
 
 ext.standaloneSuffix = standaloneSuffix
-ext.isJPackageString = isJPackage ? "1" : "0";
+ext.isJPackageString = isJPackage ? "1" : "0"
 
 task javapackagerBuild(type: Exec, group: 'build') {
     dependsOn shadowJar
@@ -145,7 +155,7 @@ task javapackagerBuild(type: Exec, group: 'build') {
     }
     if (project.hasProperty('jpackagePath')) {
         doFirst {
-            println 'Using jpackagePath';
+            println 'Using jpackagePath'
             delete windowsBundleTarget
 	    copy {
 		from tasks.shadowJar.archivePath
@@ -170,7 +180,7 @@ task javapackagerBuild(type: Exec, group: 'build') {
     }
     else if (project.hasProperty('javapackagerPath')) {
         doFirst {
-            println 'Using javapackagerPath';
+            println 'Using javapackagerPath'
             delete windowsBundleTarget
         }
         def command = [javapackagerPath, '-deploy', '-native', 'image', '-srcfiles', tasks.shadowJar.archivePath, '-appclass', 'chatty.Chatty', '-outdir', windowsBundleTarget, '-outfile', 'Chatty']
@@ -200,13 +210,13 @@ task javapackagerManifest(group: 'build') {
     dependsOn javapackagerBuild
     doLast {
         if (project.hasProperty('mtPath')) {
-            addApplicationManifest(new File(windowsBundleSource, "Chatty.exe"));
+            addApplicationManifest(new File(windowsBundleSource, "Chatty.exe"))
             if (isJPackage) {
-                addApplicationManifest(new File(windowsBundleSource, "ChattyPortable.exe"));
+                addApplicationManifest(new File(windowsBundleSource, "ChattyPortable.exe"))
             }
         }
         else {
-            println("Path to mt.exe has to be specified to add an application manifest, skipping..");
+            println("Path to mt.exe has to be specified to add an application manifest, skipping..")
         }
     }
 }
@@ -267,7 +277,7 @@ task innosetup(type: Exec, group: 'build') {
             throw new GradleException('Path to iscc.exe must be defined with -PinnosetupPath=<path>')
         }
 	delete innosetupDir
-        innosetupDir.mkdir();
+        innosetupDir.mkdir()
 
         prepareSetupFile("setup.iss-template", innosetupDir)
         copy {
@@ -291,7 +301,7 @@ task innosetupStandalone(type: Exec, group: 'build') {
             throw new GradleException('Path to iscc.exe must be defined with -PinnosetupPath=<path>')
         }
 	delete innosetupDir2
-        innosetupDir2.mkdir();
+        innosetupDir2.mkdir()
 
         prepareSetupFile("setup_standalone.iss-template", innosetupDir2)
         copy {

@@ -61,10 +61,7 @@ public class SpecialEscape implements Item {
             return false;
         }
         final SpecialEscape other = (SpecialEscape) obj;
-        if (!Objects.equals(this.item, other.item)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.item, other.item);
     }
 
     @Override

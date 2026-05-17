@@ -2,37 +2,28 @@
 package chatty.util.api.queue;
 
 import chatty.Chatty;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.util.Timeout;
+import org.json.simple.JSONObject;
+
+import java.io.*;
 import java.net.HttpURLConnection;
-import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
-import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
-import org.apache.hc.client5.http.config.RequestConfig;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
-import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
-import org.apache.hc.core5.http.ClassicHttpRequest;
-import org.apache.hc.core5.http.ContentType;
-import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.HttpEntity;
-import org.apache.hc.core5.http.ParseException;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
-import org.apache.hc.core5.http.io.entity.StringEntity;
-import org.apache.hc.core5.util.Timeout;
-import org.json.simple.JSONObject;
 
 /**
  *
@@ -42,7 +33,7 @@ public class Request implements Runnable {
 
     private static final Logger LOGGER = Logger.getLogger(Request.class.getName());
     
-    private static final Charset CHARSET = Charset.forName("UTF-8");
+    private static final java.nio.charset.Charset CHARSET = StandardCharsets.UTF_8;
     
     /**
      * Timeout for connecting in milliseconds.
@@ -55,7 +46,7 @@ public class Request implements Runnable {
     
     private static final String CLIENT_ID = Chatty.CLIENT_ID;
     
-    private String url;
+    private final String url;
     private RequestResultListener listener;
     private String token;
     private String data = null;
@@ -159,7 +150,7 @@ public class Request implements Runnable {
                 ratelimitRemaining = getIntHeader(response.getFirstHeader("Ratelimit-Remaining"), -1);
                 HttpEntity responseEntity = response.getEntity();
                 if (responseEntity != null) {
-                    responseText = EntityUtils.toString(responseEntity, Charset.forName("UTF-8"));
+                    responseText = EntityUtils.toString(responseEntity, StandardCharsets.UTF_8);
                     EntityUtils.consume(responseEntity);
                     if (!String.valueOf(responseCode).startsWith("2")) {
                         errorText = responseText;
@@ -242,7 +233,7 @@ public class Request implements Runnable {
         
         HttpURLConnection connection = null;
         try {
-            connection = (HttpURLConnection)new URL(url).openConnection();
+            connection = (HttpURLConnection)URI.create(url).toURL().openConnection();
             connection.setConnectTimeout(CONNECT_TIMEOUT);
             connection.setReadTimeout(READ_TIMEOUT);
         
@@ -275,11 +266,9 @@ public class Request implements Runnable {
             //--------------------
             InputStream input = checkGZIP(connection.getInputStream(), connection);
             responseText = readText(input);
-        } catch (SocketTimeoutException ex) {
-            requestError = ex.toString();
         } catch (IOException ex) {
             requestError = ex.toString();
-        } finally {
+        }  finally {
             if (connection != null) {
                 try {
                     InputStream errorInput = checkGZIP(connection.getErrorStream(), connection);
@@ -349,10 +338,7 @@ public class Request implements Runnable {
         if (!Objects.equals(this.requestMethod, other.requestMethod)) {
             return false;
         }
-        if (!Objects.equals(this.contentType, other.contentType)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.contentType, other.contentType);
     }
     
     @Override

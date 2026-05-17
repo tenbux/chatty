@@ -2,44 +2,27 @@
 package chatty.util.api.eventsub;
 
 import chatty.util.JSONUtil;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+import java.util.*;
+import java.util.logging.Logger;
+
 /**
  * A list of current EventSub topics requested from the API, mainly for
  * debugging at this point.
- * 
+ *
  * @author tduva
  */
-public class EventSubSubs {
+public record EventSubSubs(int total, int totalCost, int maxTotalCost, List<Sub> subs) {
 
     private static final Logger LOGGER = Logger.getLogger(EventSubSubs.class.getName());
-    
-    public final int total;
-    public final int totalCost;
-    public final int maxTotalCost;
-    public final List<Sub> subs;
-    
-    public EventSubSubs(int total, int totalCost, int maxTotalCost, List<Sub> subs) {
-        this.total = total;
-        this.totalCost = totalCost;
-        this.maxTotalCost = maxTotalCost;
-        this.subs = subs;
-    }
-    
+
     public void addResult(EventSubSubs subs) {
         this.subs.addAll(subs.subs);
     }
-    
+
     public static EventSubSubs decode(String json) {
         try {
             JSONParser parser = new JSONParser();
@@ -47,7 +30,7 @@ public class EventSubSubs {
             int total = JSONUtil.getInteger(root, "total", -1);
             int totalCost = JSONUtil.getInteger(root, "total_cost", -1);
             int maxTotalCost = JSONUtil.getInteger(root, "max_total_cost", -1);
-            
+
             List<Sub> subs = new ArrayList<>();
             JSONArray data = (JSONArray) root.get("data");
             for (Object o : data) {
@@ -55,15 +38,14 @@ public class EventSubSubs {
                 subs.add(new Sub(entry));
             }
             return new EventSubSubs(total, totalCost, maxTotalCost, subs);
-        }
-        catch (Exception ex) {
-            LOGGER.warning("Error parsing EventSub subs: "+ex);
+        } catch (Exception ex) {
+            LOGGER.warning("Error parsing EventSub subs: " + ex);
         }
         return null;
     }
-    
+
     private static class Sub {
-        
+
         public final String id;
         public final String status;
         public final String type;
@@ -73,7 +55,7 @@ public class EventSubSubs {
         public final String method;
         public final String sessionId;
         public final int cost;
-        
+
         public Sub(JSONObject data) {
             id = JSONUtil.getString(data, "id");
             status = JSONUtil.getString(data, "status");
@@ -85,22 +67,21 @@ public class EventSubSubs {
             method = JSONUtil.getString(transport, "method", "");
             if (method.equals("websocket")) {
                 sessionId = JSONUtil.getString(transport, "session_id");
-            }
-            else {
+            } else {
                 sessionId = null;
             }
             createdAt = JSONUtil.getString(data, "created_at");
             cost = JSONUtil.getInteger(data, "cost", -1);
         }
-        
+
     }
-    
+
     public Map<String, List<Sub>> getBySession() {
         Map<String, List<Sub>> result = new HashMap<>();
         Set<String> ids = new HashSet<>();
         for (Sub sub : subs) {
             if (!ids.add(sub.id)) {
-                System.out.println("Duped id: "+sub.id);
+                System.out.println("Duped id: " + sub.id);
                 continue;
             }
             if (!result.containsKey(sub.sessionId)) {
@@ -110,7 +91,7 @@ public class EventSubSubs {
         }
         return result;
     }
-    
+
     public Map<String, Integer> getCountBySession() {
         Map<String, List<Sub>> bySession = getBySession();
         Map<String, Integer> count = new HashMap<>();
@@ -119,27 +100,26 @@ public class EventSubSubs {
         }
         return count;
     }
-    
+
     @Override
     public String toString() {
         Map<String, List<Sub>> bySession = getBySession();
         StringBuilder b = new StringBuilder();
         for (Map.Entry<String, List<Sub>> entry : bySession.entrySet()) {
             b.append("\n[").append(entry.getKey()).append("]").append("\n");
-            List<Sub> sorted = new ArrayList<>();
-            sorted.addAll(entry.getValue());
-            Collections.sort(sorted, (o1, o2) -> {
-                         if (o1.broadcasterId == o2.broadcasterId) {
-                             return 0;
-                         }
-                         if (o1.broadcasterId == null && o2.broadcasterId != null) {
-                             return -1;
-                         }
-                         if (o2.broadcasterId == null) {
-                             return 1;
-                         }
-                         return o1.broadcasterId.compareTo(o2.broadcasterId);
-                     });
+            List<Sub> sorted = new ArrayList<>(entry.getValue());
+            sorted.sort((o1, o2) -> {
+                if (o1.broadcasterId == null && o2.broadcasterId == null) {
+                    return 0;
+                }
+                if (o1.broadcasterId == null) {
+                    return -1;
+                }
+                if (o2.broadcasterId == null) {
+                    return 1;
+                }
+                return o1.broadcasterId.compareTo(o2.broadcasterId);
+            });
             String currentId = null;
             int count = 0;
             for (Sub sub : sorted) {
@@ -157,5 +137,5 @@ public class EventSubSubs {
         }
         return b.toString();
     }
-    
+
 }

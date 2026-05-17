@@ -9,21 +9,9 @@ import java.util.Objects;
  *
  * @author tduva
  */
-public class DockLayoutSplit implements DockLayoutElement {
-    
-    public final DockLayoutElement left;
-    public final DockLayoutElement right;
-    public final int dividerLocation;
-    public final int orientation;
-    
-    public DockLayoutSplit(DockLayoutElement left, DockLayoutElement right,
-                           int dividerLocation, int orientation) {
-        this.left = left;
-        this.right = right;
-        this.dividerLocation = dividerLocation;
-        this.orientation = orientation;
-    }
-    
+public record DockLayoutSplit(DockLayoutElement left, DockLayoutElement right, int dividerLocation,
+                              int orientation) implements DockLayoutElement {
+
     @Override
     public String toString() {
         return String.format("(%s|%d|%s)", left, dividerLocation, right);
@@ -58,7 +46,7 @@ public class DockLayoutSplit implements DockLayoutElement {
         result.addAll(right.getContentIds());
         return result;
     }
-    
+
     @Override
     public List<String> getActiveContentIds() {
         List<String> result = new ArrayList<>();
@@ -66,5 +54,5 @@ public class DockLayoutSplit implements DockLayoutElement {
         result.addAll(right.getActiveContentIds());
         return result;
     }
-    
+
 }

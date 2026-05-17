@@ -1,18 +1,18 @@
 
 package chatty.gui.components.settings;
 
-import chatty.Helper;
 import chatty.lang.Language;
 import chatty.util.StringUtil;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.Locale;
+
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.Objects;
 
 
 /**
@@ -29,11 +29,12 @@ public class FontChooser extends JDialog implements InputListListener,
     private final JCheckBox bold;
     private final JCheckBox italic;
     
-    private static final String PREVIEW_TEXT = 
-              "ABCDEFGHIJKLMNOPQRSTUVWXYZ\n"
-            + "abcdefghijklmnopqrstuvwxyz\n"
-            + "1234567890\n"
-            + "ÄÖÜäöüôàúåãë.,-\\/#+-µ[:]{}$";
+    private static final String PREVIEW_TEXT =
+            """
+                    ABCDEFGHIJKLMNOPQRSTUVWXYZ
+                    abcdefghijklmnopqrstuvwxyz
+                    1234567890
+                    ÄÖÜäöüôàúåãë.,-\\/#+-µ[:]{}$""";
     
     // Preview
     private final JTextArea preview = new JTextArea();
@@ -42,8 +43,7 @@ public class FontChooser extends JDialog implements InputListListener,
 
     // Buttons
     private final JButton ok = new JButton(Language.getString("dialog.button.ok"));
-    private final JButton cancel = new JButton(Language.getString("dialog.button.cancel"));
-    
+
     // Close Action
     private int closeAction;
     
@@ -53,11 +53,7 @@ public class FontChooser extends JDialog implements InputListListener,
     // Font
     private Font font;
     private static final int FALLBACK_FONT_SIZE = 14;
-    private String[] fontSizes = new String[]{
-        "8", "9", "10", "11", "12", "13", "14", "15", "16", "18", "20", "22",
-        "24", "26", "28", "30", "32", "36", "48", "60", "72"
-    };
-    
+
     // Reference
     private final Dialog owner;
     
@@ -75,6 +71,7 @@ public class FontChooser extends JDialog implements InputListListener,
         setLayout(new GridBagLayout());
         
         ok.addActionListener(this);
+        JButton cancel = new JButton(Language.getString("dialog.button.cancel"));
         cancel.addActionListener(this);
         
         /*
@@ -91,6 +88,10 @@ public class FontChooser extends JDialog implements InputListListener,
         fontList = new InputList(fonts);
         
         // Create and fill font size list
+        String[] fontSizes = new String[]{
+                "8", "9", "10", "11", "12", "13", "14", "15", "16", "18", "20", "22",
+                "24", "26", "28", "30", "32", "36", "48", "60", "72"
+        };
         fontSizeList = new InputList(fontSizes, new IntegerVerifier());
         fontSizeList.getList().setFixedCellWidth(60);
         
@@ -230,11 +231,7 @@ public class FontChooser extends JDialog implements InputListListener,
         fontSizeList.setValue(String.valueOf(font.getSize()));
         bold.setSelected(font.isBold());
         italic.setSelected(font.isItalic());
-        if (msg != null) {
-            preview.setText(msg);
-        } else {
-            preview.setText(PREVIEW_TEXT);
-        }
+        preview.setText(Objects.requireNonNullElse(msg, PREVIEW_TEXT));
         closeAction = ACTION_CANCEL;
         setMinimumSize(getPreferredSize());
         setLocationRelativeTo(owner);
@@ -251,7 +248,7 @@ public class FontChooser extends JDialog implements InputListListener,
      */
     private void updateFont() {
         String fontName = fontList.getValue();
-        Integer fontSize = FALLBACK_FONT_SIZE;
+        int fontSize = FALLBACK_FONT_SIZE;
         try {
             fontSize = Integer.parseInt(fontSizeList.getValue());
         } catch (NumberFormatException ex) {
@@ -312,8 +309,8 @@ public class FontChooser extends JDialog implements InputListListener,
     static class InputList extends JPanel implements ListSelectionListener,
             ActionListener, DocumentListener {
         
-        private JList<String> list;
-        private JTextField input;
+        private final JList<String> list;
+        private final JTextField input;
         private InputListListener listener;
         
         InputList(String[] data) {
@@ -438,13 +435,7 @@ public class FontChooser extends JDialog implements InputListListener,
          */
         @Override
         public void valueChanged(ListSelectionEvent e) {
-            SwingUtilities.invokeLater(new Runnable() {
-
-                @Override
-                public void run() {
-                    updateTextInput();
-                }
-            });
+            SwingUtilities.invokeLater(() -> updateTextInput());
         }
         
     }

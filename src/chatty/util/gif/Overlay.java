@@ -4,31 +4,19 @@ package chatty.util.gif;
 import chatty.gui.GuiUtil;
 import chatty.util.Debugging;
 import chatty.util.ImageCache.ImageRequest;
+import chatty.util.ImageCache.ImageResult;
 import chatty.util.seventv.WebPUtil;
-import java.awt.BorderLayout;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.image.BufferedImage;
-import java.awt.image.ColorModel;
-import java.awt.image.DataBufferInt;
-import java.awt.image.DirectColorModel;
-import java.awt.image.SampleModel;
-import java.awt.image.WritableRaster;
+
+import javax.swing.*;
+import javax.swing.Timer;
+import java.awt.*;
+import java.awt.image.*;
 import java.io.IOException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.LinkedHashMap;
+import java.net.URI;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.ImageIcon;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
-import javax.swing.WindowConstants;
 
 /**
  *
@@ -160,36 +148,34 @@ public class Overlay {
         SampleModel sampleModel = colorModel.createCompatibleSampleModel(width, height);
         DataBufferInt db = new DataBufferInt(pixels, width * height);
         WritableRaster raster = WritableRaster.createWritableRaster(sampleModel, db, null);
-        return new BufferedImage(colorModel, raster, false, new Hashtable<Object, Object>());
+        return new BufferedImage(colorModel, raster, false, new Hashtable<>());
     }
     
     // For testing
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            WebPUtil.runIfWebPAvailable(() -> {
-                try {
-                    JFrame dialog = new JFrame();
-                    dialog.setSize(100, 100);
-                    dialog.setLocationRelativeTo(null);
-                    dialog.setVisible(true);
-                    LinkedHashMap<ImageIcon, Integer> map = new LinkedHashMap<>();
-                    
-                    map.put(GifUtil.getGifFromUrl(new ImageRequest(new URL("<url>"))).icon, 0);
-                    map.put(GifUtil.getGifFromUrl(new ImageRequest(new URL("<url>"))).icon, 0);
-                    
-                    Debugging.command("overlayframe");
-                    dialog.add(new JLabel("text", overlayNew(map), 0), BorderLayout.CENTER);
-                    dialog.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        SwingUtilities.invokeLater(() -> WebPUtil.runIfWebPAvailable(() -> {
+            try {
+                JFrame dialog = new JFrame();
+                dialog.setSize(100, 100);
+                dialog.setLocationRelativeTo(null);
+                dialog.setVisible(true);
+                LinkedHashMap<ImageIcon, Integer> map = new LinkedHashMap<>();
+
+                ImageResult r1 = GifUtil.getGifFromUrl(new ImageRequest(URI.create("<url>").toURL()));
+                if (r1 != null) { map.put(r1.icon(), 0); }
+                ImageResult r2 = GifUtil.getGifFromUrl(new ImageRequest(URI.create("<url>").toURL()));
+                if (r2 != null) { map.put(r2.icon(), 0); }
+
+                Debugging.command("overlayframe");
+                dialog.add(new JLabel("text", overlayNew(map), 0), BorderLayout.CENTER);
+                dialog.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 //                    AnimatedImage.setAnimationPause(0);
-                    Timer timer = new Timer(100, e -> {
-                        dialog.revalidate();
-                    });
-                    timer.start();
-                } catch (Exception ex) {
-                    Logger.getLogger(GuiUtil.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            });
-        });
+                Timer timer = new Timer(100, e -> dialog.revalidate());
+                timer.start();
+            } catch (Exception ex) {
+                Logger.getLogger(GuiUtil.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }));
         
     }
     

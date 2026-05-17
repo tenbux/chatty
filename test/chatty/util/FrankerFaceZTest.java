@@ -1,17 +1,19 @@
 
 package chatty.util;
 
-import chatty.util.ffz.FrankerFaceZParsing;
 import chatty.util.api.Emoticon;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import chatty.util.ffz.FrankerFaceZParsing;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.Test;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import static org.junit.Assert.*;
 
 /**
@@ -26,18 +28,18 @@ public class FrankerFaceZTest {
         JSONObject obj = (JSONObject) parser.parse(loadJSON("FFZ_emote_regular"));
         Emoticon emote = FrankerFaceZParsing.parseEmote(obj, null, null, null);
         assertNotNull(emote);
-        assertEquals(emote.code, "joshWASTED");
-        assertEquals(emote.creator, "Joshimuz");
-        assertEquals(emote.getWidth(), 100);
-        assertEquals(emote.getHeight(), 16);
+        assertEquals("joshWASTED", emote.code);
+        assertEquals("Joshimuz", emote.creator);
+        assertEquals(100, emote.getWidth());
+        assertEquals(16, emote.getHeight());
         
         obj = (JSONObject) parser.parse(loadJSON("FFZ_emote_no_height"));
         emote = FrankerFaceZParsing.parseEmote(obj, null, null, null);
         assertNotNull(emote);
-        assertEquals(emote.code, "joshWASTED");
-        assertEquals(emote.creator, "Joshimuz");
-        assertEquals(emote.getWidth(), 100);
-        assertEquals(emote.getHeight(), -1);
+        assertEquals("joshWASTED", emote.code);
+        assertEquals("Joshimuz", emote.creator);
+        assertEquals(100, emote.getWidth());
+        assertEquals(-1, emote.getHeight());
         
         testParseEmoteError("FFZ_emote_id_string");
     }
@@ -52,7 +54,7 @@ public class FrankerFaceZTest {
     private String loadJSON(String fileName) throws Exception {
         Path path = Paths.get(this.getClass().getResource(fileName).toURI());
         System.out.println(path.toAbsolutePath());
-        try (BufferedReader r = Files.newBufferedReader(path, Charset.forName("UTF-8"))) {
+        try (BufferedReader r = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             StringBuilder b = new StringBuilder();
             String line;
             while ((line = r.readLine()) != null) {

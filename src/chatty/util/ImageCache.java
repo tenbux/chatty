@@ -2,35 +2,33 @@
 package chatty.util;
 
 import chatty.util.gif.GifUtil;
-import java.awt.Dimension;
-import java.awt.Image;
-import java.awt.MediaTracker;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.ImageIcon;
 
 /**
  * Allows the use of getImage() methods that get an image from an URL, while
@@ -155,9 +153,7 @@ public class ImageCache {
         try {
             int deletedCount = 0;
             File dir = defaultPath.toRealPath().toFile();
-            File[] files = dir.listFiles(file -> {
-                return file.isFile() && file.getName().startsWith(GLOBAL_PREFIX);
-            });
+            File[] files = dir.listFiles(file -> file.isFile() && file.getName().startsWith(GLOBAL_PREFIX));
             if (files != null) {
                 for (File file : files) {
                     if (file.delete()) {
@@ -198,14 +194,10 @@ public class ImageCache {
         removeOldCache();
         LOGGER.info("ImageCache: Checking for old files in random directory..");
         try {
-            File[] dirs = imgCachePath.toRealPath().toFile().listFiles(file -> {
-                return file.isDirectory() && file.getName().startsWith(GLOBAL_PREFIX);
-            });
+            File[] dirs = imgCachePath.toRealPath().toFile().listFiles(file -> file.isDirectory() && file.getName().startsWith(GLOBAL_PREFIX));
             if (dirs != null && dirs.length > 0) {
                 File random = dirs[ThreadLocalRandom.current().nextInt(dirs.length)];
-                File[] subdirs = random.listFiles(file -> {
-                    return file.isDirectory();
-                });
+                File[] subdirs = random.listFiles(File::isDirectory);
                 deleteExpiredFilesInSubDirs(subdirs);
             }
         } catch (IOException ex) {
@@ -394,7 +386,7 @@ public class ImageCache {
         path = path.resolve(GLOBAL_PREFIX+prefix).resolve(id.substring(0, 1));
         path.toFile().mkdirs();
         Path file = path.resolve(getFilename(prefix, id));
-        ImageResult result = null;
+        ImageResult result;
         
         Object o = getLockObject(id);
         synchronized(o) {
@@ -428,10 +420,7 @@ public class ImageCache {
     private static boolean hasExpired(int expireTime, Path file) {
         long lastModified = file.toFile().lastModified();
         long ago = (System.currentTimeMillis() - lastModified) / 1000;
-        if (lastModified == 0 || (expireTime > 0 && ago > expireTime)) {
-            return true;
-        }
-        return false;
+        return lastModified == 0 || (expireTime > 0 && ago > expireTime);
     }
     
     private static String getFilename(String prefix, String id) {
@@ -465,22 +454,20 @@ public class ImageCache {
         return null;
     }
     
+    private static final HexFormat HEX = HexFormat.of();
+
     public static String sha1(String input) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-1");
-            return byteArrayToHexString(md.digest(input.getBytes("UTF-8")));
-        } catch (NoSuchAlgorithmException | UnsupportedEncodingException ex) {
+            return HEX.formatHex(md.digest(input.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException ex) {
             Logger.getLogger(ImageCache.class.getName()).log(Level.SEVERE, null, ex);
         }
         return null;
     }
-    
+
     public static String byteArrayToHexString(byte[] b) {
-        String result = "";
-        for (int i = 0; i < b.length; i++) {
-            result += Integer.toString((b[i] & 0xff) + 0x100, 16).substring(1);
-        }
-        return result;
+        return HEX.formatHex(b);
     }
     
     /**
@@ -494,23 +481,27 @@ public class ImageCache {
                 || "jar".equalsIgnoreCase(url.getProtocol());
     }
     
-    private static final Map<String, Object> lockObjects = new HashMap<>();
-    
-    private static Object getLockObject(String file) {
-        synchronized(lockObjects) {
-            Object o = lockObjects.get(file);
-            if (o == null) {
-                o = new Object();
-                lockObjects.put(file, o);
-            }
-            return o;
-        }
+    private static final ConcurrentHashMap<String, LockEntry> lockObjects = new ConcurrentHashMap<>();
+
+    private static final class LockEntry {
+        final Object lock = new Object();
+        final AtomicInteger refs = new AtomicInteger(1);
     }
-    
+
+    private static Object getLockObject(String file) {
+        LockEntry entry = lockObjects.compute(file, (k, existing) -> {
+            if (existing == null) {
+                return new LockEntry();
+            }
+            existing.refs.incrementAndGet();
+            return existing;
+        });
+        return entry.lock;
+    }
+
     private static void removeLockObject(String file) {
-        synchronized(lockObjects) {
-            lockObjects.remove(file);
-        }
+        lockObjects.computeIfPresent(file, (k, entry) ->
+                entry.refs.decrementAndGet() == 0 ? null : entry);
     }
     
     /**
@@ -576,9 +567,9 @@ public class ImageCache {
             }
             URL actualUrl = null;
             try {
-                actualUrl = new URL(preferredUrl);
+                actualUrl = URI.create(preferredUrl).toURL();
             }
-            catch (MalformedURLException ex) {
+            catch (MalformedURLException | IllegalArgumentException ex) {
                 LOGGER.warning("Invalid image URL: "+preferredUrl);
             }
             
@@ -746,42 +737,25 @@ public class ImageCache {
         }
         
     }
-    
+
     /**
      * Holds some additional information related to the loaded image.
+     *
+     * @param icon           The loaded icon, possibly resized.
+     * @param actualBaseSize The URL factor corrected base size of the actual loaded image.
+     * @param loadedAsGif    Whether the image was loaded through the special GIF loader. It may
+     *                       still be a GIF even if this is false, although only if an error
+     *                       occured with the special GIF loader.
      */
-    public static class ImageResult {
-        
-        /**
-         * The loaded icon, possibly resized.
-         */
-        public final ImageIcon icon;
-        
-        /**
-         * The URL factor corrected base size of the actual loaded image.
-         */
-        public final Dimension actualBaseSize;
-        
-        /**
-         * Whether the image was loaded through the special GIF loader. It may
-         * still be a GIF even if this is false, although only if an error
-         * occured with the special GIF loader.
-         */
-        public final boolean loadedAsGif;
-        
-        public ImageResult(ImageIcon icon, Dimension actualBaseSize, boolean loadedAsGif) {
-            this.icon = icon;
-            this.actualBaseSize = actualBaseSize;
-            this.loadedAsGif = loadedAsGif;
-        }
-        
+        public record ImageResult(ImageIcon icon, Dimension actualBaseSize, boolean loadedAsGif) {
+
         public boolean isValidImage() {
-            return icon != null
-                    && icon.getImageLoadStatus() != MediaTracker.ERRORED
-                    && icon.getIconWidth() != -1
-                    && icon.getIconHeight() != -1;
-        }
-        
+                return icon != null
+                        && icon.getImageLoadStatus() != MediaTracker.ERRORED
+                        && icon.getIconWidth() != -1
+                        && icon.getIconHeight() != -1;
+            }
+
     }
     
 }

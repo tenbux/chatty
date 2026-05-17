@@ -1,11 +1,12 @@
 
 package chatty.util;
 
+import org.junit.Test;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import org.junit.Assert;
-import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 /**
@@ -16,35 +17,35 @@ public class StringUtilTest {
     
     @Test
     public void testRemoveLinebreakCharacters() {
-        assertEquals(StringUtil.removeLinebreakCharacters("abc\r\nabc"), "abc abc");
-        assertEquals(StringUtil.removeLinebreakCharacters("abc\rabc"), "abc abc");
-        assertEquals(StringUtil.removeLinebreakCharacters("abc\nabc"), "abc abc");
-        assertEquals(StringUtil.removeLinebreakCharacters("abc abc"), "abc abc");
-        assertEquals(StringUtil.removeLinebreakCharacters("abc\r\r\r\r\rabc"), "abc abc");
-        assertEquals(StringUtil.removeLinebreakCharacters("abc\r\n\n\r\rabc"), "abc abc");
-        assertEquals(StringUtil.removeLinebreakCharacters("\nabc abc"), " abc abc");
-        assertEquals(StringUtil.removeLinebreakCharacters("\r"), " ");
+        assertEquals("abc abc", StringUtil.removeLinebreakCharacters("abc\r\nabc"));
+        assertEquals("abc abc", StringUtil.removeLinebreakCharacters("abc\rabc"));
+        assertEquals("abc abc", StringUtil.removeLinebreakCharacters("abc\nabc"));
+        assertEquals("abc abc", StringUtil.removeLinebreakCharacters("abc abc"));
+        assertEquals("abc abc", StringUtil.removeLinebreakCharacters("abc\r\r\r\r\rabc"));
+        assertEquals("abc abc", StringUtil.removeLinebreakCharacters("abc\r\n\n\r\rabc"));
+        assertEquals(" abc abc", StringUtil.removeLinebreakCharacters("\nabc abc"));
+        assertEquals(" ", StringUtil.removeLinebreakCharacters("\r"));
     }
     
     @Test
     public void testRemoveDuplicateWhitespace() {
-        assertEquals(StringUtil.removeDuplicateWhitespace("abc  abc"), "abc abc");
-        assertEquals(StringUtil.removeDuplicateWhitespace("abc   abc"), "abc abc");
-        assertEquals(StringUtil.removeDuplicateWhitespace("abcabc"), "abcabc");
-        assertEquals(StringUtil.removeDuplicateWhitespace("abc abc"), "abc abc");
-        assertEquals(StringUtil.removeDuplicateWhitespace("  "), " ");
-        assertEquals(StringUtil.removeDuplicateWhitespace(""), "");
+        assertEquals("abc abc", StringUtil.removeDuplicateWhitespace("abc  abc"));
+        assertEquals("abc abc", StringUtil.removeDuplicateWhitespace("abc   abc"));
+        assertEquals("abcabc", StringUtil.removeDuplicateWhitespace("abcabc"));
+        assertEquals("abc abc", StringUtil.removeDuplicateWhitespace("abc abc"));
+        assertEquals(" ", StringUtil.removeDuplicateWhitespace("  "));
+        assertEquals("", StringUtil.removeDuplicateWhitespace(""));
     }
     
     @Test
     public void testAppend() {
-        assertEquals(StringUtil.append("abc", "|", "abc"), "abc|abc");
-        assertEquals(StringUtil.append("abc", "", "abc"), "abcabc");
-        assertEquals(StringUtil.append(null, "|", "b"), "b");
-        assertEquals(StringUtil.append("", "|", "b"), "b");
-        assertEquals(StringUtil.append("abc", "|", null), "abc");
-        assertEquals(StringUtil.append("abc", null, "abc"), "abcnullabc");
-        assertEquals(StringUtil.append(null, null, null), null);
+        assertEquals("abc|abc", StringUtil.append("abc", "|", "abc"));
+        assertEquals("abcabc", StringUtil.append("abc", "", "abc"));
+        assertEquals("b", StringUtil.append(null, "|", "b"));
+        assertEquals("b", StringUtil.append("", "|", "b"));
+        assertEquals("abc", StringUtil.append("abc", "|", null));
+        assertEquals("abcnullabc", StringUtil.append("abc", null, "abc"));
+        assertNull(StringUtil.append(null, null, null));
     }
     
     @Test
@@ -53,35 +54,35 @@ public class StringUtilTest {
         list.add("a");
         list.add("b");
         list.add("c");
-        assertEquals(StringUtil.join(list, " "), "a b c");
-        assertEquals(StringUtil.join(list, ", "), "a, b, c");
-        assertEquals(StringUtil.join(list, ", ", 1), "b, c");
-        assertEquals(StringUtil.join(list, ", ", 0, 2), "a, b");
-        assertEquals(StringUtil.join(list, ", ", -1, 2), "a, b");
-        assertEquals(StringUtil.join(list, ", ", -10, 2), "a, b");
-        assertEquals(StringUtil.join(list, ", ", 1, 2), "b");
-        assertEquals(StringUtil.join(list, ", ", 10, 2), "");
-        assertEquals(StringUtil.join(list, "-", 0, 100), "a-b-c");
-        assertEquals(StringUtil.join(list, ", ", 2), "c");
-        assertEquals(StringUtil.join(list, ", ", 3), "");
+        assertEquals("a b c", StringUtil.join(list, " "));
+        assertEquals("a, b, c", StringUtil.join(list, ", "));
+        assertEquals("b, c", StringUtil.join(list, ", ", 1));
+        assertEquals("a, b", StringUtil.join(list, ", ", 0, 2));
+        assertEquals("a, b", StringUtil.join(list, ", ", -1, 2));
+        assertEquals("a, b", StringUtil.join(list, ", ", -10, 2));
+        assertEquals("b", StringUtil.join(list, ", ", 1, 2));
+        assertEquals("", StringUtil.join(list, ", ", 10, 2));
+        assertEquals("a-b-c", StringUtil.join(list, "-", 0, 100));
+        assertEquals("c", StringUtil.join(list, ", ", 2));
+        assertEquals("", StringUtil.join(list, ", ", 3));
         list.add(" d");
-        assertEquals(StringUtil.join(list, ", "), "a, b, c,  d");
+        assertEquals("a, b, c,  d", StringUtil.join(list, ", "));
     }
     
     @Test
     public void testFirstToUpperCase() {
-        assertEquals(StringUtil.firstToUpperCase(""), "");
-        assertEquals(StringUtil.firstToUpperCase("a"), "A");
-        assertEquals(StringUtil.firstToUpperCase(null), null);
-        assertEquals(StringUtil.firstToUpperCase("Abc"), "Abc");
-        assertEquals(StringUtil.firstToUpperCase("abc"), "Abc");
-        assertEquals(StringUtil.firstToUpperCase(" abc"), " abc");
+        assertEquals("", StringUtil.firstToUpperCase(""));
+        assertEquals("A", StringUtil.firstToUpperCase("a"));
+        assertNull(StringUtil.firstToUpperCase(null));
+        assertEquals("Abc", StringUtil.firstToUpperCase("Abc"));
+        assertEquals("Abc", StringUtil.firstToUpperCase("abc"));
+        assertEquals(" abc", StringUtil.firstToUpperCase(" abc"));
         
     }
     
     @Test
     public void testSplit() {
-        assertEquals(StringUtil.split(null, 'a', 10), null);
+        assertNull(StringUtil.split(null, 'a', 10));
         testSplit2(',', 0, "", "");
         testSplit2(',', 0, "a\\,b,c", "a,b", "c");
         testSplit2(',', 0, "a\\\\,b,c", "a\\", "b", "c");
@@ -115,11 +116,11 @@ public class StringUtilTest {
         testSplit2Same(',', 0, "'a,b''',c", "a,b'", "c");
         
         // First split by space, then by comma (test not removing quote/escape)
-        testSplit2(',', 0, StringUtil.split("a,b,'c d' e", ' ', '\'', '\\', 2, 0).get(0), "a", "b", "c d");
-        testSplit2(',', 0, StringUtil.split("a,b,c\\ d e", ' ', '\'', '\\', 2, 0).get(0), "a", "b", "c d");
-        testSplit2(',', '\'', '\'', 0, 1, StringUtil.split("a,b,'c'' d' e", ' ', '\'', '\'', 2, 0).get(0), "a", "b", "c' d");
-        testSplit2(',', '\'', '\'', 0, 1, StringUtil.split("''a,b,'c d,e'", ' ', '\'', '\'', 2, 0).get(0), "'a", "b", "c d,e");
-        testSplit2(',', '\'', '\'', 0, 1, StringUtil.split("''a,b,'''c'' d,e'", ' ', '\'', '\'', 2, 0).get(0), "'a", "b", "'c' d,e");
+        testSplit2(',', 0, StringUtil.split("a,b,'c d' e", ' ', '\'', '\\', 2, 0).getFirst(), "a", "b", "c d");
+        testSplit2(',', 0, StringUtil.split("a,b,c\\ d e", ' ', '\'', '\\', 2, 0).getFirst(), "a", "b", "c d");
+        testSplit2(',', '\'', '\'', 0, 1, StringUtil.split("a,b,'c'' d' e", ' ', '\'', '\'', 2, 0).getFirst(), "a", "b", "c' d");
+        testSplit2(',', '\'', '\'', 0, 1, StringUtil.split("''a,b,'c d,e'", ' ', '\'', '\'', 2, 0).getFirst(), "'a", "b", "c d,e");
+        testSplit2(',', '\'', '\'', 0, 1, StringUtil.split("''a,b,'''c'' d,e'", ' ', '\'', '\'', 2, 0).getFirst(), "'a", "b", "'c' d,e");
         
         // Various configurations
         testSplit2(',', '#', '#', 2, 1, "a,b,c", "a", "b,c");
@@ -150,11 +151,11 @@ public class StringUtilTest {
     
     @Test
     public void testSplitLines() {
-        assertArrayEquals(StringUtil.splitLines("a"), new String[]{"a"});
-        assertArrayEquals(StringUtil.splitLines("a\nb"), new String[]{"a","b"});
-        assertArrayEquals(StringUtil.splitLines("a\rb"), new String[]{"a","b"});
-        assertArrayEquals(StringUtil.splitLines("a\r\nb"), new String[]{"a","b"});
-        assertArrayEquals(StringUtil.splitLines("a\n\rb"), new String[]{"a","","b"}); // Invalid linebreak
+        assertArrayEquals(new String[]{"a"}, StringUtil.splitLines("a"));
+        assertArrayEquals(new String[]{"a","b"}, StringUtil.splitLines("a\nb"));
+        assertArrayEquals(new String[]{"a","b"}, StringUtil.splitLines("a\rb"));
+        assertArrayEquals(new String[]{"a","b"}, StringUtil.splitLines("a\r\nb"));
+        assertArrayEquals(new String[]{"a","","b"}, StringUtil.splitLines("a\n\rb")); // Invalid linebreak
     }
     
     @Test
@@ -169,9 +170,7 @@ public class StringUtilTest {
     
     @Test
     public void testReplaceFunc() {
-        assertEquals("a b c ", StringUtil.replaceFunc("~abc~", "~([a-z]+)~", m -> {
-            return m.group(1).replaceAll("([a-z])", "$1 ");
-        }));
+        assertEquals("a b c ", StringUtil.replaceFunc("~abc~", "~([a-z]+)~", m -> m.group(1).replaceAll("([a-z])", "$1 ")));
     }
     
     @Test

@@ -3,25 +3,19 @@ package chatty.util;
 
 import chatty.util.commands.CustomCommand;
 import chatty.util.commands.Parameters;
+
+import javax.sound.sampled.*;
+import javax.sound.sampled.Line.Info;
+import javax.swing.*;
+import javax.swing.Timer;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Logger;
-import javax.sound.sampled.*;
+
 import static javax.sound.sampled.AudioSystem.NOT_SPECIFIED;
-import javax.sound.sampled.Line.Info;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
 
 /**
  * Static methods to play sounds.
@@ -96,9 +90,7 @@ public class Sound {
     private String mixerName;
     
     Sound() {
-        Timer timer = new Timer(10*1000, e -> {
-            clearClips();
-        });
+        Timer timer = new Timer(10*1000, e -> clearClips());
         timer.setRepeats(true);
         timer.start();
     }
@@ -215,8 +207,7 @@ public class Sound {
             min = MIN_GAIN;
         }
         float range = max - min;
-        float gain = ((range * volume / (MAX_VOLUME - MIN_VOLUME)) + min);
-        return gain;
+        return ((range * volume / (MAX_VOLUME - MIN_VOLUME)) + min);
     }
     
     /**
@@ -239,9 +230,8 @@ public class Sound {
         
         AudioFormat convertToFormat = null;
         for (Info info : mixer.getSourceLineInfo()) {
-            if (info instanceof SourceDataLine.Info) {
+            if (info instanceof SourceDataLine.Info sdi) {
                 // Check whether sdi is for Clip or SourceDataLine?
-                SourceDataLine.Info sdi = (SourceDataLine.Info) info;
                 if (!sdi.isFormatSupported(ais.getFormat())) {
                     AudioFormat[] formats = sdi.getFormats();
                     sortFormats(formats);
@@ -292,19 +282,14 @@ public class Sound {
      * @param formats 
      */
     private static void sortFormats(AudioFormat[] formats) {
-        Arrays.sort(formats, new Comparator<AudioFormat>() {
-            
-            @Override
-            public int compare(AudioFormat o1, AudioFormat o2) {
-                if (o1.getChannels() != o2.getChannels()) {
-                    return o2.getChannels() - o1.getChannels();
-                }
-                if (o1.getSampleSizeInBits() != o2.getSampleSizeInBits()) {
-                    return o2.getSampleSizeInBits() - o1.getSampleSizeInBits();
-                }
-                return (int)(o2.getSampleRate() - o1.getSampleRate());
+        Arrays.sort(formats, (o1, o2) -> {
+            if (o1.getChannels() != o2.getChannels()) {
+                return o2.getChannels() - o1.getChannels();
             }
-            
+            if (o1.getSampleSizeInBits() != o2.getSampleSizeInBits()) {
+                return o2.getSampleSizeInBits() - o1.getSampleSizeInBits();
+            }
+            return (int) (o2.getSampleRate() - o1.getSampleRate());
         });
     }
     
@@ -357,14 +342,14 @@ public class Sound {
         int clipsClosed = 0;
         while (it.hasNext()) {
             Pair<Clip, ElapsedTime> entry = it.next();
-            Clip clip = entry.key;
+            Clip clip = entry.key();
             if (!clip.isOpen()) {
                 it.remove();
             }
             else {
                 long clipLength = clip.getMicrosecondLength();
-                boolean clipLengthPassed = clipLength != AudioSystem.NOT_SPECIFIED && entry.value.millisElapsed(clipLength / 1000 + 1000);
-                if (clipLengthPassed || entry.value.secondsElapsed(120)) {
+                boolean clipLengthPassed = clipLength != AudioSystem.NOT_SPECIFIED && entry.value().millisElapsed(clipLength / 1000 + 1000);
+                if (clipLengthPassed || entry.value().secondsElapsed(120)) {
                     clipsClosed++;
                     clip.close();
                     it.remove();
@@ -436,13 +421,13 @@ public class Sound {
                     b.append("  Source lines: ").append(sourceLines.length).append("\n");
                     for (Line.Info lineInfo : sourceLines) {
                         b.append("    - ").append(lineInfo.getLineClass().getSimpleName());
-                        b.append(" (").append(lineInfo.toString()).append(")").append("\n");
+                        b.append(" (").append(lineInfo).append(")").append("\n");
                     }
                     
                     b.append("  Target lines: ").append(targetLines.length).append("\n");
                     for (Line.Info lineInfo : targetLines) {
                         b.append("    - ").append(lineInfo.getLineClass().getSimpleName());
-                        b.append(" (").append(lineInfo.toString()).append(")").append("\n");
+                        b.append(" (").append(lineInfo).append(")").append("\n");
                     }
                 }
                 catch (Exception ex) {

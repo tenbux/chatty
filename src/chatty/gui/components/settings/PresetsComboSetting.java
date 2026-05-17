@@ -3,13 +3,10 @@ package chatty.gui.components.settings;
 
 import chatty.lang.Language;
 import chatty.util.settings.Settings;
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.KeyboardFocusManager;
-import java.awt.Window;
+
+import javax.swing.*;
+import javax.swing.plaf.basic.BasicComboBoxRenderer;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
@@ -17,14 +14,6 @@ import java.awt.event.KeyEvent;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JList;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.plaf.basic.BasicComboBoxRenderer;
 
 /**
  * Combo setting where the preset values are read from the settings.
@@ -92,9 +81,7 @@ public class PresetsComboSetting<E> extends JPanel {
         JButton editButton = new JButton();
         editButton.setIcon(new ImageIcon(SettingsDialog.class.getResource("edit.png")));
         editButton.setMargin(new Insets(0, 2, 0, 2));
-        editButton.addActionListener((ActionEvent e) -> {
-            editPresets();
-        });
+        editButton.addActionListener((ActionEvent e) -> editPresets());
 
         settingEditor = new Editor(parent);
         settingEditor.setAllowEmpty(true);
@@ -127,7 +114,7 @@ public class PresetsComboSetting<E> extends JPanel {
                 super.getListCellRendererComponent(list, value, index, isSelected, hasFocus);
 
                 if (index == -1 && value != null) {
-                    String text = valueToString.apply(((GenericComboSetting.Entry<E>) value).value);
+                    String text = valueToString.apply(((GenericComboSetting.Entry<E>) value).value());
                     if (text != null && !text.isEmpty()) {
                         setText(text);
                     }
@@ -186,9 +173,7 @@ public class PresetsComboSetting<E> extends JPanel {
             }
         });
         
-        customValueInput.addActionListener((ActionEvent e) -> {
-            KeyboardFocusManager.getCurrentKeyboardFocusManager().focusPreviousComponent();
-        });
+        customValueInput.addActionListener((ActionEvent e) -> KeyboardFocusManager.getCurrentKeyboardFocusManager().focusPreviousComponent());
         customValueInput.addKeyListener(new KeyAdapter() {
 
             @Override
@@ -322,7 +307,7 @@ public class PresetsComboSetting<E> extends JPanel {
                                                                                    }
                                                                                    return Long.valueOf(s);
                                                                                },
-                    v -> String.valueOf(v),
+                    String::valueOf,
                 "Relatively wide default label", "Custom value", false);
             settingPanel.init();
             

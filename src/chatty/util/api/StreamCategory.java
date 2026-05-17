@@ -7,72 +7,63 @@ import java.util.Objects;
 /**
  * A stream category (often a game) should have an id and a name, although an
  * id may not be available if it was saved before ids were used.
- * 
+ *
+ * @param id   The id of the category, may be null if no id is available. Empty for "no
+ *             category".
+ * @param name The name of the category, must not be null. Empty for "no category".
  * @author tduva
  */
-public class StreamCategory implements Comparable<StreamCategory> {
+public record StreamCategory(String id, String name) implements Comparable<StreamCategory> {
 
     public static final StreamCategory EMPTY = new StreamCategory("", "");
-    
-    /**
-     * The id of the category, may be null if no id is available. Empty for "no
-     * category".
-     */
-    public final String id;
-    
-    /**
-     * The name of the category, must not be null. Empty for "no category".
-     */
-    public final String name;
-    
+
     public StreamCategory(String id, String name) {
         if (StringUtil.isNullOrEmpty(name)) {
             // No game is specified, so id should not be null (missing)
             this.id = "";
             this.name = "";
-        }
-        else {
+        } else {
             this.id = id;
             this.name = name;
         }
     }
-    
+
     /**
      * Check if this entry has a category id set (not null), although it may
      * still be empty (no category).
-     * 
-     * @return 
+     *
+     * @return
      */
     public boolean hasId() {
         return id != null;
     }
-    
+
     public boolean isEmpty() {
-        return name.isEmpty();
+        return !name.isEmpty();
     }
-    
+
     /**
      * Looser match rather than just an exact comparison which can account for
      * small changes in what is still essentially the same name.
-     * 
+     *
      * @param other
-     * @return 
+     * @return
      */
     public boolean nameMatches(StreamCategory other) {
         String currentName = name.trim();
         String otherName = other.name.trim();
         return currentName.equals(otherName) || newDash(currentName).equals(newDash(otherName));
     }
-    
+
     private static String newDash(String input) {
         return input.replace("–", "-");
     }
-    
+
     @Override
     public String toString() {
         return name;
     }
-    
+
     public String toStringVerbose() {
         return String.format("[%s/%s]", id, name);
     }
@@ -101,10 +92,7 @@ public class StreamCategory implements Comparable<StreamCategory> {
             return false;
         }
         final StreamCategory other = (StreamCategory) obj;
-        if (!Objects.equals(this.name, other.name)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.name, other.name);
     }
-    
+
 }

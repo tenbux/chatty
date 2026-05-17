@@ -12,26 +12,16 @@ import chatty.util.Sound;
 import chatty.util.StringUtil;
 import chatty.util.commands.CustomCommand;
 import chatty.util.settings.Settings;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Window;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import javax.swing.*;
 
 /**
  *
@@ -76,7 +66,7 @@ public class NotificationSettings extends SettingsPanel {
         //=======================
         JPanel notificationSettings = new JPanel(new GridBagLayout());
 
-        gbc = d.makeGbc(0, 0, 4, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(0, 0, 4, 1, GridBagConstraints.WEST);
         gbc.insets = new Insets(10,5,4,5);
         
         Map<Long, String> nTypeOptions = new LinkedHashMap<>();
@@ -86,18 +76,12 @@ public class NotificationSettings extends SettingsPanel {
         nTypeOptions.put(NOTIFICATION_TYPE_COMMAND, "Run OS Command");
         nType = new ComboLongSetting(nTypeOptions);
 
-        nType.addItemListener(new ItemListener() {
-
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                updateSettingsState();
-            }
-        });
+        nType.addItemListener(e -> updateSettingsState());
         d.addLongSetting("nType", nType);
         notificationSettings.add(nType, gbc);
         
         notificationSettings.add(new JLabel("Position:"),
-                d.makeGbc(0, 1, 1, 1, GridBagConstraints.EAST));
+                SettingsDialog.makeGbc(0, 1, 1, 1, GridBagConstraints.EAST));
         
         Map<Long, String> nPositionOptions = new LinkedHashMap<>();
         nPositionOptions.put(Long.valueOf(0), "Top-Left");
@@ -106,11 +90,11 @@ public class NotificationSettings extends SettingsPanel {
         nPositionOptions.put(Long.valueOf(3), "Bottom-Right");
         nPosition = new ComboLongSetting(nPositionOptions);
         d.addLongSetting("nPosition", nPosition);
-        gbc = d.makeGbc(1, 1, 1, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(1, 1, 1, 1, GridBagConstraints.WEST);
         notificationSettings.add(nPosition, gbc);
         
         notificationSettings.add(new JLabel("Screen:"),
-                d.makeGbc(0, 2, 1, 1, GridBagConstraints.EAST));
+                SettingsDialog.makeGbc(0, 2, 1, 1, GridBagConstraints.EAST));
         
         Map<Long, String> nScreenOptions = new LinkedHashMap<>();
         nScreenOptions.put(Long.valueOf(-1), "Auto");
@@ -121,36 +105,35 @@ public class NotificationSettings extends SettingsPanel {
         nScreen = new ComboLongSetting(nScreenOptions);
         d.addLongSetting("nScreen", nScreen);
         notificationSettings.add(nScreen,
-                d.makeGbc(1, 2, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(1, 2, 1, 1, GridBagConstraints.WEST));
 
         
         notificationSettings.add(new JLabel("Display Time:"),
-                d.makeGbc(2, 1, 1, 1, GridBagConstraints.EAST));
+                SettingsDialog.makeGbc(2, 1, 1, 1, GridBagConstraints.EAST));
         
         nDisplayTime = new DurationSetting(3, true);
         d.addLongSetting("nDisplayTime", nDisplayTime);
         notificationSettings.add(nDisplayTime,
-                d.makeGbc(3, 1, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(3, 1, 1, 1, GridBagConstraints.WEST));
         
         
         userActivity = d.addSimpleBooleanSetting("nActivity", "No User Activity:",
                 "Display longer unless the mouse was recently moved");
         notificationSettings.add(userActivity,
-                d.makeGbc(2, 2, 1, 1, GridBagConstraints.EAST));
+                SettingsDialog.makeGbc(2, 2, 1, 1, GridBagConstraints.EAST));
         //main.add(new JLabel("Max Display Time:"), d.makeGbc(2, 2, 1, 1, GridBagConstraints.EAST));
         
         nMaxDisplayTime = new DurationSetting(3, true);
         d.addLongSetting("nMaxDisplayTime", nMaxDisplayTime);
         notificationSettings.add(nMaxDisplayTime,
-                d.makeGbc(3, 2, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(3, 2, 1, 1, GridBagConstraints.WEST));
         
         notificationSettings.add(d.addSimpleBooleanSetting("nKeepOpenOnHover"),
                 SettingsDialog.makeGbc(2, 3, 2, 1, GridBagConstraints.WEST));
 
-        notificationSettings.add(new JLabel("Command:"), d.makeGbc(0, 4, 1, 1, GridBagConstraints.EAST));
+        notificationSettings.add(new JLabel("Command:"), SettingsDialog.makeGbc(0, 4, 1, 1, GridBagConstraints.EAST));
 
-        nCommand = d.addEditorStringSetting("nCommand", 20, true, "Edit system command (recommended for advanced users only, read help)", false, ""
-                + "<html><body style='width: 400px;'>"
+        nCommand = d.addEditorStringSetting("nCommand", 20, true, "Edit system command (recommended for advanced users only, read help)", false, "<html><body style='width: 400px;'>"
                 + "<p>Enter a command/program with parameters, which will be "
                 + "executed as a new process on your system (so please be "
                 + "careful with this, especially considering the <code>$(message)</code> "
@@ -168,35 +151,31 @@ public class NotificationSettings extends SettingsPanel {
                 + "debug if it doesn't work as expected) you can open &lt;Extra"
                 + " - Debug window&gt;.</p>"
                 + "<p>Use the \"Test\" button to execute the current command "
-                + "with some example data.</p>", new Editor.Tester() {
-
-            @Override
-            public String test(Window parent, Component component, int x, int y, String value) {
-                String result = GuiUtil.showCommandNotification(value, "Example Title",
-                        "Example \"message\" for this test notification",
-                        "#example_channel");
-                JOptionPane.showMessageDialog(component, result);
-                return null;
-            }
-        });
-        notificationSettings.add(nCommand, d.makeGbc(1, 4, 3, 1, GridBagConstraints.WEST));
+                + "with some example data.</p>", (parent, component, x, y, value) -> {
+                    String result = GuiUtil.showCommandNotification(value, "Example Title",
+                            "Example \"message\" for this test notification",
+                            "#example_channel");
+                    JOptionPane.showMessageDialog(component, result);
+                    return null;
+                });
+        notificationSettings.add(nCommand, SettingsDialog.makeGbc(1, 4, 3, 1, GridBagConstraints.WEST));
 
         //================
         // Sound Settings
         //================
         JPanel soundSettings = new JPanel(new GridBagLayout());
         
-        gbc = d.makeGbc(0, 0, 3, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(0, 0, 3, 1, GridBagConstraints.WEST);
         JCheckBox soundsEnabled = d.addSimpleBooleanSetting("sounds", "Enable sounds",
                 "Use this to enable/disable all sounds.");
         soundSettings.add(soundsEnabled, gbc);
         
-        gbc = d.makeGbc(0, 1, 3, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(0, 1, 3, 1, GridBagConstraints.WEST);
         gbc.insets = new Insets(8,10,2,6);
         soundSettings.add(new JLabel("Chatty looks for sound files (.wav) in this "
                 + "folder:"), gbc);
         
-        gbc = d.makeGbc(0, 2, 3, 1);
+        gbc = SettingsDialog.makeGbc(0, 2, 3, 1);
         gbc.insets = new Insets(3,10,3,8);
         
         PathSetting path = new PathSetting(d, Chatty.getDefaultPath(Chatty.PathType.SOUND).toString());
@@ -205,20 +184,16 @@ public class NotificationSettings extends SettingsPanel {
         gbc.weightx = 1;
         soundSettings.add(path, gbc);
         soundsPath = path;
-        path.setPathChangeListener(p -> {
-            scanFiles(false);
-        });
+        path.setPathChangeListener(p -> scanFiles(false));
         
-        gbc = d.makeGbc(1, 3, 1, 1, GridBagConstraints.EAST);
+        gbc = SettingsDialog.makeGbc(1, 3, 1, 1, GridBagConstraints.EAST);
         JButton rescanButton = new JButton("Rescan folder");
         GuiUtil.smallButtonInsets(rescanButton);
-        rescanButton.addActionListener(e -> {
-            scanFiles(true);
-        });
+        rescanButton.addActionListener(e -> scanFiles(true));
         rescanButton.setActionCommand("scanFolder");
         soundSettings.add(rescanButton, gbc);
         
-        gbc = d.makeGbc(0, 3, 1, 1, GridBagConstraints.EAST);
+        gbc = SettingsDialog.makeGbc(0, 3, 1, 1, GridBagConstraints.EAST);
         gbc.weightx = 1;
         soundSettings.add(filesResult, gbc);
         
@@ -245,7 +220,7 @@ public class NotificationSettings extends SettingsPanel {
         device.addSettingChangeListener(s -> Sound.setDeviceName(s.getSettingValue()));
         d.addStringSetting("soundDevice", device);
         devicePanel.add(device);
-        gbc = d.makeGbc(0, 4, 2, 1);
+        gbc = SettingsDialog.makeGbc(0, 4, 2, 1);
         soundSettings.add(devicePanel, gbc);
         
         //--------------------------
@@ -263,37 +238,33 @@ public class NotificationSettings extends SettingsPanel {
         soundFiles = new ComboStringSetting(new String[]{});
         
         JButton playSound = new JButton("Play");
-        playSound.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    String file = soundFiles.getSettingValue();
-                    if (file != null && !file.isEmpty()) {
-                        long volume = volumeSlider.getSettingValue();
-                        Sound.play(soundsPath.getCurrentPath().resolve(file), volume, "test", -1);
-                    }
+        playSound.addActionListener(e -> {
+            try {
+                String file = soundFiles.getSettingValue();
+                if (file != null && !file.isEmpty()) {
+                    long volume = volumeSlider.getSettingValue();
+                    Sound.play(soundsPath.getCurrentPath().resolve(file), volume, "test", -1);
                 }
-                catch (Exception ex) {
-                    GuiUtil.showNonModalMessage(d, "Error Playing Sound",
-                            ex.toString(),
-                            JOptionPane.ERROR_MESSAGE);
-                }
+            }
+            catch (Exception ex) {
+                GuiUtil.showNonModalMessage(d, "Error Playing Sound",
+                        ex.toString(),
+                        JOptionPane.ERROR_MESSAGE);
             }
         });
         
         soundTestPanel.add(new JLabel("File:"),
-                d.makeGbc(0, 0, 1, 1, GridBagConstraints.EAST));
+                SettingsDialog.makeGbc(0, 0, 1, 1, GridBagConstraints.EAST));
         soundTestPanel.add(soundFiles,
-                d.makeGbc(1, 0, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(1, 0, 1, 1, GridBagConstraints.WEST));
         soundTestPanel.add(new JLabel("Volume:"),
-                d.makeGbc(0, 1, 1, 1, GridBagConstraints.EAST));
+                SettingsDialog.makeGbc(0, 1, 1, 1, GridBagConstraints.EAST));
         soundTestPanel.add(playSound,
-                d.makeGbc(2, 0, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(2, 0, 1, 1, GridBagConstraints.WEST));
         soundTestPanel.add(volumeSlider,
-                d.makeGbc(1, 1, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(1, 1, 2, 1, GridBagConstraints.WEST));
         
-        gbc = d.makeGbc(0, 10, 3, 1);
+        gbc = SettingsDialog.makeGbc(0, 10, 3, 1);
         gbc.insets = new Insets(20, 20, 5, 20);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         soundSettings.add(soundTestPanel, gbc);
@@ -307,8 +278,7 @@ public class NotificationSettings extends SettingsPanel {
         JCheckBox soundCommandEnabled = d.addSimpleBooleanSetting("soundCommandEnabled");
         soundCommandPanel.add(soundCommandEnabled, SettingsDialog.makeGbc(0, 0, 1, 1));
         
-        EditorStringSetting soundCommand = d.addEditorStringSetting("soundCommand", 20, true, "Edit system command (recommended for advanced users only, read help)", false, ""
-                + "<html><body style='width: 400px;'>"
+        EditorStringSetting soundCommand = d.addEditorStringSetting("soundCommand", 20, true, "Edit system command (recommended for advanced users only, read help)", false, "<html><body style='width: 400px;'>"
                 + "<p>Enter a command/program with parameters, which will be "
                 + "executed as a new process on your system.</p>"
                 + "<p>You can use the following replacements: "
@@ -324,33 +294,27 @@ public class NotificationSettings extends SettingsPanel {
                 + "debug if it doesn't work as expected) you can open &lt;Extra"
                 + " - Debug window&gt;.</p>"
                 + "<p>The \"Test\" button will run the current command with the "
-                + "sound file and volume selected in the \"Test sounds\" section.</p>", new Editor.Tester() {
+                + "sound file and volume selected in the \"Test sounds\" section.</p>", (parent, component, x, y, value) -> {
+                    String result = "No sound played, no file found";
 
-            @Override
-            public String test(Window parent, Component component, int x, int y, String value) {
-                String result = "No sound played, no file found";
-                
-                String file = soundFiles.getSettingValue();
-                if (file != null && !file.isEmpty()) {
-                    CustomCommand command = CustomCommand.parse(value);
-                    long volume = volumeSlider.getSettingValue();
-                    result = Sound.get().runCommand(command, soundsPath.getCurrentPath().resolve(file), volume);
-                }
-                JOptionPane.showMessageDialog(component, result);
-                return null;
-            }
-        });
+                    String file = soundFiles.getSettingValue();
+                    if (file != null && !file.isEmpty()) {
+                        CustomCommand command = CustomCommand.parse(value);
+                        long volume = volumeSlider.getSettingValue();
+                        result = Sound.get().runCommand(command, soundsPath.getCurrentPath().resolve(file), volume);
+                    }
+                    JOptionPane.showMessageDialog(component, result);
+                    return null;
+                });
         soundCommandPanel.add(soundCommand, SettingsDialog.makeGbcSub(0, 1, 1, 1, GridBagConstraints.WEST));
         
-        Runnable updateSoundCommand = () -> {
-            Sound.setCommand(soundCommandEnabled.isSelected(), soundCommand.getSettingValue());
-        };
+        Runnable updateSoundCommand = () -> Sound.setCommand(soundCommandEnabled.isSelected(), soundCommand.getSettingValue());
         soundCommandEnabled.addItemListener(e -> updateSoundCommand.run());
         soundCommand.setChangeListener(e -> updateSoundCommand.run());
         
         SettingsUtil.addSubsettings(soundCommandEnabled, soundCommand);
         
-        gbc = d.makeGbc(0, 11, 3, 1);
+        gbc = SettingsDialog.makeGbc(0, 11, 3, 1);
         gbc.insets = new Insets(20, 20, 5, 20);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         soundSettings.add(soundCommandPanel, gbc);
@@ -361,7 +325,7 @@ public class NotificationSettings extends SettingsPanel {
         soundSettings.add(new JLabel("<html><body width='300px'>Wav files that probably work are uncompressed PCM, 8-48kHz, 8/16bit "
                 + "(e.g. exported in Audacity as WAV Signed 16-bit PCM). If the file plays silent (but the default ones work), try making "
                 + "the sound longer (for example add some silence)."),
-                d.makeGbc(0, 6, 2, 1));
+                SettingsDialog.makeGbc(0, 6, 2, 1));
         
         //======
         // Tabs
@@ -399,12 +363,12 @@ public class NotificationSettings extends SettingsPanel {
         });
         
         notificationsPanel.add(d.addSimpleBooleanSetting("nHideOnStart"),
-                d.makeGbc(0, 1, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 1, 2, 1, GridBagConstraints.WEST));
         
         notificationsPanel.add(d.addSimpleBooleanSetting("nInfoMsgEnabled"),
-                d.makeGbc(0, 2, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 2, 1, 1, GridBagConstraints.WEST));
         
-        gbc = d.makeGbcStretchHorizontal(1, 2, 1, 1);
+        gbc = SettingsDialog.makeGbcStretchHorizontal(1, 2, 1, 1);
         gbc.insets = new Insets(5, 3, 5, 30);
         notificationsPanel.add(d.addSimpleStringSetting("nInfoMsgTarget", 5, true),
                 gbc);
@@ -416,7 +380,7 @@ public class NotificationSettings extends SettingsPanel {
         });
         GuiUtil.makeGbc(0, 1, 2, 1, GridBagConstraints.WEST);
         notificationsPanel.add(new JLabel(tip),
-                d.makeGbc(0, 3, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 3, 2, 1, GridBagConstraints.WEST));
         
         //=======
         // Other
@@ -466,7 +430,7 @@ public class NotificationSettings extends SettingsPanel {
         Debugging.println("scan Files "+path);
         File file = path.toFile();
         File[] files = file.listFiles(new WavFilenameFilter());
-        String resultText = "";
+        String resultText;
         String warningText = "";
         if (files == null) {
             resultText = "Error scanning folder.";
@@ -515,10 +479,7 @@ public class NotificationSettings extends SettingsPanel {
 
         @Override
         public boolean accept(File dir, String name) {
-            if (name.endsWith(".wav")) {
-                return true;
-            }
-            return false;
+            return name.endsWith(".wav");
         }
         
     }

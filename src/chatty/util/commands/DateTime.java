@@ -222,10 +222,7 @@ class DateTime implements Item {
         if (!Objects.equals(this.locale, other.locale)) {
             return false;
         }
-        if (this.isRequired != other.isRequired) {
-            return false;
-        }
-        return true;
+        return this.isRequired == other.isRequired;
     }
 
     @Override

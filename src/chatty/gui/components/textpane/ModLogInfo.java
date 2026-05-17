@@ -3,8 +3,8 @@ package chatty.gui.components.textpane;
 
 import chatty.Helper;
 import chatty.gui.components.Channel;
-import chatty.util.StringUtil;
 import chatty.util.api.eventsub.payloads.ModActionPayload;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -16,10 +16,10 @@ import java.util.Set;
 public class ModLogInfo extends InfoMessage {
 
     private static final Set<String> BAN_COMMANDS
-            = new HashSet<>(Arrays.asList(new String[]{"timeout", "ban", "delete"}));
+            = new HashSet<>(Arrays.asList("timeout", "ban", "delete"));
     
     private static final Set<String> UNBAN_COMMANDS
-            = new HashSet<>(Arrays.asList(new String[]{"untimeout", "unban"}));
+            = new HashSet<>(Arrays.asList("untimeout", "unban"));
     
     public final ModActionPayload data;
     public final boolean showActionBy;
@@ -61,12 +61,12 @@ public class ModLogInfo extends InfoMessage {
     }
     
     public static String makeCommand(ModActionPayload data) {
-        switch (data.moderation_action) {
-            case "timeout": return makeTimeoutCommand(data);
-            case "ban": return makeBanCommand(data);
-            case "delete": return makeDeleteCommand(data);
-            default: return data.moderation_action;
-        }
+        return switch (data.moderation_action) {
+            case "timeout" -> makeTimeoutCommand(data);
+            case "ban" -> makeBanCommand(data);
+            case "delete" -> makeDeleteCommand(data);
+            default -> data.moderation_action;
+        };
     }
     
     public boolean isBanCommand() {
@@ -99,24 +99,21 @@ public class ModLogInfo extends InfoMessage {
     }
     
     public static String makeDeleteCommand(ModActionPayload data) {
-        if (data.action instanceof ModActionPayload.Delete) {
-            ModActionPayload.Delete delete = (ModActionPayload.Delete) data.action;
+        if (data.action instanceof ModActionPayload.Delete delete) {
             return data.moderation_action+" "+delete.getMsgId();
         }
         return "";
     }
     
     public static String makeBanCommand(ModActionPayload data) {
-        if (data.action instanceof ModActionPayload.Ban) {
-            ModActionPayload.Ban ban = (ModActionPayload.Ban) data.action;
+        if (data.action instanceof ModActionPayload.Ban ban) {
             return data.moderation_action+" "+ban.getTargetUsername();
         }
         return "";
     }
     
     public static String makeTimeoutCommand(ModActionPayload data) {
-        if (data.action instanceof ModActionPayload.Timeout) {
-            ModActionPayload.Timeout timeout = (ModActionPayload.Timeout) data.action;
+        if (data.action instanceof ModActionPayload.Timeout timeout) {
             return data.moderation_action+" "+timeout.getTargetUsername(); // Duration is inaccurate now
         }
         return "";
@@ -127,16 +124,15 @@ public class ModLogInfo extends InfoMessage {
     }
     
     public static String getReason(ModActionPayload data) {
-        switch (data.moderation_action) {
-            case "timeout": return ((ModActionPayload.Timeout) data.action).getReason();
-            case "ban": return ((ModActionPayload.Ban) data.action).getReason();
-            default: return null;
-        }
+        return switch (data.moderation_action) {
+            case "timeout" -> ((ModActionPayload.Timeout) data.action).getReason();
+            case "ban" -> ((ModActionPayload.Ban) data.action).getReason();
+            default -> null;
+        };
     }
     
     public static String getTargetUsername(ModActionPayload data) {
-        if (data.action instanceof ModActionPayload.ModActionUser) {
-            ModActionPayload.ModActionUser userAction = (ModActionPayload.ModActionUser) data.action;
+        if (data.action instanceof ModActionPayload.ModActionUser userAction) {
             if (Helper.isValidStream(userAction.getTargetUsername())) {
                 return userAction.getTargetUsername();
             }

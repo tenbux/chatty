@@ -2,13 +2,9 @@
 package chatty;
 
 import chatty.util.irc.MsgTags;
-import java.util.Map;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import org.junit.*;
+
+import static org.junit.Assert.fail;
 
 /**
  *
@@ -70,7 +66,7 @@ public class IrcTest {
             irc.received("MODE #lotsofs +o da00");
             irc.received(": MODE #lotsofs +o da00");
         } catch (Exception ex) {
-            fail("Exception: "+ex.toString());
+            fail("Exception: "+ ex);
         }
         // PRIVMSG
         try {
@@ -83,7 +79,7 @@ public class IrcTest {
             irc.received(":jtv!jtv@jtv.tmi.twitch.tv PRIVMSG #lotsofs :"+(char)1+"ACTION action");
             irc.received(":jtv!jtv@jtv.tmi.twitch.tv PRIVMSG #lotsofs :"+(char)1+"ACTION");
         } catch (Exception ex) {
-            fail("Exception: "+ex.toString());
+            fail("Exception: "+ ex);
         }
         // Short stuff
         try {
@@ -92,7 +88,7 @@ public class IrcTest {
             irc.received(" ");
             irc.received("fwe fo HAHHA hoifwe");
         } catch (Exception ex) {
-            fail("Exception: "+ex.toString());
+            fail("Exception: "+ ex);
         }
         // JOIN/PART
         try {
@@ -102,7 +98,7 @@ public class IrcTest {
             irc.received(":tduva!tduva@tduva.tmi.twitch.tv JOIN");
             irc.received(":tduvatduva@tduva.tmi.twitch.tv JOIN");
         } catch (Exception ex) {
-            fail("Exception: "+ex.toString());
+            fail("Exception: "+ ex);
         }
         // PING
         try {
@@ -110,7 +106,7 @@ public class IrcTest {
             irc.received("PING :");
             irc.received("PING");
         } catch (Exception ex) {
-            fail("Exception: "+ex.toString());
+            fail("Exception: "+ ex);
         }
         // NAMES
         try {
@@ -125,7 +121,7 @@ public class IrcTest {
             irc.received(":tduva.tmi.twitch.tv 366 tduva #lotsofs :");
             irc.received(":tduva.tmi.twitch.tv 366 tduva #lotsofs");
         } catch (Exception ex) {
-            fail("Exception: "+ex.toString());
+            fail("Exception: "+ ex);
         }
         // TAGS
         try {
@@ -138,7 +134,7 @@ public class IrcTest {
             irc.received(" @tag=value;tag2=value2 :jtv!jtv@jtv.tmi.twitch.tv PRIVMSG #lotsofs :test invalid start");
             irc.received("@display-name=abc	c;tag2=value2 :jtv!jtv@jtv.tmi.twitch.tv PRIVMSG #lotsofs :display name tab");
         } catch (Exception ex) {
-            fail("Exception: "+ex.toString());
+            fail("Exception: "+ ex);
         }
     }
 }

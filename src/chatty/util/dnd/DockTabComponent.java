@@ -21,7 +21,7 @@ public interface DockTabComponent {
      * @param pane The tab pane
      * @param index The tab index associated with this tab component
      */
-    public void update(JTabbedPane pane, int index);
+    void update(JTabbedPane pane, int index);
     
     /**
      * The actual tab component to install on the tab pane.
@@ -29,6 +29,6 @@ public interface DockTabComponent {
      * @return The component (may be null, in which case no custom tab component
      * is used)
      */
-    public JComponent getComponent();
+    JComponent getComponent();
     
 }

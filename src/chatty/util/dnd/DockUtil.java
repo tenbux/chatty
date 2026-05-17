@@ -1,18 +1,14 @@
 
 package chatty.util.dnd;
 
-import java.awt.MouseInfo;
-import java.awt.Point;
-import java.awt.Window;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import javax.swing.JSplitPane;
-import javax.swing.SwingUtilities;
-import javax.swing.TransferHandler;
 
 /**
  *
@@ -21,21 +17,13 @@ import javax.swing.TransferHandler;
 public class DockUtil {
     
     public static DockSplit createSplit(DockDropInfo info, DockChild prev, DockChild added) {
-        DockSplit result = null;
-        switch (info.location) {
-            case LEFT:
-                result = new DockSplit(JSplitPane.HORIZONTAL_SPLIT, added, prev);
-                break;
-            case RIGHT:
-                result = new DockSplit(JSplitPane.HORIZONTAL_SPLIT, prev, added);
-                break;
-            case BOTTOM:
-                result = new DockSplit(JSplitPane.VERTICAL_SPLIT, prev, added);
-                break;
-            case TOP:
-                result = new DockSplit(JSplitPane.VERTICAL_SPLIT, added, prev);
-                break;
-        }
+        DockSplit result = switch (info.location()) {
+            case LEFT -> new DockSplit(JSplitPane.HORIZONTAL_SPLIT, added, prev);
+            case RIGHT -> new DockSplit(JSplitPane.HORIZONTAL_SPLIT, prev, added);
+            case BOTTOM -> new DockSplit(JSplitPane.VERTICAL_SPLIT, prev, added);
+            case TOP -> new DockSplit(JSplitPane.VERTICAL_SPLIT, added, prev);
+            default -> null;
+        };
         return result;
     }
     
@@ -80,8 +68,7 @@ public class DockUtil {
         if (base == null) {
             return;
         }
-        if (child instanceof DockTabsContainer) {
-            DockTabsContainer tabs = (DockTabsContainer)child;
+        if (child instanceof DockTabsContainer tabs) {
             base.tabChanged(null, tabs.getCurrentContent());
         }
         else if (child instanceof DockSplit) {

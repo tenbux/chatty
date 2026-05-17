@@ -7,18 +7,10 @@ import java.util.Objects;
  *
  * @author tduva
  */
-public class BadgeType {
-    
-    public final String id;
-    public final String version;
-    
+public record BadgeType(String id, String version) {
+
     public static final BadgeType EMPTY = new BadgeType(null, null);
-    
-    public BadgeType(String id, String version) {
-        this.id = id;
-        this.version = version;
-    }
-    
+
     public static BadgeType parse(String idVersion) {
         if (idVersion == null) {
             return EMPTY;
@@ -34,11 +26,11 @@ public class BadgeType {
         }
         return new BadgeType(id, version);
     }
-    
+
     public boolean isEmpty() {
         return id == null && version == null;
     }
-    
+
     public int compareTo(BadgeType other) {
         if (this.equals(other)) {
             return 0;
@@ -54,7 +46,7 @@ public class BadgeType {
         }
         return 0;
     }
-    
+
     private static int compareString(String a, String b) {
         if (a == null && b == null) {
             return 0;
@@ -67,7 +59,7 @@ public class BadgeType {
         }
         return a.compareTo(b);
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (obj == null) {
@@ -80,57 +72,41 @@ public class BadgeType {
         if (!Objects.equals(this.id, other.id)) {
             return false;
         }
-        if (!Objects.equals(this.version, other.version)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.version, other.version);
     }
-    
+
     public boolean equals(String id, String version) {
         return Objects.equals(this.id, id) && Objects.equals(this.version, version);
     }
-    
+
     /**
      * Returns {@code true} if both the id and version in the arguments and of
      * this object are equal respectively, or if the id is equal but the version
      * of this object is {@code null}.
-     * 
+     *
      * @param id
      * @param version
-     * @return 
+     * @return
      */
     public boolean matchesLenient(String id, String version) {
         if (Objects.equals(this.id, id)) {
             if (this.version == null) {
                 return true;
             }
-            if (Objects.equals(this.version, version)) {
-                return true;
-            }
+            return Objects.equals(this.version, version);
         }
         return false;
     }
-    
+
     public boolean matchesLenient(BadgeType badgeType) {
         return matchesLenient(badgeType.id, badgeType.version);
     }
 
     @Override
-    public int hashCode() {
-        int hash = 7;
-        hash = 83 * hash + Objects.hashCode(this.id);
-        hash = 83 * hash + Objects.hashCode(this.version);
-        return hash;
-    }
-    
-    @Override
     public String toString() {
         if (id != null && version != null) {
-            return id+"/"+version;
+            return id + "/" + version;
         }
-        if (id != null) {
-            return id;
-        }
-        return null;
+        return id;
     }
 }

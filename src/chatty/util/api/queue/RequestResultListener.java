@@ -7,6 +7,6 @@ package chatty.util.api.queue;
  */
 public interface RequestResultListener {
     
-    public void requestResult(String result, int responseCode, String errorResult, int ratelimitRemaining);
+    void requestResult(String result, int responseCode, String errorResult, int ratelimitRemaining);
     
 }

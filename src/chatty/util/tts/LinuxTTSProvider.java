@@ -17,10 +17,10 @@ public class LinuxTTSProvider implements TTSProvider {
     @Override
     public void speak(SpeakRequest request) throws Exception {
         // Try espeak first, then festival, then fallback
-        if (tryEspeak(request.text, request.voice, request.rate, request.volume, request.pitch)) {
+        if (tryEspeak(request.text(), request.voice(), request.rate(), request.volume(), request.pitch())) {
             return;
         }
-        if (tryFestival(request.text, request.rate, request.volume, request.pitch)) {
+        if (tryFestival(request.text(), request.rate(), request.volume(), request.pitch())) {
             return;
         }
         throw new Exception("No TTS engine available on Linux");

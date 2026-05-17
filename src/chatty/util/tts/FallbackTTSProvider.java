@@ -14,10 +14,10 @@ public class FallbackTTSProvider implements TTSProvider {
 
     private static final Logger LOGGER = Logger.getLogger(FallbackTTSProvider.class.getName());
 
-    private String currentVoice = "default";
+    private final String currentVoice = "default";
 
     @Override
-    public void speak(SpeakRequest request) throws Exception {
+    public void speak(SpeakRequest request) {
         LOGGER.warning("No TTS engine available for this platform");
     }
 

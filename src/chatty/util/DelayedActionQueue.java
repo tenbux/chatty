@@ -94,8 +94,8 @@ public class DelayedActionQueue<E> {
         
     }
 
-    public static interface DelayedActionListener<E> {
-        public void actionPerformed(E item);
+    public interface DelayedActionListener<E> {
+        void actionPerformed(E item);
     }
     
 }

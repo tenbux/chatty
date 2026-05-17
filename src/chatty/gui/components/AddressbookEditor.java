@@ -7,21 +7,16 @@ import chatty.gui.RegexDocumentFilter;
 import chatty.gui.components.settings.ListTableModel;
 import chatty.gui.components.settings.TableEditor;
 import chatty.util.StringUtil;
-import java.awt.Component;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.text.AbstractDocument;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.HashSet;
 import java.util.Set;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JTextField;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.text.AbstractDocument;
 
 /**
  *
@@ -40,7 +35,7 @@ public class AddressbookEditor extends TableEditor<AddressbookEntry> {
     }
     
     public void edit(String name) {
-        AddressbookEntry preset = new AddressbookEntry(name, new HashSet<String>());
+        AddressbookEntry preset = new AddressbookEntry(name, new HashSet<>());
         int index = data.indexOf(preset);
         if (index == -1) {
             addItem(preset);
@@ -49,7 +44,7 @@ public class AddressbookEditor extends TableEditor<AddressbookEntry> {
         }
     }
 
-    public void setContextMenu(TableContextMenu menu) {
+    public void setContextMenu(TableContextMenu<AddressbookEntry> menu) {
         setPopupMenu(menu);
     }
     
@@ -77,11 +72,7 @@ public class AddressbookEditor extends TableEditor<AddressbookEntry> {
         
         @Override
         public Class getColumnClass(int c) {
-            if (c == 0) {
-                return String.class;
-            } else {
-                return String.class;
-            }
+            return String.class;
         }
         
     }

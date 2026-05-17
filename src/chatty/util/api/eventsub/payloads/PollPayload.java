@@ -3,13 +3,13 @@ package chatty.util.api.eventsub.payloads;
 
 import chatty.util.DateTime;
 import chatty.util.JSONUtil;
-import chatty.util.StringUtil;
 import chatty.util.api.eventsub.Message;
 import chatty.util.api.eventsub.Payload;
-import java.util.ArrayList;
-import java.util.List;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -34,23 +34,9 @@ public class PollPayload extends Payload {
         this.endsAt = endsAt;
         this.status = status;
     }
-    
-    public static class Choice {
-        
-        public final String id;
-        public final String title;
-        public final int bitsVotes;
-        public final int pointsVotes;
-        public final int votes;
-        
-        public Choice(String id, String title, int bitsVotes, int pointsVotes, int votes) {
-            this.id = id;
-            this.title = title;
-            this.bitsVotes = bitsVotes;
-            this.pointsVotes = pointsVotes;
-            this.votes = votes;
-        }
-        
+
+    public record Choice(String id, String title, int bitsVotes, int pointsVotes, int votes) {
+
     }
     
     public static PollPayload decode(JSONObject payload) {
@@ -89,17 +75,16 @@ public class PollPayload extends Payload {
     }
     
     public static String getPollMessage(Message msg) {
-        if (!(msg.data instanceof PollPayload)) {
+        if (!(msg.data() instanceof PollPayload data)) {
             return null;
         }
-        PollPayload data = (PollPayload) msg.data;
         if ("archived".equals(data.status)) {
             return null;
         }
         
         String prefix = "[Poll]";
         String duration = "";
-        switch (msg.subType) {
+        switch (msg.subType()) {
             case "channel.poll.begin":
                 prefix = "[Poll Start]";
                 duration = " (ends in "+DateTime.duration(data.endsAt - System.currentTimeMillis())+")";
@@ -124,7 +109,7 @@ public class PollPayload extends Payload {
             }
         }
         for (Choice choice : data.choices) {
-            if (b.length() > 0) {
+            if (!b.isEmpty()) {
                 b.append(", ");
             }
             b.append(choice.title);

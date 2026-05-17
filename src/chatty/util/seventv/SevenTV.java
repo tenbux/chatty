@@ -2,24 +2,19 @@
 package chatty.util.seventv;
 
 import chatty.Helper;
-import chatty.util.Debugging;
-import chatty.util.EmoticonListener;
-import chatty.util.JSONUtil;
-import chatty.util.MiscUtil;
-import chatty.util.RetryManager;
-import chatty.util.StringUtil;
-import chatty.util.UrlRequest;
+import chatty.util.*;
 import chatty.util.api.Emoticon;
 import chatty.util.api.EmoticonUpdate;
 import chatty.util.api.TwitchApi;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 
 /**
  *
@@ -29,7 +24,7 @@ public class SevenTV {
     
     private static final Logger LOGGER = Logger.getLogger(SevenTV.class.getName());
     
-    private static enum Type {
+    private enum Type {
         GLOBAL, CHANNEL
     }
     
@@ -78,14 +73,11 @@ public class SevenTV {
     }
     
     private static String getUrl(Type type, String streamId) {
-        switch (type) {
-            case GLOBAL:
-                return "https://7tv.io/v3/emote-sets/global";
-            case CHANNEL:
-                return String.format("https://7tv.io/v3/users/twitch/%s",
-                        streamId);
-        }
-        return null;
+        return switch (type) {
+            case GLOBAL -> "https://7tv.io/v3/emote-sets/global";
+            case CHANNEL -> String.format("https://7tv.io/v3/users/twitch/%s",
+                    streamId);
+        };
     }
     
     private void requestNow(final Type type, final String stream, String url) {
@@ -212,19 +204,9 @@ public class SevenTV {
         }
         return result;
     }
-    
-    private static class File {
-        
-        public final String url;
-        public final int width;
-        public final int height;
-        
-        private File(String url, int width, int height) {
-            this.url = url;
-            this.width = width;
-            this.height = height;
-        }
-        
+
+    private record File(String url, int width, int height) {
+
     }
     
 }

@@ -40,12 +40,10 @@ public class StreamChat extends JDialog {
     private final DockedDialogHelper helper;
     private final DockStyledTabContainer content;
     private final ChannelTextPane textPane;
-    private final ContextMenuListener contextMenuListener;
-    
+
     public StreamChat(MainGui g, StyleManager styles, ContextMenuListener contextMenuListener,
             boolean startAtBottom, DockedDialogManager dockedDialogs) {
         super(g);
-        this.contextMenuListener = contextMenuListener;
         setTitle("Stream Chat");
         
         StyleServer modifiedStyleServer = new StyleServer() {

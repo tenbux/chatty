@@ -2,14 +2,13 @@
 package chatty.gui.components.settings;
 
 import chatty.gui.RegexDocumentFilter;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
-import javax.swing.InputVerifier;
-import javax.swing.JComponent;
-import javax.swing.JTextField;
+
+import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.AbstractDocument;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 
 /**
  * A JTextField that only accepts numbers.
@@ -64,7 +63,7 @@ public class LongTextField extends JTextField {
         }
     }
     
-    class IntegerVerifier extends InputVerifier {
+    static class IntegerVerifier extends InputVerifier {
 
         @Override
         public boolean verify(JComponent input) {

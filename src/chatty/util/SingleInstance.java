@@ -1,15 +1,12 @@
 
 package chatty.util;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.logging.Logger;
 
 /**
@@ -25,6 +22,7 @@ public class SingleInstance {
     private static final Logger LOGGER = Logger.getLogger(SingleInstance.class.getName());
     
     private static NewInstanceListener listener;
+    private static ServerSocket serverSocket;
     
     /**
      * Tries to register the current instance to the given port. The port is
@@ -40,20 +38,17 @@ public class SingleInstance {
      */
     public static boolean registerInstance(int port) {
         try {
-            final ServerSocket server = new ServerSocket(port, 0,
+            serverSocket = new ServerSocket(port, 0,
                     InetAddress.getLoopbackAddress());
-            Runnable connectionListener = new Runnable() {
-
-                @Override
-                public void run() {
-                    while (!server.isClosed()) {
-                        try {
-                            Socket socket = server.accept();
-                            handleConnection(socket);
-                        } catch (IOException ex) {
-                            LOGGER.warning("Error: "+ex);
-                            break;
-                        }
+            final ServerSocket server = serverSocket;
+            Runnable connectionListener = () -> {
+                while (!server.isClosed()) {
+                    try {
+                        Socket socket = server.accept();
+                        handleConnection(socket);
+                    } catch (IOException ex) {
+                        LOGGER.warning("Error: "+ex);
+                        break;
                     }
                 }
             };
@@ -63,6 +58,16 @@ public class SingleInstance {
             return false;
         }
         return true;
+    }
+
+    public static void closeServerSocket() {
+        if (serverSocket != null) {
+            try {
+                serverSocket.close();
+            } catch (IOException ex) {
+                LOGGER.warning("Error closing server socket: "+ex);
+            }
+        }
     }
     
     /**
@@ -74,7 +79,7 @@ public class SingleInstance {
     private static void handleConnection(Socket socket) {
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(
-                        socket.getInputStream(), "UTF-8")
+                        socket.getInputStream(), StandardCharsets.UTF_8)
         )) {
             int character;
             StringBuilder b = new StringBuilder();
@@ -82,7 +87,7 @@ public class SingleInstance {
                 b.append((char)character);
             }
             LOGGER.info(String.format("Received instance message: %s [%s]",
-                    b.toString(), socket));
+                    b, socket));
             if (listener != null) {
                 listener.newInstance(b.toString());
             }
@@ -103,12 +108,13 @@ public class SingleInstance {
             LOGGER.info("Notifying already running instance: "+message);
             InetSocketAddress address = new InetSocketAddress(
                     InetAddress.getLoopbackAddress(), port);
-            Socket connection = new Socket();
-            connection.connect(address, 500);
-            try (PrintWriter output = new PrintWriter(
-                    new OutputStreamWriter(
-                            connection.getOutputStream(), "UTF-8"))) {
-                output.print(message);
+            try (Socket connection = new Socket()) {
+                connection.connect(address, 500);
+                try (PrintWriter output = new PrintWriter(
+                        new OutputStreamWriter(
+                                connection.getOutputStream(), StandardCharsets.UTF_8))) {
+                    output.print(message);
+                }
             }
         } catch (IOException ex) {
             LOGGER.warning("Error notifying instance: "+ex);
@@ -131,23 +137,17 @@ public class SingleInstance {
          * 
          * @param message 
          */
-        public void newInstance(String message);
+        void newInstance(String message);
     }
     
-    public static final void main(String[] args) {
+    public static void main(String[] args) {
         // For testing
         
         int port = 12345;
         registerInstance(port);
         notifyRunningInstance(port, "{\"channel\":\"test\"}");
         
-        NewInstanceListener listener = new NewInstanceListener() {
-
-            @Override
-            public void newInstance(String message) {
-                System.out.println(message);
-            }
-        };
+        NewInstanceListener listener = message -> System.out.println(message);
         setNewInstanceListener(listener);
     }
     

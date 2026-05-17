@@ -3,7 +3,7 @@ package chatty;
 
 import chatty.lang.Language;
 import chatty.util.StringUtil;
-import java.util.Locale;
+
 import java.util.Objects;
 
 /**
@@ -17,8 +17,6 @@ public class Room {
     private final String channel;
     private final String ownerChannel;
     private final String name;
-    private final String customName;
-    private final String id;
     private final String topic;
     private final String displayName;
     private final String fileName;
@@ -68,8 +66,6 @@ public class Room {
         } else {
             this.ownerChannel = null;
         }
-        this.customName = customName;
-        this.id = id;
         this.streamId = ownerId;
         
         // Only set stream if normal channel, and depending on whether it's
@@ -201,10 +197,7 @@ public class Room {
             return false;
         }
         final Room other = (Room) obj;
-        if (!Objects.equals(this.channel, other.channel)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.channel, other.channel);
     }
 
     @Override

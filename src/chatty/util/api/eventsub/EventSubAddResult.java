@@ -3,10 +3,11 @@ package chatty.util.api.eventsub;
 
 import chatty.util.JSONUtil;
 import chatty.util.api.queue.ResultListener.Result;
-import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+
+import java.util.logging.Logger;
 
 /**
  *
@@ -41,13 +42,13 @@ public class EventSubAddResult {
     }
     
     public static EventSubAddResult decode(Result r) {
-        if (r.text == null) {
-            return new EventSubAddResult(null, null, null, -1, -1, -1, -1, r.responseCode, r.errorText);
+        if (r.text() == null) {
+            return new EventSubAddResult(null, null, null, -1, -1, -1, -1, r.responseCode(), r.errorText());
         }
         try {
             JSONParser parser = new JSONParser();
-            JSONObject root = (JSONObject) parser.parse(r.text);
-            JSONObject data = (JSONObject) ((JSONArray) root.get("data")).get(0);
+            JSONObject root = (JSONObject) parser.parse(r.text());
+            JSONObject data = (JSONObject) ((JSONArray) root.get("data")).getFirst();
             String id = JSONUtil.getString(data, "id");
             String status = JSONUtil.getString(data, "status");
             String type = JSONUtil.getString(data, "type");
@@ -55,12 +56,12 @@ public class EventSubAddResult {
             int totalSubs = JSONUtil.getInteger(root, "total", 0);
             int totalCost = JSONUtil.getInteger(root, "total_cost", 0);
             int maxTotalCost = JSONUtil.getInteger(root, "max_total_cost", 0);
-            return new EventSubAddResult(id, type, status, totalSubs, cost, totalCost, maxTotalCost, r.responseCode, r.errorText);
+            return new EventSubAddResult(id, type, status, totalSubs, cost, totalCost, maxTotalCost, r.responseCode(), r.errorText());
         }
         catch (Exception ex) {
             LOGGER.warning("Failed parsing EventSubAdd result: "+ex);
         }
-        return new EventSubAddResult(null, null, null, -1, -1, -1, -1, r.responseCode, r.errorText);
+        return new EventSubAddResult(null, null, null, -1, -1, -1, -1, r.responseCode(), r.errorText());
     }
     
     @Override

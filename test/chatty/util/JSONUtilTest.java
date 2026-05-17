@@ -1,15 +1,18 @@
 
 package chatty.util;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.junit.Test;
-import static org.junit.Assert.*;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 /**
  *
@@ -24,17 +27,17 @@ public class JSONUtilTest {
         String json = JSONUtil.listMapToJSON("list", someList, "a", "1", "b", "2", "c", null, "'blah' \"abc\"", "test 123");
         JSONParser parser = new JSONParser();
         JSONObject root = (JSONObject) parser.parse(json);
-        assertTrue(root.get("list").equals(someList));
-        assertTrue(root.get("a").equals("1"));
-        assertTrue(root.get("b").equals("2"));
+        assertEquals(root.get("list"), someList);
+        assertEquals("1", root.get("a"));
+        assertEquals("2", root.get("b"));
         assertNull(root.get("c"));
         assertNull(root.get("d"));
-        assertTrue(root.get("'blah' \"abc\"").equals("test 123"));
+        assertEquals("test 123", root.get("'blah' \"abc\""));
     }
     
     @Test
     public void testListToJSON() throws ParseException {
-        List<String> list = Arrays.asList(new String[]{"a", "b", "c", null});
+        List<String> list = Arrays.asList("a", "b", "c", null);
         String json = JSONUtil.listToJSON("a", "b", "c", null);
         JSONParser parser = new JSONParser();
         JSONArray root = (JSONArray) parser.parse(json);
@@ -48,12 +51,12 @@ public class JSONUtilTest {
         
         // List with only String elements
         List<String> list = JSONUtil.getStringList(root, "list");
-        List<String> expectedList = Arrays.asList(new String[]{"a", "b", "c"});
+        List<String> expectedList = Arrays.asList("a", "b", "c");
         assertEquals(expectedList, list);
         
         // List with non-String elements
         List<String> list2 = JSONUtil.getStringList(root, "list2");
-        List<String> expectedList2 = Arrays.asList(new String[]{"1", "2"});
+        List<String> expectedList2 = Arrays.asList("1", "2");
         assertEquals(expectedList2, list2);
         
         // Not a list

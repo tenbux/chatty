@@ -1,20 +1,16 @@
 
 package chatty.util.api;
 
-import chatty.Room;
 import chatty.util.DateTime;
 import chatty.util.JSONUtil;
 import chatty.util.StringUtil;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
+import java.util.*;
+import java.util.logging.Logger;
 
 /**
  * Some more simple parsing.
@@ -46,8 +42,7 @@ public class Parsing {
             Iterator it = ((JSONArray)data).iterator();
             while (it.hasNext()) {
                 Object obj = it.next();
-                if (obj instanceof JSONObject) {
-                    JSONObject categoryData = (JSONObject) obj;
+                if (obj instanceof JSONObject categoryData) {
                     String id = JSONUtil.getString(categoryData, "id");
                     String name = JSONUtil.getString(categoryData, "name");
                     if (!StringUtil.isNullOrEmpty(id, name)) {
@@ -73,8 +68,7 @@ public class Parsing {
         try {
             JSONParser parser = new JSONParser();
             JSONObject root = (JSONObject) parser.parse(json);
-            long time = DateTime.parseDatetime((String)root.get("created_at"));
-            return time;
+            return DateTime.parseDatetime((String)root.get("created_at"));
         } catch (Exception ex) {
             return -1;
         }
@@ -132,42 +126,33 @@ public class Parsing {
             return null;
         }
     }
-    
-    public static class ShieldModeStatus {
-        
-        public final String stream;
-        public final boolean enabled;
-        
-        public ShieldModeStatus(String stream, boolean enabled) {
-            this.stream = stream;
-            this.enabled = enabled;
-        }
-        
+
+    public record ShieldModeStatus(String stream, boolean enabled) {
+
         public static ShieldModeStatus decode(String json, String stream) {
-            if (json == null) {
+                if (json == null) {
+                    return null;
+                }
+                try {
+                    JSONParser parser = new JSONParser();
+                    JSONObject root = (JSONObject) parser.parse(json);
+                    JSONObject data = (JSONObject) ((JSONArray) root.get("data")).getFirst();
+                    if (data.containsKey("is_active")) {
+                        return new ShieldModeStatus(stream, JSONUtil.getBoolean(data, "is_active", false));
+                    }
+                } catch (Exception ex) {
+                    LOGGER.warning("Error parsing shield mode status: " + ex);
+                }
                 return null;
             }
-            try {
-                JSONParser parser = new JSONParser();
-                JSONObject root = (JSONObject) parser.parse(json);
-                JSONObject data = (JSONObject) ((JSONArray) root.get("data")).get(0);
-                if (data.containsKey("is_active")) {
-                    return new ShieldModeStatus(stream, JSONUtil.getBoolean(data, "is_active", false));
-                }
-            }
-            catch (Exception ex) {
-                LOGGER.warning("Error parsing shield mode status: " + ex);
-            }
-            return null;
-        }
-        
+
     }
     
     public static String getClipUrl(String text) {
         try {
             JSONParser parser = new JSONParser();
             JSONObject root = (JSONObject) parser.parse(text);
-            JSONObject data = (JSONObject) ((JSONArray) root.get("data")).get(0);
+            JSONObject data = (JSONObject) ((JSONArray) root.get("data")).getFirst();
             return (String) data.get("edit_url");
         } catch (Exception ex) {
             LOGGER.warning("Error getting clip url: " + ex);

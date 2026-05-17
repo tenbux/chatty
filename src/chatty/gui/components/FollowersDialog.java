@@ -8,15 +8,14 @@ import chatty.User;
 import chatty.gui.DockedDialogHelper;
 import chatty.gui.DockedDialogManager;
 import chatty.gui.GuiUtil;
-import chatty.gui.laf.LaF;
 import chatty.gui.MainGui;
 import chatty.gui.components.admin.AdminDialog;
-import static chatty.gui.components.admin.AdminDialog.SMALL_BUTTON_INSETS;
 import chatty.gui.components.menus.ContextMenu;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.menus.StreamsContextMenu;
 import chatty.gui.components.menus.UserContextMenu;
 import chatty.gui.components.settings.ListTableModel;
+import chatty.gui.laf.LaF;
 import chatty.lang.Language;
 import chatty.util.DateTime;
 import chatty.util.Debugging;
@@ -26,45 +25,27 @@ import chatty.util.api.FollowerInfo;
 import chatty.util.api.TwitchApi;
 import chatty.util.colors.ColorCorrectionNew;
 import chatty.util.dnd.DockContent;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Window;
+
+import javax.swing.*;
+import javax.swing.Timer;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
+import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextArea;
-import javax.swing.Timer;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableColumn;
+
+import static chatty.gui.components.admin.AdminDialog.SMALL_BUTTON_INSETS;
 
 /**
  * Dialog showing a list of followers or subscribers. The type given to the
@@ -101,8 +82,7 @@ public class FollowersDialog extends JDialog {
     private final JTable table;
     private final ListTableModel<Follower> followers = new MyListTableModel();
     private final JLabel loadInfo = new JLabel();
-    private final JButton refreshButton;
-    
+
     private final JScrollPane accessInfo;
     private final JScrollPane mainTable;
     
@@ -201,8 +181,8 @@ public class FollowersDialog extends JDialog {
         gbc = GuiUtil.makeGbc(0, 3, 1, 1, GridBagConstraints.WEST);
         gbc.insets = new Insets(2, 5, 5, 5);
         mainPanel.add(loadInfo, gbc);
-        
-        refreshButton = new JButton(Language.getString("admin.button.reload"));
+
+        JButton refreshButton = new JButton(Language.getString("admin.button.reload"));
         refreshButton.setMargin(SMALL_BUTTON_INSETS);
         refreshButton.setIcon(new ImageIcon(AdminDialog.class.getResource("view-refresh.png")));
         refreshButton.setMnemonic(KeyEvent.VK_R);
@@ -213,14 +193,10 @@ public class FollowersDialog extends JDialog {
         mainPanel.add(refreshButton, gbc);
         
         // Timer
-        Timer timer = new Timer(REFRESH_TIMER, new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                request(false);
-                update();
-                table.repaint();
-            }
+        Timer timer = new Timer(REFRESH_TIMER, e -> {
+            request(false);
+            update();
+            table.repaint();
         });
         timer.setRepeats(true);
         timer.start();
@@ -596,7 +572,7 @@ public class FollowersDialog extends JDialog {
             int change = newInfo.total - oldInfo.total;
             String changeString = "";
             if (change < 0) {
-                changeString = " (" + String.valueOf(change) + ")";
+                changeString = " (" + change + ")";
             } else if (change > 0) {
                 changeString = " (+" + change + ")";
             }
@@ -630,7 +606,7 @@ public class FollowersDialog extends JDialog {
             Path file = path.resolve(StringUtil.toLowerCase(type.toString())+".txt");
             try {
                 Files.createDirectories(path);
-                try (BufferedWriter writer = Files.newBufferedWriter(file, Charset.forName("UTF-8"))) {
+                try (BufferedWriter writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
 
                     for (Follower f : lastValidInfo.followers) {
                         writer.write(f.name);
@@ -889,7 +865,7 @@ public class FollowersDialog extends JDialog {
     /**
      * Table Model with 2 columns.
      */
-    private class MyListTableModel extends ListTableModel<Follower> {
+    private static class MyListTableModel extends ListTableModel<Follower> {
 
         public MyListTableModel() {
             super(new String[]{"Name","Followed","User Created"});
@@ -948,7 +924,7 @@ public class FollowersDialog extends JDialog {
         test.add(createTestFollower(stream, 60*60*2, 60, false));
         test.add(createTestFollower(stream, 60*60*3, 24*123, false));
         test.add(createTestFollower(stream, 60*60*3, 24*5, false));
-        test.add(createTestFollower(stream, 60*60*24*2, 24*1, false));
+        test.add(createTestFollower(stream, 60*60*24*2, 24, false));
         test.add(createTestFollower(stream, 60*60*24*3, 24*234, false));
         test.add(createTestFollower(stream, 60*60*24*8, 24*12, false));
         test.add(createTestFollower(stream, 60*60*24*90, 24*800, false));

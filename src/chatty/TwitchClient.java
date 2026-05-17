@@ -1,101 +1,48 @@
 
 package chatty;
 
-import chatty.gui.components.updating.Version;
 import chatty.ChannelFavorites.Favorite;
-import chatty.lang.Language;
-import chatty.gui.colors.UsercolorManager;
-import chatty.gui.components.admin.StatusHistory;
-import chatty.util.commands.CustomCommands;
-import chatty.util.api.usericons.Usericon;
-import chatty.util.api.usericons.UsericonManager;
 import chatty.ChannelStateManager.ChannelStateListener;
 import chatty.Chatty.PathType;
 import chatty.Commands.CommandParsedArgs;
-import chatty.util.api.TwitchApiResultListener;
-import chatty.util.api.Emoticon;
-import chatty.util.api.StreamInfoListener;
-import chatty.util.api.TokenInfo;
-import chatty.util.api.StreamInfo;
-import chatty.util.api.ChannelInfo;
-import chatty.util.api.TwitchApi;
 import chatty.WhisperManager.WhisperListener;
 import chatty.gui.GuiUtil;
 import chatty.gui.Highlighter;
-import chatty.gui.laf.LaF;
-import chatty.gui.laf.LaF.LaFSettings;
 import chatty.gui.MainGui;
+import chatty.gui.colors.UsercolorManager;
 import chatty.gui.components.SelectReplyMessage;
 import chatty.gui.components.SelectReplyMessage.SelectReplyMessageResult;
+import chatty.gui.components.admin.StatusHistory;
 import chatty.gui.components.eventlog.EventLog;
 import chatty.gui.components.menus.UserContextMenu;
 import chatty.gui.components.textpane.ModLogInfo;
 import chatty.gui.components.updating.Stuff;
+import chatty.gui.components.updating.Version;
 import chatty.gui.defaults.DefaultsDialog;
+import chatty.gui.laf.LaF;
+import chatty.gui.laf.LaF.LaFSettings;
+import chatty.lang.Language;
 import chatty.splash.Splash;
-import chatty.util.BTTVEmotes;
-import chatty.util.BatchAction;
-import chatty.util.BotNameManager;
-import chatty.util.DateTime;
-import chatty.util.Debugging;
-import chatty.util.EmoticonListener;
-import chatty.util.IconManager;
+import chatty.util.*;
+import chatty.util.TimerCommand.TimerResult;
+import chatty.util.api.*;
+import chatty.util.api.ResultManager.CreateClipResult;
+import chatty.util.api.StreamInfo.StreamType;
+import chatty.util.api.StreamInfo.ViewerStats;
+import chatty.util.api.TwitchApi.RequestResultCode;
+import chatty.util.api.eventsub.EventSubListener;
+import chatty.util.api.eventsub.EventSubManager;
+import chatty.util.api.eventsub.payloads.*;
+import chatty.util.api.usericons.Usericon;
+import chatty.util.api.usericons.UsericonManager;
+import chatty.util.chatlog.ChatLog;
+import chatty.util.commands.CustomCommand;
+import chatty.util.commands.CustomCommands;
+import chatty.util.commands.Parameters;
 import chatty.util.ffz.FrankerFaceZ;
 import chatty.util.ffz.FrankerFaceZListener;
 import chatty.util.history.HistoryManager;
 import chatty.util.history.HistoryMessage;
-import chatty.util.ImageCache;
-import chatty.util.LogUtil;
-import chatty.util.MacAwtOptions;
-import chatty.util.MiscUtil;
-import chatty.util.OtherBadges;
-import chatty.util.ProcessManager;
-import chatty.util.Pronouns;
-import chatty.util.RawMessageTest;
-import chatty.util.ReplyManager;
-import chatty.util.Sound;
-import chatty.util.Speedruncom;
-import chatty.util.StreamHighlightHelper;
-import chatty.util.StreamStatusWriter;
-import chatty.util.StringUtil;
-import chatty.util.Timestamp;
-import chatty.util.TimerCommand;
-import chatty.util.TimerCommand.TimerResult;
-import chatty.util.TwitchEmotesApi;
-import chatty.util.UserRoom;
-import chatty.util.Webserver;
-import chatty.util.api.AccessChecker;
-import chatty.util.api.AutoModCommandHelper;
-import chatty.util.api.ChannelStatus;
-import chatty.util.api.CheerEmoticon;
-import chatty.util.api.EmotesetManager;
-import chatty.util.api.EmoticonSizeCache;
-import chatty.util.api.EmoticonUpdate;
-import chatty.util.api.Emoticons;
-import chatty.util.api.Follower;
-import chatty.util.api.FollowerInfo;
-import chatty.util.api.ResultManager;
-import chatty.util.api.ResultManager.CreateClipResult;
-import chatty.util.api.StreamCategory;
-import chatty.util.api.StreamInfo.StreamType;
-import chatty.util.api.StreamInfo.ViewerStats;
-import chatty.util.api.TwitchApi.RequestResultCode;
-import chatty.util.api.UserInfo;
-import chatty.util.api.eventsub.EventSubListener;
-import chatty.util.api.eventsub.EventSubManager;
-import chatty.util.api.eventsub.payloads.ChannelPointsRedemptionPayload;
-import chatty.util.api.eventsub.payloads.ModActionPayload;
-import chatty.util.api.eventsub.payloads.PollPayload;
-import chatty.util.api.eventsub.payloads.RaidPayload;
-import chatty.util.api.eventsub.payloads.ShieldModePayload;
-import chatty.util.api.eventsub.payloads.ShoutoutPayload;
-import chatty.util.api.eventsub.payloads.SuspiciousMessagePayload;
-import chatty.util.api.eventsub.payloads.SuspiciousUpdatePayload;
-import chatty.util.api.eventsub.payloads.UserMessageHeldPayload;
-import chatty.util.api.eventsub.payloads.WarningAcknowledgePayload;
-import chatty.util.chatlog.ChatLog;
-import chatty.util.commands.CustomCommand;
-import chatty.util.commands.Parameters;
 import chatty.util.history.QueuedMessage;
 import chatty.util.irc.MsgTags;
 import chatty.util.irc.UserTagsUtil;
@@ -107,21 +54,22 @@ import chatty.util.seventv.WebPUtil;
 import chatty.util.srl.SpeedrunsLive;
 import chatty.util.tts.TextToSpeech;
 import chatty.util.tts.TextToSpeechCommands;
-import java.awt.Color;
+
+import javax.swing.*;
+import java.awt.*;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
 
 /**
  * The main client class, responsible for managing most parts of the program.
@@ -139,8 +87,7 @@ public class TwitchClient {
      * The URL to get a token. Needs to end with the scopes so other ones can be
      * added.
      */
-    public static final String REQUEST_TOKEN_URL = ""
-            + "https://id.twitch.tv/oauth2/authorize"
+    public static final String REQUEST_TOKEN_URL = "https://id.twitch.tv/oauth2/authorize"
             + "?response_type=token"
             + "&client_id="+Chatty.CLIENT_ID
             + "&redirect_uri="+Chatty.REDIRECT_URI
@@ -207,7 +154,7 @@ public class TwitchClient {
     /**
      * A reference to the Main Gui.
      */
-    protected MainGui g;
+    protected final MainGui g;
     
     private final List<String> cachedDebugMessages = new ArrayList<>();
     private final List<String> cachedWarningMessages = new ArrayList<>();
@@ -227,7 +174,7 @@ public class TwitchClient {
     
     private final StreamHighlightHelper streamHighlights;
     
-    private final Set<String> refreshRequests = Collections.synchronizedSet(new HashSet<String>());
+    private final Set<String> refreshRequests = Collections.synchronizedSet(new HashSet<>());
     
     private final WhisperManager w;
     private final IrcLogger ircLogger;
@@ -779,13 +726,13 @@ public class TwitchClient {
     private String getServer() {
         String serverDefault = settings.getString("serverDefault");
         String serverTemp = settings.getString("server");
-        return serverTemp.length() > 0 ? serverTemp : serverDefault;
+        return !serverTemp.isEmpty() ? serverTemp : serverDefault;
     }
     
     private String getPorts() {
         String portDefault = settings.getString("portDefault");
         String portTemp = settings.getString("port");
-        return portTemp.length() > 0 ? portTemp : portDefault;
+        return !portTemp.isEmpty() ? portTemp : portDefault;
     }
     
     /**
@@ -805,20 +752,20 @@ public class TwitchClient {
         }
     }
     
-    public final boolean prepareConnectionWithChannel(String channel) {
-        return prepareConnection(getServer(), getPorts(), channel);
+    public final void prepareConnectionWithChannel(String channel) {
+        prepareConnection(getServer(), getPorts(), channel);
     }
     
     public boolean prepareConnection(String server, String ports) {
         return prepareConnection(server, ports, settings.getString("channel"));
     }
     
-    public final boolean prepareConnectionAnyChannel(String server, String ports) {
+    public final void prepareConnectionAnyChannel(String server, String ports) {
         String channel = null;
         if (c.getOpenChannels().isEmpty()) {
             channel = settings.getString("channel");
         }
-        return prepareConnection(server, ports, channel);
+        prepareConnection(server, ports, channel);
     }
     
     /**
@@ -928,8 +875,8 @@ public class TwitchClient {
         }
     }
     
-    public boolean disconnect() {
-        return c.disconnect();
+    public void disconnect() {
+        c.disconnect();
     }
     
     public void joinChannels(Set<String> channels) {
@@ -1060,17 +1007,17 @@ public class TwitchClient {
         if (doubleAt || (!restricted && text.startsWith("@"))) {
             String[] split = text.split(" ", 2);
             // Min username length may be 1 or 2, depending on @@ or @
-            if (split.length == 2 && split[0].length() > 2 && split[1].length() > 0) {
+            if (split.length == 2 && split[0].length() > 2 && !split[1].isEmpty()) {
                 String username = split[0].substring(doubleAt ? 2 : 1);
                 String actualMsg = split[1];
                 User user = c.getExistingUser(channel, username);
                 if (user != null) {
                     SelectReplyMessage.settings = settings;
                     SelectReplyMessageResult result = SelectReplyMessage.show(user);
-                    if (result.action != SelectReplyMessageResult.Action.SEND_NORMALLY) {
+                    if (result.action() != SelectReplyMessageResult.Action.SEND_NORMALLY) {
                         // Should not send normally, so return true
-                        if (result.action == SelectReplyMessageResult.Action.REPLY) {
-                            sendReply(channel, actualMsg, username, result.atMsgId, result.atMsg);
+                        if (result.action() == SelectReplyMessageResult.Action.REPLY) {
+                            sendReply(channel, actualMsg, username, result.atMsgId(), result.atMsg());
                         }
                         else {
                             g.insert(text, false);
@@ -1220,14 +1167,13 @@ public class TwitchClient {
     /**
      * Executes the command with the given name, which can be a built-in or
      * Custom Command.
-     * 
-     * @param room The room context
-     * @param command The command name (no leading /)
+     *
+     * @param room      The room context
+     * @param command   The command name (no leading /)
      * @param parameter The parameter, can be null
-     * @return 
      */
-    public boolean command(Room room, String command, String parameter) {
-        return command(room, command, Parameters.create(parameter));
+    public void command(Room room, String command, String parameter) {
+        command(room, command, Parameters.create(parameter));
     }
     
 
@@ -1237,24 +1183,14 @@ public class TwitchClient {
         // Connection/IRC
         //---------------
         commands.add("quit", p -> c.quit());
-        commands.add("server", p -> {
-            commandServer(p.getArgs());
-        });
+        commands.add("server", p -> commandServer(p.getArgs()));
         commands.add("reconnect", p -> commandReconnect());
-        commands.add("connection", p -> {
-            g.printLine(p.getRoom(), c.getConnectionInfo());
-        });
-        commands.add("join", p -> {
-            commandJoinChannel(p.getArgs());
-        });
-        commands.add("part", p -> {
-            commandPartChannel(p.getChannel());
-        }, "close");
-        commands.add("rejoin", p -> {
-            commandRejoinChannel(p.getChannel());
-        });
+        commands.add("connection", p -> g.printLine(p.room(), c.getConnectionInfo()));
+        commands.add("join", p -> commandJoinChannel(p.getArgs()));
+        commands.add("part", p -> commandPartChannel(p.getChannel()), "close");
+        commands.add("rejoin", p -> commandRejoinChannel(p.getChannel()));
         commands.add("raw", p -> {
-            if (rejectTimedMessage("raw", p.getRoom(), p.getParameters())) {
+            if (rejectTimedMessage("raw", p.room(), p.parameters())) {
                 return;
             }
             if (p.hasArgs()) {
@@ -1262,36 +1198,36 @@ public class TwitchClient {
             }
         });
         commands.add("me", p -> {
-            if (checkRejectTimedMessage(p.getRoom(), p.getParameters())) {
+            if (checkRejectTimedMessage(p.room(), p.parameters())) {
                 return;
             }
             commandActionMessage(p.getChannel(), p.getArgs());
         });
         commands.add("say", p -> {
-            if (checkRejectTimedMessage(p.getRoom(), p.getParameters())) {
+            if (checkRejectTimedMessage(p.room(), p.parameters())) {
                 return;
             }
             if (p.hasArgs()) {
                 sendMessage(p.getChannel(), p.getArgs());
             }
             else {
-                g.printLine(p.getRoom(), "Usage: /say <message>");
+                g.printLine(p.room(), "Usage: /say <message>");
             }
         });
         commands.add("msg", p -> {
-            if (rejectTimedMessage("msg", p.getRoom(), p.getParameters())) {
+            if (rejectTimedMessage("msg", p.room(), p.parameters())) {
                 return;
             }
             commandCustomMessage(p.getArgs());
         });
         commands.add("msgreply", p -> {
-            if (checkRejectTimedMessage(p.getRoom(), p.getParameters())) {
+            if (checkRejectTimedMessage(p.room(), p.parameters())) {
                 return;
             }
-            if (p.getParameters().notEmpty("nick", "msg-id", "msg") && p.hasArgs()) {
-                    String atUsername = p.getParameters().get("nick");
-                    String atMsgId = p.getParameters().get("msg-id");
-                    String atMsg = p.getParameters().get("msg");
+            if (p.parameters().notEmpty("nick", "msg-id", "msg") && p.hasArgs()) {
+                    String atUsername = p.parameters().get("nick");
+                    String atMsgId = p.parameters().get("msg-id");
+                    String atMsg = p.parameters().get("msg");
                     String msg = p.getArgs();
                     sendReply(p.getChannel(), msg, atUsername, atMsgId, atMsg);
             }
@@ -1300,29 +1236,19 @@ public class TwitchClient {
             }
         }, "msgreplythread");
         commands.add("w", p -> {
-            if (rejectTimedMessage("w", p.getRoom(), p.getParameters())) {
+            if (rejectTimedMessage("w", p.room(), p.parameters())) {
                 return;
             }
             w.whisperCommand(p.getArgs(), false);
         });
-        commands.add("changeToken", p -> {
-            g.changeToken(p.getArgs());
-        });
+        commands.add("changeToken", p -> g.changeToken(p.getArgs()));
         //------------
         // System/Util
         //------------
-        commands.add("dir", p -> {
-            g.printSystem("Settings directory: "+Chatty.getPathInfo(PathType.SETTINGS));
-        });
-        commands.add("wdir", p -> {
-            g.printSystem("Working directory: "+Chatty.getPathInfo(PathType.WORKING));
-        });
-        commands.add("opendir", p -> {
-            MiscUtil.openFile(Chatty.getPath(PathType.SETTINGS), g);
-        });
-        commands.add("openwdir", p -> {
-            MiscUtil.openFile(Chatty.getPath(PathType.WORKING), g);
-        });
+        commands.add("dir", p -> g.printSystem("Settings directory: "+Chatty.getPathInfo(PathType.SETTINGS)));
+        commands.add("wdir", p -> g.printSystem("Working directory: "+Chatty.getPathInfo(PathType.WORKING)));
+        commands.add("opendir", p -> MiscUtil.openFile(Chatty.getPath(PathType.SETTINGS), g));
+        commands.add("openwdir", p -> MiscUtil.openFile(Chatty.getPath(PathType.WORKING), g));
         commands.add("showJarDir", p -> {
             Path path = Stuff.determineJarPath();
             if (path != null) {
@@ -1341,27 +1267,13 @@ public class TwitchClient {
                 g.printSystem("JAR directory unknown");
             }
         });
-        commands.add("showBackupDir", p -> {
-            g.printSystem("Backup directory: "+Chatty.getPathInfo(PathType.BACKUP));
-        });
-        commands.add("openBackupDir", p -> {
-            MiscUtil.openFile(Chatty.getPathCreate(PathType.BACKUP), g);
-        });
-        commands.add("showTempDir", p -> {
-            g.printSystem("System Temp directory: "+Chatty.getTempDirectory());
-        });
-        commands.add("openTempDir", p -> {
-            MiscUtil.openFile(new File(Chatty.getTempDirectory()), g);
-        });
-        commands.add("showDebugDir", p -> {
-            g.printSystem("Debug Log Directory: "+Chatty.getPathInfo(PathType.DEBUG));
-        });
-        commands.add("openDebugDir", p -> {
-            MiscUtil.openFile(Chatty.getPath(PathType.DEBUG), g);
-        });
-        commands.add("showLogDir", p -> {
-            g.printSystem("Chat Log Directory: " + Chatty.getPathInfo(PathType.LOGS));
-        });
+        commands.add("showBackupDir", p -> g.printSystem("Backup directory: "+Chatty.getPathInfo(PathType.BACKUP)));
+        commands.add("openBackupDir", p -> MiscUtil.openFile(Chatty.getPathCreate(PathType.BACKUP), g));
+        commands.add("showTempDir", p -> g.printSystem("System Temp directory: "+Chatty.getTempDirectory()));
+        commands.add("openTempDir", p -> MiscUtil.openFile(new File(Chatty.getTempDirectory()), g));
+        commands.add("showDebugDir", p -> g.printSystem("Debug Log Directory: "+Chatty.getPathInfo(PathType.DEBUG)));
+        commands.add("openDebugDir", p -> MiscUtil.openFile(Chatty.getPath(PathType.DEBUG), g));
+        commands.add("showLogDir", p -> g.printSystem("Chat Log Directory: " + Chatty.getPathInfo(PathType.LOGS)));
         commands.add("openLogDir", p -> {
             if (chatLog.getPath() != null) {
                 MiscUtil.openFile(chatLog.getPath().toAbsolutePath().toFile(), g);
@@ -1370,12 +1282,8 @@ public class TwitchClient {
                 g.printSystem("Invalid Chat Log Directory");
             }
         });
-        commands.add("showJavaDir", p -> {
-            g.printSystem("JRE directory: "+System.getProperty("java.home"));
-        });
-        commands.add("openJavaDir", p -> {
-            MiscUtil.openFile(new File(System.getProperty("java.home")), g);
-        });
+        commands.add("showJavaDir", p -> g.printSystem("JRE directory: "+System.getProperty("java.home")));
+        commands.add("openJavaDir", p -> MiscUtil.openFile(new File(System.getProperty("java.home")), g));
         commands.add("showFallbackFontDir", p -> {
             Path path = Paths.get(System.getProperty("java.home"), "lib", "fonts", "fallback");
             g.printSystem("Fallback font directory (may not exist yet): "+path);
@@ -1390,17 +1298,13 @@ public class TwitchClient {
                 MiscUtil.openFile(path.toFile(), g);
             }
         });
-        commands.add("copy", p -> {
-            MiscUtil.copyToClipboard(p.getArgs());
-        });
-        commands.add("releaseInfo", p -> {
-            g.openReleaseInfo();
-        });
+        commands.add("copy", p -> MiscUtil.copyToClipboard(p.getArgs()));
+        commands.add("releaseInfo", p -> g.openReleaseInfo());
         commands.add("echo", p -> {
             if (p.hasArgs()) {
-                g.printLine(p.getRoom(), p.getArgs());
+                g.printLine(p.room(), p.getArgs());
             } else {
-                g.printLine(p.getRoom(), "Invalid parameters: /echo <message>");
+                g.printLine(p.room(), "Invalid parameters: /echo <message>");
             }
         });
         commands.add("echoall", p -> {
@@ -1410,17 +1314,13 @@ public class TwitchClient {
                 g.printLine("Invalid parameters: /echoall <message>");
             }
         });
-        commands.add("uptime", p -> {
-            g.printSystem("Chatty has been running for "+Chatty.uptime());
-        });
-        commands.add("appinfo", p -> {
-            g.printSystem(LogUtil.getAppInfo()+" [Connection] "+c.getConnectionInfo());
-        });
+        commands.add("uptime", p -> g.printSystem("Chatty has been running for "+Chatty.uptime()));
+        commands.add("appinfo", p -> g.printSystem(LogUtil.getAppInfo()+" [Connection] "+c.getConnectionInfo()));
         commands.add("timer", p -> {
-            TimerResult result = timerCommand.command(p.getArgs(), p.getRoom(), p.getParameters());
-            if (result.message != null) {
-                g.printSystemMultline(null, result.message);
-                g.printTimerLog(result.message);
+            TimerResult result = timerCommand.command(p.getArgs(), p.room(), p.parameters());
+            if (result.message() != null) {
+                g.printSystemMultline(null, result.message());
+                g.printTimerLog(result.message());
             }
         });
         commands.add("exportText", p -> {
@@ -1462,7 +1362,7 @@ public class TwitchClient {
                 numOnly = a.hasOption("n");
             }
             int result = c.clearLines(chan, numOnly);
-            g.printSystem(p.getRoom(), String.format("%s of %d users in %s",
+            g.printSystem(p.room(), String.format("%s of %d users in %s",
                     numOnly ? "Reset number of messages" : "Cleared message history",
                     result,
                     chan != null ? chan : "all channels"));
@@ -1472,66 +1372,30 @@ public class TwitchClient {
         //-----------------------
         // Settings/Customization
         //-----------------------
-        commands.add("set", p -> {
-            g.printSystem(settings.setTextual(p.getArgs(), true));
-        });
-        commands.add("set2", p -> {
-            g.printSystem(settings.setTextual(p.getArgs(), false));
-        });
-        commands.add("setSwitch", p -> {
-            g.printSystem(settings.setSwitchTextual(p.getArgs(), true));
-        });
-        commands.add("setSwitch2", p -> {
-            g.printSystem(settings.setSwitchTextual(p.getArgs(), false));
-        });
-        commands.add("setList", p -> {
-            g.printSystem(settings.setListTextual(p.getArgs()));
-        });
-        commands.add("get", p -> {
-            g.printSystem(settings.getTextual(p.getArgs()));
-        });
-        commands.add("clearsetting", p -> {
-            g.printSystem(settings.clearTextual(p.getArgs()));
-        });
-        commands.add("reset", p -> {
-            g.printSystem(settings.resetTextual(p.getArgs()));
-        });
-        commands.add("add", p -> {
-            g.printSystem(settings.addTextual(p.getArgs(), true));
-        });
-        commands.add("add2", p -> {
-            g.printSystem(settings.addTextual(p.getArgs(), false));
-        });
-        commands.add("addUnique", p -> {
-            g.printSystem(settings.addUniqueTextual(p.getArgs(), true));
-        });
-        commands.add("addUnique2", p -> {
-            g.printSystem(settings.addUniqueTextual(p.getArgs(), false));
-        });
-        commands.add("remove", p -> {
-            g.printSystem(settings.removeTextual(p.getArgs(), true));
-        });
-        commands.add("remove2", p -> {
-            g.printSystem(settings.removeTextual(p.getArgs(), false));
-        });
+        commands.add("set", p -> g.printSystem(settings.setTextual(p.getArgs(), true)));
+        commands.add("set2", p -> g.printSystem(settings.setTextual(p.getArgs(), false)));
+        commands.add("setSwitch", p -> g.printSystem(settings.setSwitchTextual(p.getArgs(), true)));
+        commands.add("setSwitch2", p -> g.printSystem(settings.setSwitchTextual(p.getArgs(), false)));
+        commands.add("setList", p -> g.printSystem(settings.setListTextual(p.getArgs())));
+        commands.add("get", p -> g.printSystem(settings.getTextual(p.getArgs())));
+        commands.add("clearsetting", p -> g.printSystem(settings.clearTextual(p.getArgs())));
+        commands.add("reset", p -> g.printSystem(settings.resetTextual(p.getArgs())));
+        commands.add("add", p -> g.printSystem(settings.addTextual(p.getArgs(), true)));
+        commands.add("add2", p -> g.printSystem(settings.addTextual(p.getArgs(), false)));
+        commands.add("addUnique", p -> g.printSystem(settings.addUniqueTextual(p.getArgs(), true)));
+        commands.add("addUnique2", p -> g.printSystem(settings.addUniqueTextual(p.getArgs(), false)));
+        commands.add("remove", p -> g.printSystem(settings.removeTextual(p.getArgs(), true)));
+        commands.add("remove2", p -> g.printSystem(settings.removeTextual(p.getArgs(), false)));
         commands.add("setcolor", p -> {
             if (p.hasArgs()) {
                 g.setColor(p.getArgs());
             }
         });
-        commands.add("setname", p -> {
-            g.printLine(customNames.commandSetCustomName(p.getArgs()));
-        });
-        commands.add("resetname", p -> {
-            g.printLine(customNames.commandResetCustomname(p.getArgs()));
-        });
-        commands.add("customCompletion", p -> {
-            commandCustomCompletion(p.getArgs());
-        });
-        commands.add("ab", p -> {
-            g.printSystem("[Addressbook] "
-                    +addressbook.command(p.hasArgs() ? p.getArgs() : ""));
-        }, "users");
+        commands.add("setname", p -> g.printLine(customNames.commandSetCustomName(p.getArgs())));
+        commands.add("resetname", p -> g.printLine(customNames.commandResetCustomname(p.getArgs())));
+        commands.add("customCompletion", p -> commandCustomCompletion(p.getArgs()));
+        commands.add("ab", p -> g.printSystem("[Addressbook] "
+                +addressbook.command(p.hasArgs() ? p.getArgs() : "")), "users");
         commands.add("abimport", p -> {
             g.printSystem("[Addressbook] Importing from file..");
             addressbook.importFromFile();
@@ -1540,43 +1404,25 @@ public class TwitchClient {
         //-------
         // Ignore
         //-------
-        commands.add("ignore", p -> {
-            commandSetIgnored(p.getArgs(), null, true);
-        });
-        commands.add("unIgnore", p -> {
-            commandSetIgnored(p.getArgs(), null, false);
-        });
-        commands.add("ignoreChat", p -> {
-            commandSetIgnored(p.getArgs(), "chat", true);
-        });
-        commands.add("unignoreChat", p -> {
-            commandSetIgnored(p.getArgs(), "chat", false);
-        });
-        commands.add("ignoreWhisper", p -> {
-            commandSetIgnored(p.getArgs(), "whisper", true);
-        });
-        commands.add("unignoreWhisper", p -> {
-            commandSetIgnored(p.getArgs(), "whisper", false);
-        });
+        commands.add("ignore", p -> commandSetIgnored(p.getArgs(), null, true));
+        commands.add("unIgnore", p -> commandSetIgnored(p.getArgs(), null, false));
+        commands.add("ignoreChat", p -> commandSetIgnored(p.getArgs(), "chat", true));
+        commands.add("unignoreChat", p -> commandSetIgnored(p.getArgs(), "chat", false));
+        commands.add("ignoreWhisper", p -> commandSetIgnored(p.getArgs(), "whisper", true));
+        commands.add("unignoreWhisper", p -> commandSetIgnored(p.getArgs(), "whisper", false));
         //--------------
         // Emotes/Images
         //--------------
         commands.add("ffz", p -> {
             if (p.hasArgs() && p.getArgs().startsWith("following")) {
-                commandFFZFollowing(p.getRoom().getOwnerChannel(), p.getArgs());
+                commandFFZFollowing(p.room().getOwnerChannel(), p.getArgs());
             } else {
-                commandFFZ(p.getRoom().getOwnerChannel());
+                commandFFZ(p.room().getOwnerChannel());
             }
         });
-        commands.add("ffzws", p -> {
-            g.printSystem("[FFZ-WS] Status: "+frankerFaceZ.getWsStatus());
-        });
-        commands.add("pubsubstatus", p -> {
-            g.printSystem("[PubSub] Removed");
-        });
-        commands.add("refresh", p -> {
-            commandRefresh(p.getRoom().getOwnerChannel(), p.getArgs());
-        });
+        commands.add("ffzws", p -> g.printSystem("[FFZ-WS] Status: "+frankerFaceZ.getWsStatus()));
+        commands.add("pubsubstatus", p -> g.printSystem("[PubSub] Removed"));
+        commands.add("refresh", p -> commandRefresh(p.room().getOwnerChannel(), p.getArgs()));
         commands.add("clearimagecache", p -> {
             g.printLine("Clearing image cache (this can take a few seconds)");
             int result = ImageCache.clearCache(null);
@@ -1601,12 +1447,8 @@ public class TwitchClient {
         //------
         // Other
         //------
-        commands.add("follow", p -> {
-            commandFollow(p.getChannel(), p.getArgs());
-        });
-        commands.add("unfollow", p -> {
-            commandUnfollow(p.getChannel(), p.getArgs());
-        });
+        commands.add("follow", p -> commandFollow(p.getChannel(), p.getArgs()));
+        commands.add("unfollow", p -> commandUnfollow(p.getChannel(), p.getArgs()));
         commands.add("favorite", p -> {
             Favorite result;
             if (!p.hasArgs()) {
@@ -1633,36 +1475,26 @@ public class TwitchClient {
                 g.printSystem("Failed removing favorite");
             }
         });
-        commands.add("automod_approve", p -> {
-            autoModCommandHelper.approve(p.getChannel(), p.getArgs());
-        });
-        commands.add("automod_deny", p -> {
-            autoModCommandHelper.deny(p.getChannel(), p.getArgs());
-        });
-        commands.add("marker", p -> {
-            commandAddStreamMarker(p.getRoom(), p.getArgs());
-        });
+        commands.add("automod_approve", p -> autoModCommandHelper.approve(p.getChannel(), p.getArgs()));
+        commands.add("automod_deny", p -> autoModCommandHelper.deny(p.getChannel(), p.getArgs()));
+        commands.add("marker", p -> commandAddStreamMarker(p.room(), p.getArgs()));
         commands.add("createClip", p -> {
             api.subscribe(ResultManager.Type.CREATE_CLIP, commands, (CreateClipResult) (editUrl, viewUrl, error) -> {
                 if (error != null) {
-                    g.printLine(p.getRoom(), error);
+                    g.printLine(p.room(), error);
                 }
                 else {
                     // Update indices when changing info text
                     MsgTags tags = MsgTags.createLinks(
                             new MsgTags.Link(MsgTags.Link.Type.URL, editUrl, 14, 22));
-                    g.printInfo(p.getRoom(), "Clip created (Edit Clip): "+viewUrl, tags);
+                    g.printInfo(p.room(), "Clip created (Edit Clip): "+viewUrl, tags);
                 }
             });
-            api.createClip(p.getRoom().getStream());
+            api.createClip(p.room().getStream());
         });
         c.addNewCommands(commands, this);
-        commands.add("addStreamHighlight", p -> {
-            commandAddStreamHighlight(p.getRoom(), p.getArgs());
-        });
-        commands.add("openStreamHighlights", p -> {
-            commandOpenStreamHighlights(p.getRoom());
-        });
+        commands.add("addStreamHighlight", p -> commandAddStreamHighlight(p.room(), p.getArgs()));
+        commands.add("openStreamHighlights", p -> commandOpenStreamHighlights(p.room()));
         commands.add("triggerNotification", p -> {
             CommandParsedArgs args = p.parsedArgs(1);
             if (args != null) {
@@ -1701,16 +1533,10 @@ public class TwitchClient {
                 g.showTestNotification(args, null, null);
             }
         });
-        commands.add("clearChat", p -> {
-            g.clearChat();
-        });
-        commands.add("resortUserlist", p -> {
-            g.resortUsers(p.getRoom());
-        });
-        commands.add("proc", p -> {
-            g.printSystem("[Proc] "+ProcessManager.command(p.getArgs(),
-                    s -> g.printSystem("[ProcOutput] "+s)));
-        });
+        commands.add("clearChat", p -> g.clearChat());
+        commands.add("resortUserlist", p -> g.resortUsers(p.room()));
+        commands.add("proc", p -> g.printSystem("[Proc] "+ProcessManager.command(p.getArgs(),
+                s -> g.printSystem("[ProcOutput] "+s))));
         commands.add("chain", p -> {
             List<String> commands = Helper.getChainedCommands(p.getArgs());
             if (commands.isEmpty()) {
@@ -1719,7 +1545,7 @@ public class TwitchClient {
             for (String chainedCommand : commands) {
                 // Copy parameters so changing args in commandInput() doesn't
                 // affect the following commands
-                textInput(p.getRoom(), chainedCommand, p.getParameters().copy());
+                textInput(p.room(), chainedCommand, p.parameters().copy());
             }
         });
         commands.add("foreach", p -> {
@@ -1748,11 +1574,11 @@ public class TwitchClient {
                              * keeping it like this at least doesn't change
                              * behaviour.
                              */
-                            if (p.getParameters().hasKey(TimerCommand.TIMER_PARAMETERS_KEY)) {
-                                param.put(TimerCommand.TIMER_PARAMETERS_KEY, p.getParameters().get(TimerCommand.TIMER_PARAMETERS_KEY));
+                            if (p.parameters().hasKey(TimerCommand.TIMER_PARAMETERS_KEY)) {
+                                param.put(TimerCommand.TIMER_PARAMETERS_KEY, p.parameters().get(TimerCommand.TIMER_PARAMETERS_KEY));
                             }
                             Debugging.println("foreach", "Foreach command: %s Param: %s", customCommand, param);
-                            anonCustomCommand(p.getRoom(), customCommand, param);
+                            anonCustomCommand(p.room(), customCommand, param);
                         }
                     }
                 }
@@ -1782,14 +1608,14 @@ public class TwitchClient {
              * regular channels do.
              */
             if (isChannelOpen(chan) || Helper.isValidWhisperChannel(chan)) {
-                textInput(c.getRoomByChannel(chan), command, p.getParameters().copy());
+                textInput(c.getRoomByChannel(chan), command, p.parameters().copy());
             }
             else {
                 g.printSystem("Invalid channel: " + chan);
             }
         });
         commands.add("debug", p -> {
-            if (rejectTimedMessage("debug", p.getRoom(), p.getParameters())) {
+            if (rejectTimedMessage("debug", p.room(), p.parameters())) {
                 return;
             }
             String[] split = p.getArgs().split(" ", 2);
@@ -1798,7 +1624,7 @@ public class TwitchClient {
             if (split.length == 2) {
                 actualParamter = split[1];
             }
-            testCommands(p.getRoom(), actualCommand, actualParamter);
+            testCommands(p.room(), actualCommand, actualParamter);
         });
     }
     
@@ -1842,113 +1668,114 @@ public class TwitchClient {
     
     private void testCommands(Room room, String command, String parameter) {
         String channel = room.getChannel();
-        if (command.equals("addchans")) {
-            String[] splitSpace = parameter.split(" ");
-            String[] split2 = splitSpace[0].split(",");
-            for (String chan : split2) {
-                g.printLine(c.getUser(chan, "test").getRoom(), "test");
-            }
-        } else if (command.equals("switchchan")) {
-            g.switchToChannel(parameter);
-        } else if (command.equals("settestuser")) {
-            String[] split = parameter.split(" ");
-            createTestUser(split[0], split[1]);
-        } else if (command.equals("getemoteset")) {
-            g.printLine(g.emoticons.getEmoticonsBySet(parameter).toString());
-        } else if (command.equals("testcolor")) {
-            testUser.setColor(parameter);
-        } else if (command.equals("testupdatenotification")) {
-            g.setUpdateAvailable("[test]", null);
-        } else if (command.equals("testnewevent")) {
-            g.setSystemEventCount(Integer.valueOf(parameter));
-        } else if (command.equals("addevent")) {
-            String[] split = parameter.split(" ", 3);
-            EventLog.addSystemEvent(split[0], split[1], split[2]);
-        } else if (command.equals("addevent2")) {
-            String[] split = parameter.split(" ", 3);
-            new Thread(() -> EventLog.addSystemEvent(split[0], split[1], split[2])).start();
-        } else if (command.equals("removechan")) {
-            g.removeChannel(parameter);
-        } else if (command.equals("tt")) {
-            String[] split = parameter.split(" ", 3);
-            int repeats = Integer.parseInt(split[0]);
-            int delay = Integer.parseInt(split[1]);
-            String c = split[2];
-            TestTimer.testTimer(this, room, c, repeats, delay);
-        } //        else if (command.equals("usertest")) {
-        //            System.out.println(users.getChannelsAndUsersByUserName(parameter));
-        //        }
-        //        else if (command.equals("insert2")) {
-        //            g.printLine("\u0E07");
-        //        }
-        else if (command.equals("bantest")) {
-            int duration = -1;
-            String reason = "";
-            if (parameter != null) {
-                String[] split = parameter.split(" ", 2);
-                duration = Integer.parseInt(split[0]);
-                if (split.length > 1) {
-                    reason = split[1];
+        switch (command) {
+            case "addchans" -> {
+                String[] splitSpace = parameter.split(" ");
+                String[] split2 = splitSpace[0].split(",");
+                for (String chan : split2) {
+                    g.printLine(c.getUser(chan, "test").getRoom(), "test");
                 }
             }
-            g.userBanned(testUser, duration, reason, null);
-        } else if (command.equals("ban")) {
-            String[] split = parameter.split(" ", 3);
-            int duration = -1;
-            if (split.length > 1) {
-                duration = Integer.parseInt(split[1]);
+            case "switchchan" -> g.switchToChannel(parameter);
+            case "settestuser" -> {
+                String[] split = parameter.split(" ");
+                createTestUser(split[0], split[1]);
             }
-            String reason = "";
-            if (split.length > 2) {
-                reason = split[2];
+            case "getemoteset" -> g.printLine(g.emoticons.getEmoticonsBySet(parameter).toString());
+            case "testcolor" -> testUser.setColor(parameter);
+            case "testupdatenotification" -> g.setUpdateAvailable("[test]", null);
+            case "testnewevent" -> g.setSystemEventCount(Integer.valueOf(parameter));
+            case "addevent" -> {
+                String[] split = parameter.split(" ", 3);
+                EventLog.addSystemEvent(split[0], split[1], split[2]);
             }
-            g.userBanned(c.getUser(channel, split[0]), duration, reason, null);
-        } else if (command.equals("userjoined")) {
-            c.userJoined("#test", parameter);
-        } else if (command.equals("echomessage")) {
-            String[] parts = parameter.split(" ");
+            case "addevent2" -> {
+                String[] split = parameter.split(" ", 3);
+                new Thread(() -> EventLog.addSystemEvent(split[0], split[1], split[2])).start();
+            }
+            case "removechan" -> g.removeChannel(parameter);
+            case "tt" -> {
+                String[] split = parameter.split(" ", 3);
+                int repeats = Integer.parseInt(split[0]);
+                int delay = Integer.parseInt(split[1]);
+                String c = split[2];
+                TestTimer.testTimer(this, room, c, repeats, delay);
+            }
+
+            //            System.out.println(users.getChannelsAndUsersByUserName(parameter));
+            //        }
+            //        else if (command.equals("insert2")) {
+            //            g.printLine("ง");
+            //        }
+            case "bantest" -> {
+                int duration = -1;
+                String reason = "";
+                if (parameter != null) {
+                    String[] split = parameter.split(" ", 2);
+                    duration = Integer.parseInt(split[0]);
+                    if (split.length > 1) {
+                        reason = split[1];
+                    }
+                }
+                g.userBanned(testUser, duration, reason, null);
+            }
+            case "ban" -> {
+                String[] split = parameter.split(" ", 3);
+                int duration = -1;
+                if (split.length > 1) {
+                    duration = Integer.parseInt(split[1]);
+                }
+                String reason = "";
+                if (split.length > 2) {
+                    reason = split[2];
+                }
+                g.userBanned(c.getUser(channel, split[0]), duration, reason, null);
+            }
+            case "userjoined" -> c.userJoined("#test", parameter);
+            case "echomessage" -> {
+                String[] parts = parameter.split(" ");
 //            g.printMessage(parts[0], testUser, parts[1], false, null, 0);
-        } else if (command.equals("loadffz")) {
-            frankerFaceZ.requestEmotes(parameter, true);
-        } else if (command.equals("testtw")) {
-            g.showTokenWarning();
-        } else if (command.equals("tsonline")) {
-            testStreamInfo.set(parameter, new StreamCategory(null, "Game"), 123, -1, StreamType.LIVE);
-            g.addStreamInfo(testStreamInfo);
-        } else if (command.equals("tsoffline")) {
-            testStreamInfo.setOffline();
-            g.addStreamInfo(testStreamInfo);
-        } else if (command.equals("testspam")) {
-            g.printLine("test" + spamProtection.getAllowance() + spamProtection.tryMessage());
-        } else if (command.equals("spamprotectioninfo")) {
-            g.printSystem("Spam Protection: "+spamProtection);
-        } else if (command.equals("tsv")) {
-            testStreamInfo.set("Title", new StreamCategory(null, "Game"), Integer.parseInt(parameter), -1, StreamType.LIVE);
-        } else if (command.equals("tsvs")) {
-            System.out.println(testStreamInfo.getViewerStats(true));
-        } else if (command.equals("tsaoff")) {
-            StreamInfo info = api.getStreamInfo(g.getActiveStream(), null);
-            info.setOffline();
-        } else if (command.equals("tsaon")) {
-            StreamInfo info = api.getStreamInfo(g.getActiveStream(), null);
-            info.set("Test", new StreamCategory(null, "Game"), 12, System.currentTimeMillis() - 1000, StreamType.LIVE);
-        } else if (command.equals("tss")) {
-            StreamInfo info = api.getStreamInfo(parameter, null);
-            info.set("Test", new StreamCategory(null, "Game"), 12, System.currentTimeMillis() - 1000, StreamType.LIVE);
-        } else if (command.equals("tston")) {
-            int viewers = 12;
-            try {
-                viewers = Integer.parseInt(parameter);
-            } catch (NumberFormatException ex) { }
-            StreamInfo info = api.getStreamInfo("tduva", null);
-            info.set("Test 2", new StreamCategory(null, "Game"), viewers, System.currentTimeMillis() - 1000, StreamType.LIVE);
-        } else if (command.equals("newstatus")) {
-            g.setChannelNewStatus(parameter, "");
-        } else if (command.equals("refreshstreams")) {
-            api.manualRefreshStreams();
-        } else if (command.equals("usericonsinfo")) {
-            usericonManager.debug();
-        } else if (command.equals("userlisttest")) {
+            }
+            case "loadffz" -> frankerFaceZ.requestEmotes(parameter, true);
+            case "testtw" -> g.showTokenWarning();
+            case "tsonline" -> {
+                testStreamInfo.set(parameter, new StreamCategory(null, "Game"), 123, -1, StreamType.LIVE);
+                g.addStreamInfo(testStreamInfo);
+            }
+            case "tsoffline" -> {
+                testStreamInfo.setOffline();
+                g.addStreamInfo(testStreamInfo);
+            }
+            case "testspam" -> g.printLine("test" + spamProtection.getAllowance() + spamProtection.tryMessage());
+            case "spamprotectioninfo" -> g.printSystem("Spam Protection: " + spamProtection);
+            case "tsv" ->
+                    testStreamInfo.set("Title", new StreamCategory(null, "Game"), Integer.parseInt(parameter), -1, StreamType.LIVE);
+            case "tsvs" -> System.out.println(testStreamInfo.getViewerStats(true));
+            case "tsaoff" -> {
+                StreamInfo info = api.getStreamInfo(g.getActiveStream(), null);
+                info.setOffline();
+            }
+            case "tsaon" -> {
+                StreamInfo info = api.getStreamInfo(g.getActiveStream(), null);
+                info.set("Test", new StreamCategory(null, "Game"), 12, System.currentTimeMillis() - 1000, StreamType.LIVE);
+            }
+            case "tss" -> {
+                StreamInfo info = api.getStreamInfo(parameter, null);
+                info.set("Test", new StreamCategory(null, "Game"), 12, System.currentTimeMillis() - 1000, StreamType.LIVE);
+            }
+            case "tston" -> {
+                int viewers = 12;
+                try {
+                    viewers = Integer.parseInt(parameter);
+                } catch (NumberFormatException ignored) {
+                }
+                StreamInfo info = api.getStreamInfo("tduva", null);
+                info.set("Test 2", new StreamCategory(null, "Game"), viewers, System.currentTimeMillis() - 1000, StreamType.LIVE);
+            }
+            case "newstatus" -> g.setChannelNewStatus(parameter, "");
+            case "refreshstreams" -> api.manualRefreshStreams();
+            case "usericonsinfo" -> usericonManager.debug();
+            case "userlisttest" -> {
 //            g.printMessage("test1", testUser, "short message", false, null, 0);
 //            g.printMessage("test2", testUser, "short message2", false, null, 0);
 //            g.printCompact("test3", "MOD", testUser);
@@ -1972,140 +1799,126 @@ public class TwitchClient {
 //            g.printCompact("test9", "MOD", testUser);
 //            g.printMessage("test10", testUser, "longer message abc hmm fwef wef wef wefwe fwe ewfwe fwef wwefwef"
 //                    + "fjwfjfwjefjwefjwef wfejfkwlefjwoefjwf wfjwoeifjwefiowejfef wefjoiwefj", false, null, 0);
-        } else if (command.equals("requestfollowers")) {
-            api.getFollowers(parameter, false);
-        } else if (command.equals("simulate2")) {
-            c.simulate(parameter);
-        } else if (command.equals("simulate")) {
-            if (parameter.equals("bits")) {
-                parameter = "bits "+g.emoticons.getCheerEmotesString(null);
-            } else if (parameter.equals("bitslocal")) {
-                parameter = "bits "+g.emoticons.getCheerEmotesString(Helper.toStream(channel));
-            } else if (parameter.startsWith("bits ")) {
-                parameter = "bits "+parameter.substring("bits ".length());
-            } else if (parameter.startsWith("emoji ")) {
-                int num = Integer.parseInt(parameter.substring("emoji ".length()));
-                StringBuilder b = new StringBuilder();
-                for (Emoticon emote : g.emoticons.getEmoji()) {
-                    b.append(emote.code);
-                    if (--num == 0) {
-                        break;
+            }
+            case "requestfollowers" -> api.getFollowers(parameter, false);
+            case "simulate2" -> c.simulate(parameter);
+            case "simulate" -> {
+                if (parameter.equals("bits")) {
+                    parameter = "bits " + g.emoticons.getCheerEmotesString(null);
+                } else if (parameter.equals("bitslocal")) {
+                    parameter = "bits " + g.emoticons.getCheerEmotesString(Helper.toStream(channel));
+                } else if (parameter.startsWith("bits ")) {
+                    parameter = "bits " + parameter.substring("bits ".length());
+                } else if (parameter.startsWith("emoji ")) {
+                    int num = Integer.parseInt(parameter.substring("emoji ".length()));
+                    StringBuilder b = new StringBuilder();
+                    for (Emoticon emote : g.emoticons.getEmoji()) {
+                        b.append(emote.code);
+                        if (--num == 0) {
+                            break;
+                        }
                     }
+                    parameter = "message " + b;
+                } else if (parameter.startsWith("subbomb")) {
+                    String gifter = parameter.equals("subbomb") ? "Gifter" : "Gifter2";
+                    String secondParam = parameter.substring("subbomb".length());
+                    int amount = 10;
+                    try {
+                        amount = Integer.parseInt(secondParam.trim());
+                    } catch (NumberFormatException ignored) {
+                    }
+                    for (int i = 0; i < amount; i++) {
+                        String raw = RawMessageTest.simulateIRC(channel, "subbomb recipient" + i, gifter);
+                        c.simulate(raw);
+                    }
+                    return;
+                } else if (parameter.startsWith("file ")) {
+                    RawMessageTest.simulateFile(c, parameter.substring("file ".length()));
                 }
-                parameter = "message "+b.toString();
-            } else if (parameter.startsWith("subbomb")) {
-                String gifter = parameter.equals("subbomb") ? "Gifter" : "Gifter2";
-                String secondParam = parameter.substring("subbomb".length());
-                int amount = 10;
-                try {
-                    amount = Integer.parseInt(secondParam.trim());
-                } catch (NumberFormatException ex) { }
-                for (int i=0;i<amount;i++) {
-                    String raw = RawMessageTest.simulateIRC(channel, "subbomb recipient"+i, gifter);
+                String raw = RawMessageTest.simulateIRC(channel, parameter, c.getUsername());
+                if (raw != null) {
                     c.simulate(raw);
                 }
-                return;
-            } else if (parameter.startsWith("file ")) {
-                RawMessageTest.simulateFile(c, parameter.substring("file ".length()));
             }
-            String raw = RawMessageTest.simulateIRC(channel, parameter, c.getUsername());
-            if (raw != null) {
-                c.simulate(raw);
+            case "c1" -> sendMessage(channel, (char) 1 + parameter);
+            case "gc" -> {
+                Runtime.getRuntime().gc();
+                LogUtil.logMemoryUsage();
             }
-        } else if (command.equals("c1")) {
-            sendMessage(channel, (char)1+parameter);
-        } else if (command.equals("gc")) {
-            Runtime.getRuntime().gc();
-            LogUtil.logMemoryUsage();
-        } else if (command.equals("wsconnect")) {
-            frankerFaceZ.connectWs();
-        } else if (command.equals("wsdisconnect")) {
-            frankerFaceZ.disconnectWs();
-        } else if (command.equals("eventsubreconnect")) {
-            eventSub.reconnect();
-        } else if (command.equals("simulateeventsub")) {
-            eventSub.simulate(parameter);
-        } else if (command.equals("es_s")) {
-            api.getEventSubSubs(s -> {
-                LOGGER.info(s.total+" "+s.getCountBySession());
+            case "wsconnect" -> frankerFaceZ.connectWs();
+            case "wsdisconnect" -> frankerFaceZ.disconnectWs();
+            case "eventsubreconnect" -> eventSub.reconnect();
+            case "simulateeventsub" -> eventSub.simulate(parameter);
+            case "es_s" -> api.getEventSubSubs(s -> {
+                LOGGER.info(s.total() + " " + s.getCountBySession());
                 LOGGER.info(s.toString());
             });
-        } else if (command.equals("es_t")) {
-            LOGGER.info(eventSub.getTopics());
-        } else if (command.equals("es_lt")) {
-            eventSub.logActiveTopics();
-        } else if (command.equals("repeat")) {
-            String[] split = parameter.split(" ", 2);
-            int count = Integer.parseInt(split[0]);
-            for (int i=0;i<count;i++) {
+            case "es_t" -> LOGGER.info(eventSub.getTopics());
+            case "es_lt" -> eventSub.logActiveTopics();
+            case "repeat" -> {
+                String[] split = parameter.split(" ", 2);
+                int count = Integer.parseInt(split[0]);
+                for (int i = 0; i < count; i++) {
 //                commandInput(room, "/"+split[1]);
-            }
-        } else if (command.equals("loadsoferrors")) {
-            for (int i=0;i<10000;i++) {
-                SwingUtilities.invokeLater(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        Helper.unhandledException();
-                    }
-                });
-            }
-        } else if (command.equals("error")) {
-            Helper.unhandledException();
-        } else if (command.equals("getuserid")) {
-            if (parameter == null) {
-                g.printSystem("Parameter required.");
-            } else {
-                api.getUserIdAsap(r -> {
-                    String result = r.getData().toString();
-                    if (r.hasError()) {
-                        result += " Error: "+r.getError();
-                    }
-                    g.printSystem(result);
-                }, parameter.split("[ ,]"));
-            }
-        } else if (command.equals("getuserids2")) {
-            api.getUserIDsTest2(parameter);
-        } else if (command.equals("getuserids3")) {
-            api.getUserIDsTest3(parameter);
-        } else if (command.equals("clearoldsetups")) {
-            Stuff.init();
-            Stuff.clearOldSetups();
-        } else if (command.equals("-")) {
-            g.printSystem(Debugging.command(parameter));
-        } else if (command.equals("connection")) {
-            c.debugConnection();
-        } else if (command.equals("clearoldcachefiles")) {
-            ImageCache.deleteExpiredFiles();
-        } else if (command.equals("sha1")) {
-            g.printSystem(ImageCache.sha1(parameter));
-        } else if (command.equals("letstakeabreak")) {
-            try {
-                Thread.sleep(Integer.parseInt(parameter));
-            }
-            catch (InterruptedException ex) {
-                Logger.getLogger(TwitchClient.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        } else if (command.equals("infiniteloop")) {
-            while (true) {
-            }
-        } else if (command.equals("threadinfo")) {
-            LogUtil.logThreadInfo();
-        } else if (command.equals("addusers")) {
-            String[] split = parameter.split(" ", 2);
-            int amount = Integer.parseInt(split[0]);
-            int messageAmount = Integer.parseInt(split[1]);
-            for (int i=0;i<amount;i++) {
-                User user = c.getUser(channel, "user"+i);
-                for (int m=0;m<messageAmount;m++) {
-                    user.addMessage("abc"+i+" "+m, false, "abc id"+i+" "+m);
                 }
             }
-        } else if (command.equals("testr")) {
-            api.test();
-        } else if (command.equals("joinlink")) {
-            MsgTags tags = MsgTags.createLinks(new MsgTags.Link(MsgTags.Link.Type.JOIN, Helper.toChannel("twitch"), "Join"));
-            g.printInfo(c.getRoomByChannel(channel), "Join link:", tags);
+            case "loadsoferrors" -> {
+                for (int i = 0; i < 10000; i++) {
+                    SwingUtilities.invokeLater(() -> Helper.unhandledException());
+                }
+            }
+            case "error" -> Helper.unhandledException();
+            case "getuserid" -> {
+                if (parameter == null) {
+                    g.printSystem("Parameter required.");
+                } else {
+                    api.getUserIdAsap(r -> {
+                        String result = r.getData().toString();
+                        if (r.hasError()) {
+                            result += " Error: " + r.getError();
+                        }
+                        g.printSystem(result);
+                    }, parameter.split("[ ,]"));
+                }
+            }
+            case "getuserids2" -> api.getUserIDsTest2(parameter);
+            case "getuserids3" -> api.getUserIDsTest3(parameter);
+            case "clearoldsetups" -> {
+                Stuff.init();
+                Stuff.clearOldSetups();
+            }
+            case "-" -> g.printSystem(Debugging.command(parameter));
+            case "connection" -> c.debugConnection();
+            case "clearoldcachefiles" -> ImageCache.deleteExpiredFiles();
+            case "sha1" -> g.printSystem(ImageCache.sha1(parameter));
+            case "letstakeabreak" -> {
+                try {
+                    Thread.sleep(Integer.parseInt(parameter));
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(TwitchClient.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            case "infiniteloop" -> {
+                while (true) {
+                }
+            }
+            case "threadinfo" -> LogUtil.logThreadInfo();
+            case "addusers" -> {
+                String[] split = parameter.split(" ", 2);
+                int amount = Integer.parseInt(split[0]);
+                int messageAmount = Integer.parseInt(split[1]);
+                for (int i = 0; i < amount; i++) {
+                    User user = c.getUser(channel, "user" + i);
+                    for (int m = 0; m < messageAmount; m++) {
+                        user.addMessage("abc" + i + " " + m, false, "abc id" + i + " " + m);
+                    }
+                }
+            }
+            case "testr" -> api.test();
+            case "joinlink" -> {
+                MsgTags tags = MsgTags.createLinks(new MsgTags.Link(MsgTags.Link.Type.JOIN, Helper.toChannel("twitch"), "Join"));
+                g.printInfo(c.getRoomByChannel(channel), "Join link:", tags);
+            }
         }
     }
     
@@ -2470,7 +2283,7 @@ public class TwitchClient {
                 refreshRequests.add("badges");
                 api.getGlobalBadges(true);
                 api.getRoomBadges(Helper.toStream(channel), true);
-                OtherBadges.requestBadges(r -> usericonManager.setThirdPartyIcons(r), true);
+                OtherBadges.requestBadges(usericonManager::setThirdPartyIcons, true);
             }
         } else if (parameter.equals("ffz")) {
             if (channel == null || channel.isEmpty()) {
@@ -2678,8 +2491,7 @@ public class TwitchClient {
 
         @Override
         public void messageReceived(chatty.util.api.eventsub.Message message) {
-            if (message.data instanceof RaidPayload) {
-                RaidPayload raid = (RaidPayload) message.data;
+            if (message.data() instanceof RaidPayload raid) {
                 String channel = Helper.toChannel(raid.fromLogin);
                 String text = String.format("[Raid] Now raiding %s with %d viewers.",
                         raid.toLogin, raid.viewers);
@@ -2688,11 +2500,10 @@ public class TwitchClient {
             }
             String pollMessage = PollPayload.getPollMessage(message);
             if (pollMessage != null) {
-                PollPayload poll = (PollPayload) message.data;
+                PollPayload poll = (PollPayload) message.data();
                 g.printInfo(c.getRoomByChannel(Helper.toChannel(poll.stream)), pollMessage, MsgTags.EMPTY);
             }
-            if (message.data instanceof ShieldModePayload) {
-                ShieldModePayload mode = (ShieldModePayload) message.data;
+            if (message.data() instanceof ShieldModePayload mode) {
                 String channel = Helper.toChannel(mode.stream);
                 ChannelState state = c.getChannelState(channel);
                 state.setShieldMode(mode.enabled);
@@ -2708,8 +2519,7 @@ public class TwitchClient {
                         mode.stream,
                         null));
             }
-            if (message.data instanceof ShoutoutPayload) {
-                ShoutoutPayload shoutout = (ShoutoutPayload) message.data;
+            if (message.data() instanceof ShoutoutPayload shoutout) {
                 String channel = Helper.toChannel(shoutout.stream);
                 // Message
                 String infoText = String.format("[Shoutout] Was given to %s (@%s)",
@@ -2725,14 +2535,12 @@ public class TwitchClient {
                         shoutout.stream,
                         null));
             }
-            if (message.data instanceof ModActionPayload) {
-                ModActionPayload modAction = (ModActionPayload) message.data;
+            if (message.data() instanceof ModActionPayload modAction) {
                 if (c.isChannelOpen(Helper.toChannel(modAction.stream))) {
                     handleModAction(modAction);
                 }
             }
-            if (message.data instanceof SuspiciousMessagePayload) {
-                SuspiciousMessagePayload data = (SuspiciousMessagePayload) message.data;
+            if (message.data() instanceof SuspiciousMessagePayload data) {
                 if (c.isChannelOpen(Helper.toChannel(data.stream))) {
                     String channel = Helper.toChannel(data.stream);
 
@@ -2743,10 +2551,9 @@ public class TwitchClient {
                     g.updateUserinfo(targetUser);
                 }
             }
-            if (message.data instanceof SuspiciousUpdatePayload) {
-                SuspiciousUpdatePayload data = (SuspiciousUpdatePayload) message.data;
-                
-                    String channel = Helper.toChannel(data.stream);
+            if (message.data() instanceof SuspiciousUpdatePayload data) {
+
+                String channel = Helper.toChannel(data.stream);
                     
                     handleModAction(new ModActionPayload(
                             data.treatment.id,
@@ -2759,8 +2566,7 @@ public class TwitchClient {
                     targetUser.addInfo("", data.makeInfo(), false, null);
                     g.updateUserinfo(targetUser);
             }
-            if (message.data instanceof WarningAcknowledgePayload) {
-                WarningAcknowledgePayload data = (WarningAcknowledgePayload) message.data;
+            if (message.data() instanceof WarningAcknowledgePayload data) {
                 User user = c.getUser(Helper.toChannel(data.stream), data.username);
                 user.addWarningAcknowledged();
                 g.updateUserinfo(user);
@@ -2771,14 +2577,12 @@ public class TwitchClient {
                                 data.stream, null),
                         false);
             }
-            if (message.data instanceof UserMessageHeldPayload) {
-                UserMessageHeldPayload data = (UserMessageHeldPayload) message.data;
+            if (message.data() instanceof UserMessageHeldPayload data) {
                 if (c.isChannelOpen(Helper.toChannel(data.stream))) {
                     g.printLine(c.getRoomByChannel(Helper.toChannel(data.stream)), data.info);
                 }
             }
-            if (message.data instanceof ChannelPointsRedemptionPayload) {
-                ChannelPointsRedemptionPayload data = (ChannelPointsRedemptionPayload) message.data;
+            if (message.data() instanceof ChannelPointsRedemptionPayload data) {
                 if (c.isChannelOpen(Helper.toChannel(data.stream))) {
                     User user = c.getUser(Helper.toChannel(data.stream), data.redeemedByUsername);
                     // Uses added source and reward id for merging
@@ -3030,8 +2834,8 @@ public class TwitchClient {
         public void webserverTokenReceived(String token) {
             g.webserverTokenReceived(token);
         }
-    };
-    
+    }
+
     /**
      * Get the channel logo URL for channels that are being joined.
      * 
@@ -3047,8 +2851,8 @@ public class TwitchClient {
         api.getCachedUserInfo(logins, (result) -> {
             for (Map.Entry<String, UserInfo> entry : result.entrySet()) {
                 UserInfo info = entry.getValue();
-                if (info != null && !StringUtil.isNullOrEmpty(info.profileImageUrl)) {
-                    usericonManager.addChannelLogoUrl(Helper.toChannel(info.login), info.profileImageUrl);
+                if (info != null && !StringUtil.isNullOrEmpty(info.profileImageUrl())) {
+                    usericonManager.addChannelLogoUrl(Helper.toChannel(info.login()), info.profileImageUrl());
                 }
             }
         });
@@ -3060,13 +2864,13 @@ public class TwitchClient {
         }
         else {
             String sourceRoomId = tags.get("source-room-id");
-            api.getCachedUserInfoById(Arrays.asList(new String[]{sourceRoomId}), requestResult -> {
+            api.getCachedUserInfoById(Collections.singletonList(sourceRoomId), requestResult -> {
                 UserInfo info = requestResult.get(sourceRoomId);
                 if (info != null) {
-                    if (!StringUtil.isNullOrEmpty(info.profileImageUrl)) {
-                        usericonManager.addChannelLogoUrl(Helper.toChannel(info.login), info.profileImageUrl);
+                    if (!StringUtil.isNullOrEmpty(info.profileImageUrl())) {
+                        usericonManager.addChannelLogoUrl(Helper.toChannel(info.login()), info.profileImageUrl());
                     }
-                    resultListener.accept(MsgTags.addTag(tags, MsgTags.SHARED_MESSAGE_SOURCE_CHANNEL, Helper.toChannel(info.login)));
+                    resultListener.accept(MsgTags.addTag(tags, MsgTags.SHARED_MESSAGE_SOURCE_CHANNEL, Helper.toChannel(info.login())));
                 }
                 else {
                     /**
@@ -3322,8 +3126,7 @@ public class TwitchClient {
 
         // Get the actual list of messages asynchronously
         historyManager.getHistoricChatMessages(room, history -> {
-            for (int i = 0; i < history.size(); i++) {
-                HistoryMessage currentMsg = history.get(i);
+            for (HistoryMessage currentMsg : history) {
                 User user = c.getUser(channelName, currentMsg.userName);
                 UserTagsUtil.updateUserFromTags(user, currentMsg.tags);
                 g.printMessage(user, currentMsg.message, currentMsg.action, currentMsg.tags);
@@ -3333,7 +3136,7 @@ public class TwitchClient {
 
             // Output messages that arrived live while loading the history
             for (QueuedMessage msg : historyManager.getQueuedMessages(stream)) {
-                g.printMessage(msg.user, msg.text, msg.action, msg.tags);
+                g.printMessage(msg.user(), msg.text(), msg.action(), msg.tags());
             }
         });
     }
@@ -3411,7 +3214,7 @@ public class TwitchClient {
         // Prepare saving settings
         if (g != null && g.guiCreated) {
             // Run in EDT just to be safe
-            GuiUtil.edtAndWait(() -> g.saveWindowStates(), "Save Window States");
+            GuiUtil.edtAndWait(g::saveWindowStates, "Save Window States");
         }
         // Actually write settings to file
         if (force || !settings.getBoolean("dontSaveSettings")) {
@@ -3452,9 +3255,7 @@ public class TwitchClient {
             Debugging.println("es", "Check %s (mod: %s)", user.getChannel(), user.hasChannelModeratorRights());
             
             // Mainly for listen/unlisten message held
-            BatchAction.queue(eventSub, 100, false, true, () -> {
-                checkEventSubListenInternal(user);
-            });
+            BatchAction.queue(eventSub, 100, false, true, () -> checkEventSubListenInternal(user));
         }
         
         private void checkEventSubListenInternal(User user) {

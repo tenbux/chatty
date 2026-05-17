@@ -63,8 +63,7 @@ public class Race {
      */
     @Override
     public boolean equals(Object other) {
-        if (other instanceof Race) {
-            Race otherRace = (Race)other;
+        if (other instanceof Race otherRace) {
             return id.equals(otherRace.id);
         }
         return false;
@@ -78,64 +77,57 @@ public class Race {
     }
 
     /**
-     * Represents an entrant in the race.
-     */
-    public static class Entrant implements Comparable<Entrant> {
-
-        public final String name;
-        public final String statetext;
-        public final int place;
-        public final long time;
-        public final String twitch;
-        public final int points;
-        public final String message;
-        
-        public Entrant(String name, String statetext, int place, long time,
-                String twitch, int points, String message) {
-            this.name = name;
-            this.statetext = statetext;
-            this.place = place;
-            this.time = time;
-            this.twitch = twitch;
-            this.points = points;
-            this.message = message != null ? message : "";
-        }
-        
-        @Override
-        public String toString() {
-            return name+" ("+statetext+"/"+twitch+")";
-        }
-
-        /**
-         * Sort by place (which should also have a certain order from the SRL
-         * request if not finished yet)
-         * 
-         * @param o
-         * @return 
+         * Represents an entrant in the race.
          */
-        @Override
-        public int compareTo(Entrant o) {
-            if (place > o.place) {
-                return 1;
-            } else if (place < o.place) {
-                return -1;
+        public record Entrant(String name, String statetext, int place, long time, String twitch, int points,
+                              String message) implements Comparable<Entrant> {
+
+            public Entrant(String name, String statetext, int place, long time,
+                           String twitch, int points, String message) {
+                this.name = name;
+                this.statetext = statetext;
+                this.place = place;
+                this.time = time;
+                this.twitch = twitch;
+                this.points = points;
+                this.message = message != null ? message : "";
             }
-            return name.compareTo(o.name);
-        }
-        
-        @Override
-        public boolean equals(Object other) {
-            if (other == null || !(other instanceof Entrant)) {
-                return false;
-            }
-            return name.equals(((Entrant)other).name);
-        }
 
         @Override
-        public int hashCode() {
-            int hash = 3;
-            hash = 59 * hash + Objects.hashCode(this.name);
-            return hash;
+            public String toString() {
+                return name + " (" + statetext + "/" + twitch + ")";
+            }
+
+            /**
+             * Sort by place (which should also have a certain order from the SRL
+             * request if not finished yet)
+             *
+             * @param o
+             * @return
+             */
+            @Override
+            public int compareTo(Entrant o) {
+                if (place > o.place) {
+                    return 1;
+                } else if (place < o.place) {
+                    return -1;
+                }
+                return name.compareTo(o.name);
+            }
+
+        @Override
+            public boolean equals(Object other) {
+                if (!(other instanceof Entrant)) {
+                    return false;
+                }
+                return name.equals(((Entrant) other).name);
+            }
+
+            @Override
+            public int hashCode() {
+                int hash = 3;
+                hash = 59 * hash + Objects.hashCode(this.name);
+                return hash;
+            }
         }
-    }
 }

@@ -5,7 +5,6 @@ import chatty.gui.GuiUtil;
 import chatty.gui.MainGui;
 import chatty.lang.Language;
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.text.MessageFormat;
 import java.util.HashSet;
 import java.util.Set;
@@ -27,7 +26,6 @@ public class EventLog extends JDialog {
     private final MainGui g;
     private final EventList notificationList;
     private final EventList systemList;
-    private final JTabbedPane tabs;
     private final JButton systemMarkRead;
     private final Set<String> sessionReadEvents = new HashSet<>();
     
@@ -47,8 +45,8 @@ public class EventLog extends JDialog {
         
         JScrollPane scroll2 = new JScrollPane(systemList);
         scroll2.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-        
-        tabs = new JTabbedPane();
+
+        JTabbedPane tabs = new JTabbedPane();
         // Disabled for now
 //        tabs.addTab("Notifications", scroll1);
         JPanel systemPanel = new JPanel();
@@ -105,8 +103,8 @@ public class EventLog extends JDialog {
     }
     
     protected boolean isReadEvent(String id) {
-        return id != null && (g.getSettings().listContains("readEvents", id)
-                || sessionReadEvents.contains(id));
+        return id == null || (!g.getSettings().listContains("readEvents", id)
+                && !sessionReadEvents.contains(id));
     }
     
     private void updateEventState() {

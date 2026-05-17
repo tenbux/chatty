@@ -2,7 +2,8 @@
 package chatty.gui.components.settings;
 
 import chatty.gui.RegexDocumentFilter;
-import javax.swing.JTextField;
+
+import javax.swing.*;
 import javax.swing.text.AbstractDocument;
 
 /**
@@ -25,7 +26,7 @@ public class DurationSetting extends JTextField implements LongSetting {
     @Override
     public Long getSettingValue(Long def) {
         String value = getText();
-        Long number = null;
+        long number;
         try {
             number = Long.parseLong(value.replaceAll("[^0-9]*", ""));
         } catch (NumberFormatException ex) {

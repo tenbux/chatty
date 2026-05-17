@@ -2,12 +2,8 @@
 package chatty.gui.components.routing;
 
 import chatty.User;
-import chatty.gui.Channels;
-import chatty.gui.DockStyledTabContainer;
-import chatty.gui.Highlighter;
+import chatty.gui.*;
 import chatty.gui.Highlighter.HighlightItem;
-import chatty.gui.MainGui;
-import chatty.gui.StyleManager;
 import chatty.gui.components.Channel;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.textpane.InfoMessage;
@@ -16,14 +12,10 @@ import chatty.util.Pair;
 import chatty.util.StringUtil;
 import chatty.util.chatlog.ChatLog;
 import chatty.util.history.HistoryUtil;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import javax.swing.*;
+import java.util.*;
 import java.util.logging.Logger;
-import javax.swing.SwingUtilities;
 
 /**
  *
@@ -51,7 +43,7 @@ public class RoutingManager {
         this.chatLog = chatLog;
         main.getSettings().addSettingChangeListener((setting, type, value) -> {
             if (setting.equals("tabsMessage")) {
-                SwingUtilities.invokeLater(() -> loadTabSettings());
+                SwingUtilities.invokeLater(this::loadTabSettings);
             }
         });
         loadSettings();
@@ -125,8 +117,8 @@ public class RoutingManager {
         }
         
         for (Map.Entry<String, Pair<String, HighlightItem>> t : targets.getResultTargets().entrySet()) {
-            String name = t.getValue().key;
-            HighlightItem hlItem = t.getValue().value;
+            String name = t.getValue().key();
+            HighlightItem hlItem = t.getValue().value();
             
             if (HistoryUtil.checkAllowMatch(message.tags, "Routing", hlItem, main.getSettings())) {
                 RoutingTarget target = getTarget(name);
@@ -169,8 +161,8 @@ public class RoutingManager {
         }
         
         for (Map.Entry<String, Pair<String, HighlightItem>> t : targets.getResultTargets().entrySet()) {
-            String name = t.getValue().key;
-            HighlightItem hlItem = t.getValue().value;
+            String name = t.getValue().key();
+            HighlightItem hlItem = t.getValue().value();
             RoutingTarget target = getTarget(name);
             InfoMessage thisMessage = message.copy();
             thisMessage.routingSource = hlItem;
@@ -224,7 +216,7 @@ public class RoutingManager {
         for (HighlightItem item : routing) {
             if (item.matches(HighlightItem.Type.REGULAR, message.text, message.user, localUser, message.tags)) {
                 targets.add(item);
-                if (!isRoutingMulti()) {
+                if (isRoutingMulti()) {
                     return;
                 }
             }
@@ -235,7 +227,7 @@ public class RoutingManager {
         for (HighlightItem item : routing) {
             if (item.matches(HighlightItem.Type.INFO, message.text, user, localUser, message.tags)) {
                 targets.add(item);
-                if (!isRoutingMulti()) {
+                if (isRoutingMulti()) {
                     return;
                 }
             }
@@ -251,7 +243,7 @@ public class RoutingManager {
     }
     
     private boolean isRoutingMulti() {
-        return main.getSettings().getBoolean("routingMulti");
+        return !main.getSettings().getBoolean("routingMulti");
     }
     
     public void addTarget(String id) {
@@ -293,12 +285,8 @@ public class RoutingManager {
     
     protected RoutingTargetSettings getSettings(String targetName) {
         String targetId = toId(targetName);
-        RoutingTargetSettings entry = entries.get(targetId);
-        if (entry == null) {
-            entry = new RoutingTargetSettings(targetName, 1, true, false, "", 0, false, false,
-                    RoutingTargetSettings.CHANNEL_LOGO_DEFAULT, RoutingTargetSettings.SHOW_CHANNEL_NAME_DEFAULT);
-            entries.put(targetId, entry);
-        }
+        RoutingTargetSettings entry = entries.computeIfAbsent(targetId, k -> new RoutingTargetSettings(targetName, 1, true, false, "", 0, false, false,
+                RoutingTargetSettings.CHANNEL_LOGO_DEFAULT, RoutingTargetSettings.SHOW_CHANNEL_NAME_DEFAULT));
         return entry;
     }
     

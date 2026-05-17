@@ -1,7 +1,10 @@
 package chatty.gui.components.settings;
 
-import chatty.util.colors.HtmlColors;
 import chatty.gui.NamedColor;
+import chatty.util.colors.HtmlColors;
+
+import javax.swing.*;
+import javax.swing.colorchooser.AbstractColorChooserPanel;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -9,9 +12,6 @@ import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import javax.swing.Icon;
-import javax.swing.JComponent;
-import javax.swing.colorchooser.AbstractColorChooserPanel;
 
 /**
  * A grid of colors that can be selected by clicking on them and show their
@@ -83,10 +83,7 @@ class NamedColorsPanel extends AbstractColorChooserPanel {
         private final List<ColorToDraw> colorsToDraw = new ArrayList<>();
         
         private ColorToDraw hoveredColor;
-        private int height;
         private int width;
-        private int elementWidth;
-        private int elementHeight;
         private int compHeight;
         private int compWidth;
 
@@ -122,10 +119,10 @@ class NamedColorsPanel extends AbstractColorChooserPanel {
             int y = marginTop;
             
             width = getWidth() - (cols - 1) * padding - margin*2;
-            height = getHeight() - (rows - 1) * padding - margin - marginTop;
-            
-            elementWidth = width / cols;
-            elementHeight = height / rows;
+            int height = getHeight() - (rows - 1) * padding - margin - marginTop;
+
+            int elementWidth = width / cols;
+            int elementHeight = height / rows;
             
             Iterator<NamedColor> it = namedColors.iterator();
             
@@ -298,20 +295,13 @@ class NamedColorsPanel extends AbstractColorChooserPanel {
             
         }
     }
-    
-    /**
-     * Saves a {@code NamedColor} together with a {@code Rectangle} where to
-     * draw it.
-     */
-    private static class ColorToDraw {
 
-        public final NamedColor color;
-        public final Rectangle r;
-        
-        ColorToDraw(NamedColor color, Rectangle r) {
-            this.color = color;
-            this.r = r;
-        }
+    /**
+         * Saves a {@code NamedColor} together with a {@code Rectangle} where to
+         * draw it.
+         */
+        private record ColorToDraw(NamedColor color, Rectangle r) {
+
     }
     
 }

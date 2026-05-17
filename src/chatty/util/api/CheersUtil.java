@@ -1,7 +1,7 @@
 
 package chatty.util.api;
 
-import java.awt.Color;
+import java.awt.*;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.TreeSet;
@@ -19,13 +19,9 @@ public class CheersUtil {
      * min_bits are checked first. That way the highest possible emoticon for
      * the spent bits is used.
      */
-    private final Set<CheerEmoticon> cheerEmotes = new TreeSet<>(new Comparator<CheerEmoticon>() {
-
-        @Override
-        public int compare(CheerEmoticon s1, CheerEmoticon s2) {
-            int cmp = Integer.compare(s2.min_bits, s1.min_bits);
-            return cmp != 0 ? cmp : s1.code.compareTo(s2.code);
-        }
+    private final Set<CheerEmoticon> cheerEmotes = new TreeSet<>((s1, s2) -> {
+        int cmp = Integer.compare(s2.min_bits, s1.min_bits);
+        return cmp != 0 ? cmp : s1.code.compareTo(s2.code);
     });
     
     private String currentBackground;
@@ -118,14 +114,7 @@ public class CheersUtil {
     }
     
     public String getString(String stream) {
-        Set<CheerEmoticon> blah = new TreeSet<>(new Comparator<CheerEmoticon>() {
-
-            @Override
-            public int compare(CheerEmoticon s1, CheerEmoticon s2) {
-                int cmp = s1.code.compareTo(s2.code);
-                return cmp != 0 ? cmp : Integer.compare(s1.min_bits, s2.min_bits);
-            }
-        });
+        Set<CheerEmoticon> blah = new TreeSet<>(Comparator.comparing((CheerEmoticon s) -> s.code).thenComparingInt(s -> s.min_bits));
         blah.addAll(cheerEmotes);
         StringBuilder b = new StringBuilder();
         for (CheerEmoticon emote : blah) {

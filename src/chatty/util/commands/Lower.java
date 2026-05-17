@@ -56,10 +56,7 @@ class Lower implements Item {
         if (this.isRequired != other.isRequired) {
             return false;
         }
-        if (!Objects.equals(this.identifier, other.identifier)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.identifier, other.identifier);
     }
 
     @Override

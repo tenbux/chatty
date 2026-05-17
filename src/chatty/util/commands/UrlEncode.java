@@ -1,8 +1,8 @@
 
 package chatty.util.commands;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Set;
 
@@ -29,12 +29,7 @@ class UrlEncode implements Item {
         if (!Item.checkReq(isRequired, value)) {
             return null;
         }
-        try {
-            return URLEncoder.encode(value, "UTF-8");
-        } catch (UnsupportedEncodingException ex) {
-            // Shouldn't happen
-        }
-        return null;
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
     
     @Override
@@ -64,10 +59,7 @@ class UrlEncode implements Item {
         if (!Objects.equals(this.item, other.item)) {
             return false;
         }
-        if (this.isRequired != other.isRequired) {
-            return false;
-        }
-        return true;
+        return this.isRequired == other.isRequired;
     }
     
     @Override

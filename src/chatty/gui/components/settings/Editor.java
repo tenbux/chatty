@@ -7,28 +7,14 @@ import chatty.gui.components.LinkLabelListener;
 import chatty.lang.Language;
 import chatty.util.LineNumbers;
 import chatty.util.SyntaxHighlighter;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.Window;
+
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JToggleButton;
-import javax.swing.SwingUtilities;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 
 /**
  * Simple text editor dialog that can be opened with a description of the edit,
@@ -333,10 +319,7 @@ public class Editor implements StringEditor {
      * @return true if the first Dimension is bigger, false otherwise
      */
     private static boolean bigger(Dimension d1, Dimension d2) {
-        if (d1.height > d2.height || d1.width > d2.width) {
-            return true;
-        }
-        return false;
+        return d1.height > d2.height || d1.width > d2.width;
     }
     
     /**
@@ -367,13 +350,7 @@ public class Editor implements StringEditor {
             
             // Wrap in invokeLater() so the size is adjusted correctly after
             // entering text (otherwise it would always be one edit behind)
-            SwingUtilities.invokeLater(new Runnable() {
-
-                @Override
-                public void run() {
-                    adjustSize();
-                }
-            });
+            SwingUtilities.invokeLater(() -> adjustSize());
         }
 
         @Override
@@ -404,7 +381,7 @@ public class Editor implements StringEditor {
          * @param value The value to test
          * @return Changed value or null to keep it the same
          */
-        public String test(Window parent, Component component, int x, int y, String value);
+        String test(Window parent, Component component, int x, int y, String value);
     }
 
 }

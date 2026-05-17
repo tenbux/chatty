@@ -14,17 +14,17 @@ import chatty.util.commands.CustomCommand;
 import chatty.util.commands.Parameters;
 import chatty.util.irc.MsgTags;
 import chatty.util.settings.Settings;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import static java.nio.file.StandardOpenOption.APPEND;
-import static java.nio.file.StandardOpenOption.CREATE;
-import static java.nio.file.StandardOpenOption.WRITE;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
+
+import static java.nio.file.StandardOpenOption.*;
 
 /**
  * Writes currenty stream time to a file to help with creation of Stream
@@ -36,7 +36,7 @@ public class StreamHighlightHelper {
     
     private static final Logger LOGGER = Logger.getLogger(StreamHighlightHelper.class.getName());
     
-    private final static Charset CHARSET = Charset.forName("UTF-8");
+    private final static java.nio.charset.Charset CHARSET = StandardCharsets.UTF_8;
     
     private static final String FILE_NAME = "stream_highlights.txt";
     

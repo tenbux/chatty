@@ -6,18 +6,9 @@ import chatty.gui.MainGui;
 import chatty.gui.components.admin.AdminDialog;
 import chatty.gui.components.settings.SettingsUtil;
 import chatty.util.dnd.DockContent;
-import java.awt.Component;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JToggleButton;
+
+import javax.swing.*;
+import java.awt.*;
 
 /**
  *
@@ -42,14 +33,11 @@ public class TransparencyDialog extends JDialog {
     }
 
     private final JComboBox<DockContent> selection = new JComboBox<>();
-    private final JButton toggleButton = new JButton("Toggle Transparency");
     private final JCheckBox clickThroughNative = new JCheckBox("Click-through (Windows OS only)");
     private final JComboBox<Integer> colorTransparency = new JComboBox<>();
-    private final JButton refreshButton = new JButton(new ImageIcon(AdminDialog.class.getResource("view-refresh.png")));
     private final JToggleButton toggleHelpButton = new JToggleButton("Help");
     private final JLabel help = new JLabel("<html><body style='width:320px;'>"+SettingsUtil.getInfo("info-transparency.html", null));
-    private final JButton setHotkeyButton = new JButton("Set hotkey");
-    
+
     private TransparencyDialog(MainGui main) {
         super(main);
         setTitle("Transparency");
@@ -68,9 +56,12 @@ public class TransparencyDialog extends JDialog {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1;
         add(selection, gbc);
+        JButton refreshButton = new JButton(new ImageIcon(AdminDialog.class.getResource("view-refresh.png")));
         add(refreshButton, GuiUtil.makeGbc(1, 0, 1, 1));
+        JButton toggleButton = new JButton("Toggle Transparency");
         add(toggleButton, GuiUtil.makeGbc(2, 0, 1, 1));
         add(clickThroughNative, GuiUtil.makeGbc(0, 1, 2, 1, GridBagConstraints.EAST));
+        JButton setHotkeyButton = new JButton("Set hotkey");
         add(setHotkeyButton, GuiUtil.makeGbc(2, 1, 1, 1, GridBagConstraints.EAST));
         add(new JLabel("Window Background Transparency (%):"), GuiUtil.makeGbc(0, 2, 2, 1, GridBagConstraints.EAST));
         add(colorTransparency, GuiUtil.makeGbc(2, 2, 1, 1, GridBagConstraints.WEST));
@@ -90,9 +81,7 @@ public class TransparencyDialog extends JDialog {
             }
         });
         
-        clickThroughNative.addItemListener(e -> {
-            TransparencyManager.setClickThrough(clickThroughNative.isSelected());
-        });
+        clickThroughNative.addItemListener(e -> TransparencyManager.setClickThrough(clickThroughNative.isSelected()));
         
         colorTransparency.addItemListener(e -> {
             if (colorTransparency.getSelectedItem() != null) {
@@ -100,18 +89,14 @@ public class TransparencyDialog extends JDialog {
             }
         });
         
-        refreshButton.addActionListener(e -> {
-            refresh();
-        });
+        refreshButton.addActionListener(e -> refresh());
         
         toggleHelpButton.addActionListener(e -> {
             help.setVisible(toggleHelpButton.isSelected());
             pack();
         });
         
-        setHotkeyButton.addActionListener(e -> {
-            main.getSettingsDialog(s -> s.showSettings("editHotkey", "dialog.toggleTransparency"));
-        });
+        setHotkeyButton.addActionListener(e -> main.getSettingsDialog(s -> s.showSettings("editHotkey", "dialog.toggleTransparency")));
         
         clickThroughNative.setSelected(TransparencyManager.getClickThrough());
         colorTransparency.setSelectedItem(TransparencyManager.getColorTransparency());

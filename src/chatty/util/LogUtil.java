@@ -3,14 +3,18 @@ package chatty.util;
 
 import chatty.Chatty;
 import chatty.Helper;
+
+import javax.swing.*;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
-import javax.swing.SwingUtilities;
 
 /**
  *
@@ -76,7 +80,7 @@ public class LogUtil {
                     b.append(e);
                     b.append("\n");
                 }
-                LOGGER.warning("Deadlock detected: "+b.toString());
+                LOGGER.warning("Deadlock detected: "+ b);
             }
         }
         else {
@@ -104,33 +108,27 @@ public class LogUtil {
      * may have locked up (and logs the current thread info if so).
      */
     public static void startEdtLockDetection() {
-        Thread thread = new Thread(() -> {
-            int state = 0;
-            while (true) {
-                try {
-                    Thread.sleep(30*1000);
-                    // Change value through EDT
-                    state++;
-                    int toSet = state;
-                    SwingUtilities.invokeLater(() -> {
-                        EDT_LOCK_STATE.set(toSet);
-                    });
-                    Thread.sleep(1000);
-                    // Should be set by now, otherwise the EDT is really slow
-                    if (EDT_LOCK_STATE.get() != state && EDT_LOCK_LAST_LOGGED.secondsElapsed(600)) {
-                        EDT_LOCK_LAST_LOGGED.set();
-                        // No more often than every 10 minutes, log if EDT is slow
-                        LOGGER.warning("EDT may be slow");
-                        logThreadInfo();
-                    }
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "EdtLockDetection");
+            t.setDaemon(true);
+            return t;
+        });
+        AtomicInteger cycleState = new AtomicInteger();
+        scheduler.scheduleAtFixedRate(() -> {
+            // Change value through EDT
+            int toSet = cycleState.incrementAndGet();
+            SwingUtilities.invokeLater(() -> EDT_LOCK_STATE.set(toSet));
+            // Check 1s later whether the EDT has processed it
+            scheduler.schedule(() -> {
+                // Should be set by now, otherwise the EDT is really slow
+                if (EDT_LOCK_STATE.get() != toSet && EDT_LOCK_LAST_LOGGED.secondsElapsed(600)) {
+                    EDT_LOCK_LAST_LOGGED.set();
+                    // No more often than every 10 minutes, log if EDT is slow
+                    LOGGER.warning("EDT may be slow");
+                    logThreadInfo();
                 }
-                catch (InterruptedException ex) {
-                    return;
-                }
-            }
-        }, "EdtLockDetection");
-        thread.setDaemon(true);
-        thread.start();
+            }, 1, TimeUnit.SECONDS);
+        }, 30, 30, TimeUnit.SECONDS);
     }
     
     /**

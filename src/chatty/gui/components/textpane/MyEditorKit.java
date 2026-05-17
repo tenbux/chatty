@@ -2,25 +2,15 @@
 package chatty.gui.components.textpane;
 
 import chatty.util.Debugging;
-import java.awt.Image;
+
+import javax.swing.*;
+import javax.swing.text.*;
+import java.awt.*;
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Logger;
-import javax.swing.ImageIcon;
-import javax.swing.text.AbstractDocument;
-import javax.swing.text.ComponentView;
-import javax.swing.text.Element;
-import javax.swing.text.LabelView;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledEditorKit;
-import javax.swing.text.View;
-import javax.swing.text.ViewFactory;
 
 /**
  * Replaces some Views by custom ones to change display behaviour.
@@ -127,7 +117,7 @@ class MyEditorKit extends StyledEditorKit {
                         if (Debugging.isEnabled("gifd", "gifd2")) {
                             Debugging.println(String.format(
                                     "Removed image %d (remaining: %s)",
-                                    imageId, d.toString()));
+                                    imageId, d));
                         }
                     }
                     Iterator<WeakReference<MyIconView>> it2 = d.values().iterator();
@@ -187,29 +177,35 @@ class MyEditorKit extends StyledEditorKit {
             Debugging.edt();
             String kind = elem.getName();
             if (kind != null) {
-                if (kind.equals(AbstractDocument.ContentElementName)) {
-                    return new WrapLabelView(elem);
-                } else if (kind.equals(AbstractDocument.ParagraphElementName)) {
-                    return new MyParagraphView(elem);
-                } else if (kind.equals(AbstractDocument.SectionElementName)) {
-                    return new ChatBoxView(elem, View.Y_AXIS, startAtBottom);
-                } else if (kind.equals(StyleConstants.ComponentElementName)) {
-                    return new ComponentView(elem);
-                } else if (kind.equals(StyleConstants.IconElementName)) {
-                    Long id = (Long)elem.getAttributes().getAttribute(ChannelTextPane.Attribute.IMAGE_ID);
-                    MyIconView view = new MyIconView(elem);
-                    if (id != null) {
-                        ImageIcon icon = (ImageIcon) StyleConstants.getIcon(elem.getAttributes());
-                        Image image = icon.getImage();
-                        addImageView(image, view, id);
-                        if (Debugging.isEnabled("gifd", "gifd2")) {
-                            Debugging.println(String.format(
-                                    "Added image %d (now %d)",
-                                    id, imageViews.size()));
-                        }
-                        updateDebugInfo();
+                switch (kind) {
+                    case AbstractDocument.ContentElementName -> {
+                        return new WrapLabelView(elem);
                     }
-                    return view;
+                    case AbstractDocument.ParagraphElementName -> {
+                        return new MyParagraphView(elem);
+                    }
+                    case AbstractDocument.SectionElementName -> {
+                        return new ChatBoxView(elem, View.Y_AXIS, startAtBottom);
+                    }
+                    case StyleConstants.ComponentElementName -> {
+                        return new ComponentView(elem);
+                    }
+                    case StyleConstants.IconElementName -> {
+                        Long id = (Long) elem.getAttributes().getAttribute(ChannelTextPane.Attribute.IMAGE_ID);
+                        MyIconView view = new MyIconView(elem);
+                        if (id != null) {
+                            ImageIcon icon = (ImageIcon) StyleConstants.getIcon(elem.getAttributes());
+                            Image image = icon.getImage();
+                            addImageView(image, view, id);
+                            if (Debugging.isEnabled("gifd", "gifd2")) {
+                                Debugging.println(String.format(
+                                        "Added image %d (now %d)",
+                                        id, imageViews.size()));
+                            }
+                            updateDebugInfo();
+                        }
+                        return view;
+                    }
                 }
             }
             return new LabelView(elem);

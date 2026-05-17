@@ -3,18 +3,12 @@ package chatty.gui.components.srl;
 
 import chatty.gui.GuiUtil;
 import chatty.util.srl.Race;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Window;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JScrollPane;
 
 /**
  * Dialog with a {@code RacesTable} and a reload button, also showing how long
@@ -35,13 +29,7 @@ public class SRLRaces extends JDialog {
         setTitle("SpeedRunsLive");
         this.srl = srl;
 
-        table = new RacesTable(new RacesTable.RacesTableListener() {
-
-            @Override
-            public void openRace(Race race) {
-                srl.openRaceInfo(race);
-            }
-        });
+        table = new RacesTable(srl::openRaceInfo);
         
         // Layout
         setLayout(new GridBagLayout());

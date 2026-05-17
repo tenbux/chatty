@@ -12,11 +12,16 @@
 
 package chatty.util.gif;
 
-import java.net.*;
-import java.io.*;
-import java.util.*;
 import java.awt.*;
-import java.awt.image.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URL;
+import java.util.ArrayList;
 
 /**
  * Class GifDecoder - Decodes a GIF file into one or more frames.
@@ -89,7 +94,7 @@ public class GifDecoderFMS {
 	protected BufferedImage lastImage; // previous frame
 	protected BufferedImage restorePrevImage; // for restore to previous
 
-	protected byte[] block = new byte[256]; // current data block
+	protected final byte[] block = new byte[256]; // current data block
 	protected int blockSize = 0; // block size
 
 	// last graphic control extension info
@@ -109,16 +114,10 @@ public class GifDecoderFMS {
 	protected byte[] pixelStack;
 	protected byte[] pixels;
 
-	protected ArrayList frames; // frames read from current file
+	protected ArrayList<GifFrame> frames; // frames read from current file
 	protected int frameCount;
 
-	static class GifFrame {
-		public GifFrame(BufferedImage im, int del) {
-			image = im;
-			delay = del;
-		}
-		public BufferedImage image;
-		public int delay;
+	record GifFrame(BufferedImage image, int delay) {
 	}
 
 	/**
@@ -131,7 +130,7 @@ public class GifDecoderFMS {
 		//
 		delay = -1;
 		if ((n >= 0) && (n < frameCount)) {
-			delay = ((GifFrame) frames.get(n)).delay;
+			delay = frames.get(n).delay;
 		}
 		return delay;
 	}
@@ -187,7 +186,7 @@ public class GifDecoderFMS {
 				if (lastDispose == 2) {
 					// fill last image rect area with background color
 					Graphics2D g = image.createGraphics();
-					Color c = null;
+					Color c;
 					if (transparency) {
 						c = new Color(0, 0, 0, 0); 	// assume background is transparent
 					} else {
@@ -265,7 +264,7 @@ public class GifDecoderFMS {
 	public BufferedImage getFrame(int n) {
 		BufferedImage im = null;
 		if ((n >= 0) && (n < frameCount)) {
-			im = ((GifFrame) frames.get(n)).image;
+			im = frames.get(n).image;
 		}
 		return im;
 	}
@@ -301,7 +300,7 @@ public class GifDecoderFMS {
 		}
 		try {
 			is.close();
-		} catch (IOException e) {
+		} catch (IOException ignored) {
 		}
 		return status;
 	}
@@ -310,9 +309,8 @@ public class GifDecoderFMS {
 	 * Reads GIF image from stream
 	 *
 	 * @param is InputStream containing GIF file.
-	 * @return read status code (0 = no errors)
 	 */
-	public int read(InputStream is) {
+	public void read(InputStream is) {
 		init();
 		if (is != null) {
 			if (!(is instanceof BufferedInputStream))
@@ -330,9 +328,8 @@ public class GifDecoderFMS {
 		}
 		try {
 			is.close();
-		} catch (IOException e) {
+		} catch (IOException ignored) {
 		}
-		return status;
 	}
 
 	/**
@@ -346,9 +343,9 @@ public class GifDecoderFMS {
 		status = STATUS_OK;
 		try {
 			name = name.trim().toLowerCase();
-			if ((name.indexOf("file:") >= 0) ||
+			if ((name.contains("file:")) ||
 				(name.indexOf(":/") > 0)) {
-				URL url = new URL(name);
+				URL url = URI.create(name).toURL();
 				in = new BufferedInputStream(url.openStream());
 			} else {
 				in = new BufferedInputStream(new FileInputStream(name));
@@ -508,7 +505,7 @@ public class GifDecoderFMS {
 	protected void init() {
 		status = STATUS_OK;
 		frameCount = 0;
-		frames = new ArrayList();
+		frames = new ArrayList<>();
 		gct = null;
 		lct = null;
 	}
@@ -536,14 +533,14 @@ public class GifDecoderFMS {
 		int n = 0;
 		if (blockSize > 0) {
 			try {
-				int count = 0;
+				int count;
 				while (n < blockSize) {
 					count = in.read(block, n, blockSize - n);
 					if (count == -1) 
 						break;
 					n += count;
 				}
-			} catch (IOException e) {
+			} catch (IOException ignored) {
 			}
 
 			if (n < blockSize) {
@@ -566,7 +563,7 @@ public class GifDecoderFMS {
 		int n = 0;
 		try {
 			n = in.read(c);
-		} catch (IOException e) {
+		} catch (IOException ignored) {
 		}
 		if (n < nbytes) {
 			status = STATUS_FORMAT_ERROR;
@@ -607,11 +604,11 @@ public class GifDecoderFMS {
 
 						case 0xff : // application extension
 							readBlock();
-							String app = "";
+							StringBuilder app = new StringBuilder();
 							for (int i = 0; i < 11; i++) {
-								app += (char) block[i];
+								app.append((char) block[i]);
 							}
-							if (app.equals("NETSCAPE2.0")) {
+							if (app.toString().equals("NETSCAPE2.0")) {
 								readNetscapeExt();
 							}
 							else
@@ -656,11 +653,11 @@ public class GifDecoderFMS {
 	 * Reads GIF file header information.
 	 */
 	protected void readHeader() {
-		String id = "";
+		StringBuilder id = new StringBuilder();
 		for (int i = 0; i < 6; i++) {
-			id += (char) read();
+			id.append((char) read());
 		}
-		if (!id.startsWith("GIF")) {
+		if (!id.toString().startsWith("GIF")) {
 			status = STATUS_FORMAT_ERROR;
 			return;
 		}

@@ -6,21 +6,14 @@ import chatty.gui.GuiUtil;
 import chatty.gui.MainGui;
 import chatty.gui.components.menus.TextSelectionMenu;
 import chatty.lang.Language;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.util.HashSet;
-import java.util.Set;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JTextField;
+
+import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import java.awt.*;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.util.Set;
 
 /**
  *
@@ -96,21 +89,16 @@ public class JoinDialog extends JDialog {
         gbc.insets = new Insets(10,5,5,5);
         add(cancelButton, gbc);
         
-        ActionListener listener = new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (e.getSource() == joinButton || e.getSource() == channels) {
-                    join = true;
-                    setVisible(false);
-                } else if (e.getSource() == cancelButton) {
-                    setVisible(false);
-                } else if (e.getSource() == favoritesButton) {
-                    Set<String> selectedFavorites = owner.chooseFavorites(JoinDialog.this, "");
-                    channels.setText(Helper.buildStreamsString(selectedFavorites));
-                }
+        ActionListener listener = e -> {
+            if (e.getSource() == joinButton || e.getSource() == channels) {
+                join = true;
+                setVisible(false);
+            } else if (e.getSource() == cancelButton) {
+                setVisible(false);
+            } else if (e.getSource() == favoritesButton) {
+                Set<String> selectedFavorites = owner.chooseFavorites(JoinDialog.this, "");
+                channels.setText(Helper.buildStreamsString(selectedFavorites));
             }
-            
         };
         
         joinButton.addActionListener(listener);

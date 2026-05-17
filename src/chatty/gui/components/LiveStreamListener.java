@@ -9,5 +9,5 @@ import java.util.Collection;
  * @author tduva
  */
 public interface LiveStreamListener {
-    public void liveStreamClicked(Collection<StreamInfo> selectedStreams);
+    void liveStreamClicked(Collection<StreamInfo> selectedStreams);
 }

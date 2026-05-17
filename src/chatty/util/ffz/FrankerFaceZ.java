@@ -26,8 +26,8 @@ public class FrankerFaceZ {
     
     private static final Logger LOGGER = Logger.getLogger(FrankerFaceZ.class.getName());
     
-    private enum Type { GLOBAL, ROOM, FEATURE_FRIDAY };
-    
+    private enum Type { GLOBAL, ROOM, FEATURE_FRIDAY }
+
     private final FrankerFaceZListener listener;
     
     // State

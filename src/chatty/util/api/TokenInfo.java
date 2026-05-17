@@ -60,10 +60,10 @@ public class TokenInfo {
                 Scope.READ_POINTS
         );
         
-        public List<Scope> scopes;
-        public String label;
+        public final List<Scope> scopes;
+        public final String label;
 
-        private ScopeCategory(String langKey, Scope... scopes) {
+        ScopeCategory(String langKey, Scope... scopes) {
             this.scopes = Arrays.asList(scopes);
             this.label = Language.getString("login.accessCategory."+langKey);
         }
@@ -122,9 +122,9 @@ public class TokenInfo {
         USER_READ_CHAT("user:read:chat", "userReadChat"),
         USER_WRITE_CHAT("user:write:chat", "userWriteChat");
         
-        public String scope;
-        public String label;
-        public String description;
+        public final String scope;
+        public final String label;
+        public final String description;
         
         Scope(String scope, String langKey) {
             this.scope = scope;

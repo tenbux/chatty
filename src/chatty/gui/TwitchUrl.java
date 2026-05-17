@@ -4,9 +4,9 @@ package chatty.gui;
 import chatty.Helper;
 import chatty.util.StringUtil;
 import chatty.util.api.Emoticon;
-import java.awt.Component;
+
+import java.awt.*;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -17,12 +17,7 @@ import java.util.List;
 public class TwitchUrl {
     
     public static void removeInvalidStreams(Collection<String> streams) {
-        Iterator<String> it = streams.iterator();
-        while (it.hasNext()) {
-            if (!Helper.isValidChannel(it.next())) {
-                it.remove();
-            }
-        }
+        streams.removeIf(s -> !Helper.isValidChannel(s));
     }
     
     public static String makeTwitchProfileUrl(String channel) {
@@ -58,13 +53,13 @@ public class TwitchUrl {
     }
     
     public static String makeEmoteUrl(Emoticon.Type type, String id) {
-        switch (type) {
-            case FFZ: return "https://www.frankerfacez.com/emoticons/"+id;
-            case TWITCH: return "https://twitchemotes.com/emote/"+id;
-            case BTTV: return "https://betterttv.com/emotes/"+id;
-            case SEVENTV: return "https://7tv.app/emotes/"+id;
-        }
-        return null;
+        return switch (type) {
+            case FFZ -> "https://www.frankerfacez.com/emoticons/" + id;
+            case TWITCH -> "https://twitchemotes.com/emote/" + id;
+            case BTTV -> "https://betterttv.com/emotes/" + id;
+            case SEVENTV -> "https://7tv.app/emotes/" + id;
+            default -> null;
+        };
     }
     
     public static final String MULTITWITCH = "http://multitwitch.tv/";
@@ -80,8 +75,7 @@ public class TwitchUrl {
     
     public static String makeMultitwitchUrl(List<String> streams, String type) {
         String streamsText = StringUtil.join(streams, "/");
-        String url = type+streamsText;
-        return url;
+        return type+streamsText;
     }
     
     public static String makeSrlRaceLink(String id) {

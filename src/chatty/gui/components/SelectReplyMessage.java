@@ -3,28 +3,16 @@ package chatty.gui.components;
 
 import chatty.Room;
 import chatty.User;
-import chatty.User.TextMessage;
 import chatty.gui.GuiUtil;
 import chatty.gui.components.JListActionHelper.Action;
 import chatty.lang.Language;
-import chatty.util.ReplyManager;
 import chatty.util.StringUtil;
 import chatty.util.settings.Settings;
-import java.awt.Component;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.KeyboardFocusManager;
-import java.awt.Point;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JScrollPane;
-import javax.swing.ListSelectionModel;
 
 /**
  *
@@ -65,15 +53,14 @@ public class SelectReplyMessage {
             
             List<User.TextMessage> msgs = new ArrayList<>();
             for (User.Message msg : user.getMessages()) {
-                if (msg instanceof User.TextMessage) {
-                    User.TextMessage m = (User.TextMessage)msg;
+                if (msg instanceof User.TextMessage m) {
                     if (!StringUtil.isNullOrEmpty(m.id)) {
                         msgs.add(m);
                     }
                 }
             }
             
-            list = new JList<>(msgs.toArray(new User.TextMessage[msgs.size()]));
+            list = new JList<>(msgs.toArray(new User.TextMessage[0]));
             list.setCellRenderer(new DefaultListCellRenderer() {
                 
                 @Override
@@ -108,9 +95,7 @@ public class SelectReplyMessage {
             }, false);
 
             JButton ok = new JButton("Send reply");
-            ok.addActionListener(e -> {
-                confirm();
-            });
+            ok.addActionListener(e -> confirm());
             JButton decline = new JButton("Send normally");
             decline.addActionListener(e -> {
                 result = SEND_NORMALLY_RESULT;
@@ -120,9 +105,7 @@ public class SelectReplyMessage {
             if (settings != null) {
                 JCheckBox restrictSetting = new JCheckBox("Only show when message starts with @@<username>");
                 restrictSetting.setSelected(settings.getBoolean(SETTING));
-                restrictSetting.addItemListener(e -> {
-                    settings.setBoolean(SETTING, restrictSetting.isSelected());
-                });
+                restrictSetting.addItemListener(e -> settings.setBoolean(SETTING, restrictSetting.isSelected()));
                 add(restrictSetting, GuiUtil.makeGbc(0, 2, 3, 1, GridBagConstraints.WEST));
             }
             JButton cancel = new JButton(Language.getString("dialog.button.cancel"));
@@ -171,29 +154,21 @@ public class SelectReplyMessage {
         }
         
     }
-    
-    public static class SelectReplyMessageResult {
-        
+
+    public record SelectReplyMessageResult(String atMsgId, String atMsg, Action action) {
+
         public enum Action {
-            REPLY, SEND_NORMALLY, DONT_SEND;
-        }
-        
-        public final String atMsgId;
-        public final String atMsg;
-        public final Action action;
-        
+                REPLY, SEND_NORMALLY, DONT_SEND
+            }
+
         public SelectReplyMessageResult(String atMsgId, String atMsg) {
-            this.atMsgId = atMsgId;
-            this.atMsg = atMsg;
-            this.action = Action.REPLY;
-        }
-        
+                this(atMsgId, atMsg, Action.REPLY);
+            }
+
         public SelectReplyMessageResult(Action action) {
-            this.atMsgId = null;
-            this.atMsg = null;
-            this.action = action;
-        }
-        
+                this(null, null, action);
+            }
+
     }
     
     public static void main(String[] args) {

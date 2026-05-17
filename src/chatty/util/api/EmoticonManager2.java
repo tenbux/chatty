@@ -159,7 +159,7 @@ public class EmoticonManager2 {
     private synchronized void checkErrored() {
         if (!erroredEmotesets.isEmpty()) {
             long ago = System.currentTimeMillis() - lastRequestTime;
-            if (ago > errorRetrySeconds*1000) {
+            if (ago > errorRetrySeconds* 1000L) {
                 LOGGER.info("Retrying requesting emotes: "+erroredEmotesets);
                 pendingEmotesets.addAll(erroredEmotesets);
                 erroredEmotesets.clear();

@@ -7,30 +7,14 @@ import chatty.gui.MainGui;
 import chatty.util.StringUtil;
 import chatty.util.hotkeys.Hotkey.Type;
 import chatty.util.settings.Settings;
-import java.awt.KeyEventDispatcher;
-import java.awt.KeyboardFocusManager;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.WeakHashMap;
 import java.util.logging.Logger;
-import javax.swing.AbstractAction;
-import javax.swing.Action;
-import javax.swing.ActionMap;
-import javax.swing.InputMap;
-import javax.swing.JComponent;
-import javax.swing.JDialog;
-import javax.swing.JFrame;
-import javax.swing.JRootPane;
-import javax.swing.JWindow;
-import javax.swing.KeyStroke;
 
 /**
  * Manage custom hotkeys. Can add regular, app-wide and global hotkeys and loads
@@ -88,13 +72,7 @@ public class HotkeyManager {
         this.main = main;
                 
         KeyboardFocusManager kfm = KeyboardFocusManager.getCurrentKeyboardFocusManager();
-        kfm.addKeyEventDispatcher(new KeyEventDispatcher() {
-
-            @Override
-            public boolean dispatchKeyEvent(KeyEvent e) {
-                return applicationKeyTriggered(e);
-            }
-        });
+        kfm.addKeyEventDispatcher(e -> applicationKeyTriggered(e));
     }
     
     /**
@@ -107,16 +85,10 @@ public class HotkeyManager {
             // Try to init only once
             attemptedToInitGlobalHotkeys = true;
             try {
-                globalHotkeys = new GlobalHotkeySetter(new GlobalHotkeySetter.GlobalHotkeyListener() {
-
-                    @Override
-                    public void onHotkey(Object hotkeyId) {
-                        onGlobalHotkey(hotkeyId);
-                    }
-                });
+                globalHotkeys = new GlobalHotkeySetter(hotkeyId -> onGlobalHotkey(hotkeyId));
                 // If an error occured during initialization, then set to null
                 // which means it's not going to be used.
-                if (!globalHotkeys.isActive()) {
+                if (globalHotkeys.isActive()) {
                     globalHotkeyErrorWarning = globalHotkeys.getError();
                     globalHotkeys = null;
                 }
@@ -181,7 +153,7 @@ public class HotkeyManager {
     public Map<String, String> getActionsMap() {
         Map<String, String> map = new LinkedHashMap<>();
         for (HotkeyAction action : actions.values()) {
-            map.put(action.id, action.label);
+            map.put(action.id(), action.label());
         }
         return map;
     }
@@ -189,8 +161,8 @@ public class HotkeyManager {
     public Map<String, String> getDescriptionsMap() {
         Map<String, String> map = new HashMap<>();
         for (HotkeyAction action : actions.values()) {
-            if (!StringUtil.isNullOrEmpty(action.description)) {
-                map.put(action.id, action.description);
+            if (!StringUtil.isNullOrEmpty(action.description())) {
+                map.put(action.id(), action.description());
             }
         }
         return map;
@@ -352,7 +324,7 @@ public class HotkeyManager {
      */
     private void addHotkey(Hotkey hotkey, JRootPane pane) {
         String id = String.valueOf(hotkey.hashCode());
-        pane.getInputMap(INPUT_MAP_KEY).put(hotkey.keyStroke, PREFIX + id);
+        pane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(hotkey.keyStroke, PREFIX + id);
         pane.getActionMap().put(PREFIX + id, createAction(hotkey));
     }
     
@@ -406,7 +378,7 @@ public class HotkeyManager {
      */
     private void removeHotkeys(JRootPane pane) {
         Set<KeyStroke> toBeRemoved = new HashSet<>();
-        InputMap input = pane.getInputMap(INPUT_MAP_KEY);
+        InputMap input = pane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         ActionMap action = pane.getActionMap();
         if (input.keys() == null) {
             return;
@@ -429,7 +401,7 @@ public class HotkeyManager {
      */
     private void removeHotkeysFromActions() {
         for (HotkeyAction action : actions.values()) {
-            action.action.putValue(Action.ACCELERATOR_KEY, null);
+            action.action().putValue(Action.ACCELERATOR_KEY, null);
         }
     }
     
@@ -561,7 +533,7 @@ public class HotkeyManager {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (enabled && hotkey.shouldExecuteAction()) {
-                    hotkeyAction.action.actionPerformed(new ActionEvent(hotkeyAction, 0, hotkey.custom));
+                    hotkeyAction.action().actionPerformed(new ActionEvent(hotkeyAction, 0, hotkey.custom));
                 }
             }
         };
@@ -579,7 +551,7 @@ public class HotkeyManager {
             return;
         }
         if (hotkey.hasValidCode()) {
-            hotkeyAction.action.putValue(Action.ACCELERATOR_KEY, hotkey.keyStroke);
+            hotkeyAction.action().putValue(Action.ACCELERATOR_KEY, hotkey.keyStroke);
         }
     }
 
@@ -592,7 +564,7 @@ public class HotkeyManager {
         Hotkey hotkey = (Hotkey)hotkeyId;
         HotkeyAction action = actions.get(hotkey.actionId);
         if (enabled && action != null && hotkey.shouldExecuteAction()) {
-            action.action.actionPerformed(new ActionEvent(action, 0, hotkey.custom));
+            action.action().actionPerformed(new ActionEvent(action, 0, hotkey.custom));
         }
     }
     
@@ -612,7 +584,7 @@ public class HotkeyManager {
             if (hotkey.type == Hotkey.Type.APPLICATION && hotkey.keyStroke.equals(keyStroke) && hotkey.hasValidCode()) {
                 HotkeyAction action = actions.get(hotkey.actionId);
                 if (action != null && hotkey.shouldExecuteAction()) {
-                    action.action.actionPerformed(new ActionEvent(action, 0, hotkey.custom));
+                    action.action().actionPerformed(new ActionEvent(action, 0, hotkey.custom));
                     return true;
                 }
             }

@@ -64,10 +64,7 @@ public class Calc implements Item {
         if (!Objects.equals(this.item, other.item)) {
             return false;
         }
-        if (this.isRequired != other.isRequired) {
-            return false;
-        }
-        return true;
+        return this.isRequired == other.isRequired;
     }
 
     @Override
@@ -177,21 +174,13 @@ public class Calc implements Item {
                     }
                     String func = str.substring(startPos, this.pos);
                     x = parseFactor();
-                    if (func.equals("sqrt")) {
-                        x = Math.sqrt(x);
-                    }
-                    else if (func.equals("sin")) {
-                        x = Math.sin(Math.toRadians(x));
-                    }
-                    else if (func.equals("cos")) {
-                        x = Math.cos(Math.toRadians(x));
-                    }
-                    else if (func.equals("tan")) {
-                        x = Math.tan(Math.toRadians(x));
-                    }
-                    else {
-                        throw new RuntimeException("Unknown function: " + func);
-                    }
+                    x = switch (func) {
+                        case "sqrt" -> Math.sqrt(x);
+                        case "sin" -> Math.sin(Math.toRadians(x));
+                        case "cos" -> Math.cos(Math.toRadians(x));
+                        case "tan" -> Math.tan(Math.toRadians(x));
+                        default -> throw new RuntimeException("Unknown function: " + func);
+                    };
                 }
                 else {
                     throw new RuntimeException("Unexpected: " + (char) ch);

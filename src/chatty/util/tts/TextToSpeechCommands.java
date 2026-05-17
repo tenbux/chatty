@@ -13,7 +13,7 @@ public class TextToSpeechCommands {
     public static Settings settings;
 
     public static String command(Commands.CommandParameters p) {
-        if (!TextToSpeech.get(settings).hasProvider()) {
+        if (TextToSpeech.get(settings).hasProvider()) {
             return "TTS not available on this system.";
         }
         switch (p.getArgs()) {
@@ -36,9 +36,8 @@ public class TextToSpeechCommands {
         
         Commands.CommandParsedArgs parsed = p.parsedArgs(2);
         if (parsed != null) {
-            switch (parsed.get(0)) {
-                case "say":
-                    return commandSay(parsed.get(1));
+            if (parsed.get(0).equals("say")) {
+                return commandSay(parsed.get(1));
             }
         }
         return "Usage: /tts <say|start|pause|clear|on|off>";

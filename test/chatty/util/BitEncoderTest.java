@@ -2,7 +2,8 @@
 package chatty.util;
 
 import org.junit.Test;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -41,7 +42,7 @@ public class BitEncoderTest {
         BitEncoder decodeInstance2 = new BitEncoder(testValues, testValues2);
         decodeInstance2.decode(twoSets);
         
-        assertEquals(decodeInstance2.getValue(1), -5);
+        assertEquals(-5, decodeInstance2.getValue(1));
     }
     
     /**

@@ -129,7 +129,7 @@ public class JListActionHelper<T> implements MouseListener, KeyListener {
     }
     
     public interface JListContextMenuListener<T> {
-        public void handleAction(Action action, Point location, List<T> selected);
+        void handleAction(Action action, Point location, List<T> selected);
     }
     
     public static <T> void install(JList<T> list, JListContextMenuListener<T> listener) {

@@ -3,15 +3,16 @@ package chatty.util.ffz;
 
 import chatty.util.JSONUtil;
 import chatty.util.api.Emoticon;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 /**
  * Emotes/Mod Icon parsing functions.
@@ -42,7 +43,7 @@ public class FrankerFaceZParsing {
             if (badgeUrls instanceof JSONObject) {
                 return JSONUtil.getString((JSONObject) badgeUrls, factor);
             }
-        } catch (ParseException | ClassCastException | NullPointerException ex) {
+        } catch (ParseException | ClassCastException | NullPointerException ignored) {
             
         }
         return null;
@@ -161,7 +162,7 @@ public class FrankerFaceZParsing {
         Set<Emoticon> result = new HashSet<>();
         if (emotes != null) {
             for (Object emote : emotes) {
-                if (emote != null && emote instanceof JSONObject) {
+                if (emote instanceof JSONObject) {
                     Emoticon createdEmote = parseEmote((JSONObject)emote, streamRestriction, info, subType);
                     if (createdEmote != null) {
                         result.add(createdEmote);
@@ -204,7 +205,7 @@ public class FrankerFaceZParsing {
             // Creator
             Object owner = emote.get("owner");
             String creator = null;
-            if (owner != null && owner instanceof JSONObject) {
+            if (owner instanceof JSONObject) {
                 creator = (String)((JSONObject)owner).get("display_name");
             }
             
@@ -244,7 +245,7 @@ public class FrankerFaceZParsing {
                 JSONObject users = (JSONObject)root.get("users");
                 JSONArray names = (JSONArray)users.get(String.valueOf(badgeId));
                 for (Object item : names) {
-                    if (item != null && item instanceof String) {
+                    if (item instanceof String) {
                         result.add((String)item);
                     }
                 }
@@ -294,9 +295,7 @@ public class FrankerFaceZParsing {
             JSONObject badges = (JSONObject)room.get("user_badges");
             for (Object key : badges.keySet()) {
                 Object value = badges.get(key);
-                if (key instanceof String && value instanceof JSONArray) {
-                    String badgeId = (String) key;
-                    JSONArray names = (JSONArray)value;
+                if (key instanceof String badgeId && value instanceof JSONArray names) {
                     Set<String> namesResult = new HashSet<>();
                     for (Object item : names) {
                         if (item instanceof String) {

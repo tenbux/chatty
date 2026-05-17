@@ -5,13 +5,14 @@ import chatty.Helper;
 import chatty.util.api.Emoticon;
 import chatty.util.api.EmoticonUpdate;
 import chatty.util.api.TwitchApi;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * Requests and parses the BTTV emotes.
@@ -58,9 +59,7 @@ public class BTTVEmotes {
             requestNow(url, stream);
         }
         else {
-            RetryManager.getInstance().retry(url, k -> {
-                requestNow(url, stream);
-            });
+            RetryManager.getInstance().retry(url, k -> requestNow(url, stream));
         }
     }
     
@@ -92,12 +91,11 @@ public class BTTVEmotes {
      * Load stuff from the given JSON in the context of the given channel
      * restriction. The channel restriction can be "$global$" which means all
      * channels.
-     * 
-     * @param json The JSON
+     *
+     * @param json              The JSON
      * @param streamRestriction
-     * @return 
      */
-    private int loadEmotes(String json, String streamRestriction) {
+    private void loadEmotes(String json, String streamRestriction) {
         Set<Emoticon> emotes;
         Set<String> bots = new HashSet<>();
         if (streamRestriction != null && streamRestriction.equals(GLOBAL)) {
@@ -117,7 +115,6 @@ public class BTTVEmotes {
         updateBuilder.setRoomToRemove(streamRestriction);
         listener.receivedEmoticons(updateBuilder.build());
         listener.receivedBotNames(streamRestriction, bots);
-        return emotes.size();
     }
     
     /**
@@ -218,7 +215,7 @@ public class BTTVEmotes {
         try {
             String code = (String)o.get("code");
             JSONObject user = (JSONObject)o.get("user");
-            String userName = null;
+            String userName;
             if (user != null) {
                 userName = JSONUtil.getString(user, "name");
             }
@@ -250,8 +247,7 @@ public class BTTVEmotes {
             
             // Adds restrictions to emote (if present)
             Object restriction = o.get("restrictions");
-            if (restriction != null && restriction instanceof JSONObject) {
-                 JSONObject restrictions = (JSONObject)restriction;
+            if (restriction instanceof JSONObject restrictions) {
                 for (Object r : restrictions.keySet()) {
                     boolean knownAndValid = addRestriction(r, restrictions,
                             builder);

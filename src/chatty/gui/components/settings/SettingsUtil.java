@@ -1,25 +1,15 @@
 
 package chatty.gui.components.settings;
 
-import static chatty.gui.components.settings.SettingsDialog.makeGbc;
 import chatty.lang.Language;
 import chatty.util.StringUtil;
-import java.awt.Component;
-import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.util.Arrays;
-import java.util.function.Function;
-import javax.swing.AbstractButton;
-import javax.swing.BorderFactory;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JRadioButton;
+
+import javax.swing.*;
 import javax.swing.border.Border;
+import java.awt.*;
+import java.util.function.Function;
+
+import static chatty.gui.components.settings.SettingsDialog.makeGbc;
 
 /**
  *
@@ -59,20 +49,23 @@ public class SettingsUtil {
                 }
             }
             for (Component comp : subs) {
-                if (!Arrays.asList(radioButtons).contains(comp)) {
+                boolean isRadio = false;
+                for (JRadioButton button : radioButtons) {
+                    if (button == comp) {
+                        isRadio = true;
+                        break;
+                    }
+                }
+                if (!isRadio) {
                     comp.setEnabled(enabled);
                 }
             }
         };
         for (JRadioButton button : radioButtons) {
-            button.addItemListener(e -> {
-                update.run();
-            });
+            button.addItemListener(e -> update.run());
         }
         for (JRadioButton button : radioButtons) {
-            button.addPropertyChangeListener("enabled", e -> {
-                update.run();
-            });
+            button.addPropertyChangeListener("enabled", e -> update.run());
         }
         update.run();
     }

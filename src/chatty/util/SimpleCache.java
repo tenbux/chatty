@@ -4,7 +4,7 @@ package chatty.util;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,9 +21,8 @@ public class SimpleCache {
     
     private static final Logger LOGGER = Logger.getLogger(SimpleCache.class.getName());
     
-    private static final Charset CHARSET = Charset.forName("UTF-8");
-    
-    private final String id;
+    private static final java.nio.charset.Charset CHARSET = StandardCharsets.UTF_8;
+
     private final Path file;
     private final long expireTime;
     private final String debugPrefix;
@@ -36,7 +35,6 @@ public class SimpleCache {
      * @param expireTime The time in seconds that the cache should be valid for
      */
     public SimpleCache(String id, String file, long expireTime) {
-        this.id = id;
         this.file = Paths.get(file);
         this.expireTime = expireTime;
         this.debugPrefix = "C["+id+"]";
@@ -50,7 +48,7 @@ public class SimpleCache {
     public void save(String data) {
         LOGGER.info(debugPrefix+" Cache: Trying to save..");
         try (BufferedWriter writer = Files.newBufferedWriter(file,CHARSET)) {
-            writer.write(new Long(System.currentTimeMillis() / 1000).toString()+"\n");
+            writer.write(System.currentTimeMillis() / 1000 +"\n");
             writer.write(data);
             LOGGER.info(debugPrefix+" Cache: Saved");
         }

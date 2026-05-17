@@ -8,12 +8,13 @@ import chatty.util.DateTime;
 import chatty.util.JSONUtil;
 import chatty.util.StringUtil;
 import chatty.util.api.eventsub.Payload;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 
 /**
  * 
@@ -68,7 +69,7 @@ public class ModActionPayload extends Payload {
     
     public String getPseudoCommandString() {
         return String.format("/%s",
-                             action.toString());
+                action);
     }
     
     public String getPseudoCommandStringNoSlash() {
@@ -200,7 +201,7 @@ public class ModActionPayload extends Payload {
          * The "event" section from "channel.moderate" event, may be null if
          * from another source.
          */
-        protected JSONObject event;
+        protected final JSONObject event;
         
         /**
          * 
@@ -262,15 +263,12 @@ public class ModActionPayload extends Payload {
             if (status == null) {
                 return "automod_filtered";
             }
-            switch (status) {
-                case "approved":
-                    return "approved_automod_message";
-                case "denied":
-                    return "denied_automod_message";
-                case "expired":
-                    return "automod_message_expired";
-            }
-            return "unkown_automod_status";
+            return switch (status) {
+                case "approved" -> "approved_automod_message";
+                case "denied" -> "denied_automod_message";
+                case "expired" -> "automod_message_expired";
+                default -> "unkown_automod_status";
+            };
         }
         
         @Override
@@ -335,8 +333,8 @@ public class ModActionPayload extends Payload {
         }
         
         private String getFragment(JSONObject boundary) {
-            int start = JSONUtil.getInteger((JSONObject) boundary, "start_pos", -1);
-            int end = JSONUtil.getInteger((JSONObject) boundary, "end_pos", -1);
+            int start = JSONUtil.getInteger(boundary, "start_pos", -1);
+            int end = JSONUtil.getInteger(boundary, "end_pos", -1);
             if (start > -1 && end > -1) {
                 /**
                  * Error before using codePointSubstring(), although it's
@@ -358,9 +356,7 @@ public class ModActionPayload extends Payload {
                 }
                 catch (Exception ex) {
                     // Would output several times otherwise
-                    BatchAction.queue(event, 100, false, false, () -> {
-                        LOGGER.warning("[EventSub] Error getting AutoMod reason: "+ex+" ["+event+"]");
-                    });
+                    BatchAction.queue(event, 100, false, false, () -> LOGGER.warning("[EventSub] Error getting AutoMod reason: "+ex+" ["+event+"]"));
                     return "error, check debug log";
                 }
             }
@@ -411,7 +407,7 @@ public class ModActionPayload extends Payload {
             for (String key : getParamKeys()) {
                 String value = getStringForKey(key);
                 if (!StringUtil.isNullOrEmpty(value)) {
-                    if (b.length() > 0) {
+                    if (!b.isEmpty()) {
                         b.append(" ");
                     }
                     b.append(value);
@@ -555,7 +551,7 @@ public class ModActionPayload extends Payload {
                 b.append(reason);
             }
             if (rules != null) {
-                if (b.length() > 0) {
+                if (!b.isEmpty()) {
                     b.append(", ");
                 }
                 b.append("Selected rules: ");

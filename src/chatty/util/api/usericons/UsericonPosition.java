@@ -1,11 +1,7 @@
 
 package chatty.util.api.usericons;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Objects;
+import java.util.*;
 
 /**
  *
@@ -103,81 +99,62 @@ public class UsericonPosition {
         }
         return true;
     }
-    
-    
+
+
     /**
-     * Combines an Usericon type and badge type for comparing it to icons to be
-     * inserted.
-     */
-    private static class Ref {
-        
-        private final Usericon.Type reqType;
-        private final BadgeType reqBadgeType;
-        
+         * Combines an Usericon type and badge type for comparing it to icons to be
+         * inserted.
+         */
+        private record Ref(Usericon.Type reqType, BadgeType reqBadgeType) {
+
         public static Ref create(String badgeType) {
-            return new Ref(Usericon.Type.TWITCH, BadgeType.parse(badgeType));
-        }
-        
+                return new Ref(Usericon.Type.TWITCH, BadgeType.parse(badgeType));
+            }
+
         public static Ref create(Usericon.Type type, String badgeType) {
-            return new Ref(type, BadgeType.parse(badgeType));
-        }
-        
-        private Ref(Usericon.Type type, BadgeType badgeType) {
-            this.reqType = type;
-            this.reqBadgeType = badgeType;
-        }
-        
+                return new Ref(type, BadgeType.parse(badgeType));
+            }
+
         public boolean continueSearching(Usericon icon) {
-            // Addon icons should always be ignored (inserted afterwards)
-            if (icon.type == Usericon.Type.ADDON) {
-                return true;
+                // Addon icons should always be ignored (inserted afterwards)
+                if (icon.type == Usericon.Type.ADDON) {
+                    return true;
+                }
+                // No required badge type defined, so just check Usericon type
+                if (this.reqBadgeType.isEmpty()) {
+                    return icon.type == this.reqType;
+                }
+                // Icon doesn't have a badge type, so might be e.g. a fallback icon
+                // that's not of type TWITCH, so check type according to id
+                if (icon.badgeType.isEmpty()) {
+                    return icon.type == Usericon.typeFromBadgeId(reqBadgeType.id());
+                }
+                if (icon.type == Usericon.Type.TWITCH || icon.type == Usericon.Type.OTHER) {
+                    return reqType == icon.type && reqBadgeType.matchesLenient(icon.badgeType);
+                }
+                return false;
             }
-            // No required badge type defined, so just check Usericon type
-            if (this.reqBadgeType.isEmpty()) {
-                return icon.type == this.reqType;
-            }
-            // Icon doesn't have a badge type, so might be e.g. a fallback icon
-            // that's not of type TWITCH, so check type according to id
-            if (icon.badgeType.isEmpty()) {
-                return icon.type == Usericon.typeFromBadgeId(reqBadgeType.id);
-            }
-            if (icon.type == Usericon.Type.TWITCH || icon.type == Usericon.Type.OTHER) {
-                return reqType == icon.type && reqBadgeType.matchesLenient(icon.badgeType);
-            }
-            return false;
-        }
-        
-        @Override
-        public String toString() {
-            return reqType+" "+reqBadgeType;
-        }
 
         @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
+            public String toString() {
+                return reqType + " " + reqBadgeType;
             }
-            if (getClass() != obj.getClass()) {
-                return false;
+
+            @Override
+            public boolean equals(Object obj) {
+                if (obj == null) {
+                    return false;
+                }
+                if (getClass() != obj.getClass()) {
+                    return false;
+                }
+                final Ref other = (Ref) obj;
+                if (this.reqType != other.reqType) {
+                    return false;
+                }
+                return Objects.equals(this.reqBadgeType, other.reqBadgeType);
             }
-            final Ref other = (Ref) obj;
-            if (this.reqType != other.reqType) {
-                return false;
-            }
-            if (!Objects.equals(this.reqBadgeType, other.reqBadgeType)) {
-                return false;
-            }
-            return true;
-        }
-        
-        @Override
-        public int hashCode() {
-            int hash = 7;
-            hash = 97 * hash + Objects.hashCode(this.reqType);
-            hash = 97 * hash + Objects.hashCode(this.reqBadgeType);
-            return hash;
-        }
-        
+
     }
     
 }

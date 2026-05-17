@@ -4,18 +4,7 @@ package chatty.util;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -390,9 +379,8 @@ public class StringUtil {
         String[] words = input.split(" ");
         StringBuilder b = new StringBuilder();
         int lineLength = 0;
-        for (int i=0;i<words.length;i++) {
-            String word = words[i];
-            if (b.length() > 0
+        for (String word : words) {
+            if (!b.isEmpty()
                     && lineLength + word.length() > maxLineLength) {
                 if (html) {
                     b.append("<br />");
@@ -400,7 +388,7 @@ public class StringUtil {
                     b.append("\n");
                 }
                 lineLength = 0;
-            } else if (b.length() > 0) {
+            } else if (!b.isEmpty()) {
                 b.append(" ");
                 lineLength++;
             }
@@ -433,7 +421,7 @@ public class StringUtil {
                 appended = false;
             }
             if (arg != null) {
-                b.append(arg.toString());
+                b.append(arg);
                 appended = true;
             }
         }
@@ -646,7 +634,7 @@ public class StringUtil {
      * @return The input with replacements performed
      */
     public static String replaceFunc(String input, Pattern pattern, Function<Matcher, String> func) {
-        StringBuffer b = new StringBuffer();
+        StringBuilder b = new StringBuilder();
         Matcher m = pattern.matcher(input);
         while (m.find()) {
             m.appendReplacement(b, Matcher.quoteReplacement(func.apply(m)));
@@ -837,7 +825,7 @@ public class StringUtil {
         return input.substring(correctedStart, correctedEnd);
     }
     
-    public static final void main(String[] args) {
+    public static void main(String[] args) {
         System.out.println(shortenTo("abcdefghi", 8, 5));
         System.out.println(concats("a", null, "b", null));
     }

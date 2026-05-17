@@ -4,8 +4,6 @@ package chatty.util.settings;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -35,7 +33,7 @@ public class Setting {
     private final int type;
     
     private Object value;
-    private boolean save = true;
+    private boolean save;
     private String file;
     private boolean valueSet;
     
@@ -50,9 +48,9 @@ public class Setting {
     public Setting(Object value, int type, boolean save, String file) {
         this.value = value;
         if (type == MAP) {
-            this.defaultValue = new HashMap<>((Map)value);
+            this.defaultValue = new HashMap<>((Map<?, ?>)value);
         } else if (type == LIST) {
-            this.defaultValue = copyCollection((Collection)value);
+            this.defaultValue = copyCollection((Collection<?>)value);
         } else {
             this.defaultValue = value;
         }
@@ -121,10 +119,10 @@ public class Setting {
      */
     public boolean setToDefault() {
         if (type == MAP) {
-            return setValue(new HashMap<>((Map)defaultValue));
+            return setValue(new HashMap<>((Map<?, ?>)defaultValue));
         }
         if (type == LIST) {
-            return setValue(copyCollection((Collection)defaultValue));
+            return setValue(copyCollection((Collection<?>)defaultValue));
         }
         return setValue(defaultValue);
     }
@@ -183,28 +181,16 @@ public class Setting {
      * @param o
      * @return 
      */
-    private static Collection copyCollection(Collection o) {
+    @SuppressWarnings("unchecked")
+    private static Collection<?> copyCollection(Collection<?> o) {
         try {
-            Collection copy = null;
-            copy = (Collection) o.getClass().newInstance();
+            Collection<Object> copy = o.getClass().getDeclaredConstructor().newInstance();
             copy.addAll(o);
             return copy;
         } catch (Exception ex) {
             Logger.getLogger(Setting.class.getName()).log(Level.SEVERE, null, ex);
         }
-        return new ArrayList(o);
-    }
-    
-    private static Map copyMap(Map o) {
-        try {
-            Map copy = null;
-            copy = (Map) o.getClass().newInstance();
-            copy.putAll(o);
-            return copy;
-        } catch (Exception ex) {
-            Logger.getLogger(Setting.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return new HashMap(o);
+        return new ArrayList<>(o);
     }
     
 }

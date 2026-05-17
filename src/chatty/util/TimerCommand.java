@@ -4,32 +4,17 @@ package chatty.util;
 import chatty.Room;
 import chatty.util.commands.Parameters;
 import chatty.util.settings.Settings;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
+
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.SignStyle;
-import static java.time.temporal.ChronoField.HOUR_OF_DAY;
-import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
-import static java.time.temporal.ChronoField.NANO_OF_SECOND;
-import static java.time.temporal.ChronoField.SECOND_OF_MINUTE;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static java.time.temporal.ChronoField.*;
 
 /**
  * Handles the /timer command.
@@ -49,9 +34,9 @@ public class TimerCommand {
     
     private final Map<String, Integer> idCounter = new HashMap<>();
     
-    public static interface TimerAction {
-        public void performAction(String command, String channel, Parameters parameters, Set<Option> options);
-        public void log(String line);
+    public interface TimerAction {
+        void performAction(String command, String channel, Parameters parameters, Set<Option> options);
+        void log(String line);
     }
     
     public enum Option {
@@ -76,9 +61,7 @@ public class TimerCommand {
     
     public TimerCommand(Settings settings, TimerAction action) {
         this.action = action;
-        settings.addSettingsListener((s) -> {
-            saveSettings(s);
-        });
+        settings.addSettingsListener(this::saveSettings);
     }
     
     private static final Pattern PARSER = Pattern.compile("(?:-(?<options>[a-z]+) )?(?::(?<id>[^ ]+) )?(?<command>stop|list|(?<simple>[0-9mshd:]+) |\\[(?<datetime>[0-9: -]+)\\] )(?<task>.*)");
@@ -238,23 +221,16 @@ public class TimerCommand {
         }
     }
     
-    private synchronized boolean stopTimer(String id) {
+    private synchronized void stopTimer(String id) {
         TimerEntry entry = getEntryById(id);
         if (entry != null) {
             entry.task.cancel();
             entries.remove(entry);
-            return true;
         }
-        return false;
     }
     
     private synchronized void taskFinished(TimerTask task) {
-        Iterator<TimerEntry> it = entries.iterator();
-        while (it.hasNext()) {
-            if (it.next().task == task) {
-                it.remove();
-            }
-        }
+        entries.removeIf(timerEntry -> timerEntry.task == task);
     }
     
     public synchronized int getNumTimers() {
@@ -303,9 +279,7 @@ public class TimerCommand {
         StringBuilder b = new StringBuilder();
         List<TimerEntry> filtered = getEntriesById(id);
         if (timeOrder) {
-            filtered.sort((o1, o2) -> {
-                return Long.compare(o1.targetTime, o2.targetTime);
-            });
+            filtered.sort(Comparator.comparingLong(o -> o.targetTime));
         }
         
         if (id != null && !id.isEmpty()) {
@@ -323,17 +297,9 @@ public class TimerCommand {
         }
         return b.toString();
     }
-    
-    public static class TimerResult {
-        
-        public final String message;
-        public final TimerEntry entry;
-        
-        public TimerResult(String message, TimerEntry entry) {
-            this.entry = entry;
-            this.message = message;
-        }
-        
+
+    public record TimerResult(String message, TimerEntry entry) {
+
     }
     
     public static class TimerEntry {

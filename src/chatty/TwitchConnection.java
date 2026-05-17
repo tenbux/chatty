@@ -1,32 +1,18 @@
 
 package chatty;
 
-import chatty.lang.Language;
-import chatty.gui.colors.UsercolorManager;
-import chatty.util.api.usericons.UsericonManager;
 import chatty.ChannelStateManager.ChannelStateListener;
 import chatty.User.UserSettings;
 import chatty.gui.emoji.EmojiUtil;
+import chatty.lang.Language;
 import chatty.util.BotNameManager;
-import chatty.util.irc.MsgTags;
 import chatty.util.StringUtil;
 import chatty.util.api.Emoticons;
-import chatty.util.irc.IrcBadges;
+import chatty.util.irc.MsgTags;
 import chatty.util.irc.UserTagsUtil;
 import chatty.util.settings.Settings;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -52,7 +38,7 @@ public class TwitchConnection {
     /**
      * Channels that are open in the program (in tabs if it's more than one).
      */
-    private final Set<String> openChannels = Collections.synchronizedSet(new HashSet<String>());
+    private final Set<String> openChannels = Collections.synchronizedSet(new HashSet<>());
 
     /**
      * How many times to try to reconnect
@@ -86,7 +72,7 @@ public class TwitchConnection {
     /**
      * Holds the UserManager instance, which manages all the user objects.
      */
-    protected UserManager users = new UserManager();
+    protected final UserManager users = new UserManager();
     
     private final RoomManager rooms;
 
@@ -109,13 +95,9 @@ public class TwitchConnection {
         spamProtection.setLinesPerSeconds(settings.getString("spamProtection"));
         users.setCapitalizedNames(settings.getBoolean("capitalizedNames"));
         users.setSettings(settings);
-        users.addListener(new UserManager.UserManagerListener() {
-
-            @Override
-            public void userUpdated(User user) {
-                if (user.isOnline()) {
-                    listener.onUserUpdated(user);
-                }
+        users.addListener(user -> {
+            if (user.isOnline()) {
+                listener.onUserUpdated(user);
             }
         });
     }
@@ -432,8 +414,7 @@ public class TwitchConnection {
             irc.setState(Irc.STATE_OFFLINE);
             irc.connectionAttempts = 0;
         }
-        boolean success = irc.disconnect();
-        return success;
+        return irc.disconnect();
     }
     
     public void quit() {
@@ -466,9 +447,9 @@ public class TwitchConnection {
         irc.send(text);
     }
     
-    public boolean command(String channel, String command, String parameters,
-            String msgId) {
-        return twitchCommands.command(channel, msgId, command, parameters);
+    public void command(String channel, String command, String parameters,
+                        String msgId) {
+        twitchCommands.command(channel, msgId, command, parameters);
     }
     
     public void addNewCommands(Commands commands, TwitchClient client) {
@@ -595,7 +576,6 @@ public class TwitchConnection {
      */
     private void joinValidChannels(Set<String> valid) {
         if (valid.isEmpty()) {
-            return;
         } else if (!irc.isRegistered()) {
             listener.onJoinError(valid, null, JoinError.NOT_REGISTERED);
         } else {
@@ -651,8 +631,8 @@ public class TwitchConnection {
          * is received. It roughly indicates that the connection has probably
          * started to receive users.
          */
-        private Set<String> userlistReceived = Collections.synchronizedSet(
-                new HashSet<String>());
+        private final Set<String> userlistReceived = Collections.synchronizedSet(
+                new HashSet<>());
         
         
         public IrcConnection(String id) {
@@ -806,7 +786,7 @@ public class TwitchConnection {
                             maxReconnectionAttempts < 0 ? "∞" : maxReconnectionAttempts));
                     setState(Irc.STATE_RECONNECTING);
                     reconnectionTimer = new Timer();
-                    reconnectionTimer.schedule(getReconnectionTimerTask(), delay * 1000);
+                    reconnectionTimer.schedule(getReconnectionTimerTask(), delay * 1000L);
                 }
             }
         }
@@ -1018,10 +998,7 @@ public class TwitchConnection {
         }
         
         private class GiftedSubCombiner {
-            
-            private final int MAX_RECIPIENTS_PER_MESSAGE = 20;
-            private final int COMBINE_INTERVAL = 1000;
-            
+
             private final List<String> recipients = new ArrayList<>();
             private User gifter;
             private String subPlan;
@@ -1031,10 +1008,7 @@ public class TwitchConnection {
             public synchronized void add(User user, String text, String message, int months, String emotes, MsgTags tags) {
                 String recipient = tags.get("msg-param-recipient-display-name");
                 String plan = tags.get("msg-param-sub-plan");
-                boolean outputDirectly = false;
-                if (message != null && !message.isEmpty()) {
-                    outputDirectly = true;
-                }
+                boolean outputDirectly = message != null && !message.isEmpty();
                 if (recipient == null || plan == null) {
                     outputDirectly = true;
                 }
@@ -1046,6 +1020,7 @@ public class TwitchConnection {
                 if (gifter != user || !subPlan.equals(plan)) {
                     flush();
                 }
+                int MAX_RECIPIENTS_PER_MESSAGE = 20;
                 if (recipients.size() == MAX_RECIPIENTS_PER_MESSAGE) {
                     flush();
                 }
@@ -1056,6 +1031,7 @@ public class TwitchConnection {
                     // First sub of this group
                     this.text = text;
                     timer = new Timer(true);
+                    int COMBINE_INTERVAL = 1000;
                     timer.schedule(new TimerTask() {
 
                         @Override
@@ -1239,7 +1215,7 @@ public class TwitchConnection {
                 info(channel, "[Info] " + text, null);
 
                 // Output appropriate message
-                if (modsList.size() > 0) {
+                if (!modsList.isEmpty()) {
                     info(channel, "There are " + modsList.size() + " mods for this channel.", null);
                 } else {
                     info(channel, "There are no mods for this channel.", null);
@@ -1649,13 +1625,7 @@ public class TwitchConnection {
          * @param channel The channel
          */
         private void clearOld(String channel) {
-            Iterator<Message> it = messages.get(channel).iterator();
-            while (it.hasNext()) {
-                Message m = it.next();
-                if (System.currentTimeMillis() - m.time > TIMEOUT) {
-                    it.remove();
-                }
-            }
+            messages.get(channel).removeIf(m -> System.currentTimeMillis() - m.time > TIMEOUT);
         }
         
         private static class Message {

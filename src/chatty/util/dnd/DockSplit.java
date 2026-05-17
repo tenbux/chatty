@@ -3,16 +3,11 @@ package chatty.util.dnd;
 
 import chatty.util.Debugging;
 import chatty.util.dnd.DockDropInfo.DropType;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Point;
-import java.awt.Rectangle;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.BorderFactory;
-import javax.swing.JComponent;
-import javax.swing.JSplitPane;
-import javax.swing.SwingUtilities;
 
 /**
  * Shows two components side by side (horizontal or vertical).
@@ -101,22 +96,21 @@ public class DockSplit extends JSplitPane implements DockChild {
                 right = newChildSplit;
             }
             // Divider
-            DockSplit split = newChildSplit;
-            split.setDividerLocation(0.5);
-            split.setResizeWeight(0.5);
+            newChildSplit.setDividerLocation(0.5);
+            newChildSplit.setResizeWeight(0.5);
             SwingUtilities.invokeLater(() -> {
-                split.setDividerLocation(0.5);
-                split.setResizeWeight(0.5);
+                newChildSplit.setDividerLocation(0.5);
+                newChildSplit.setResizeWeight(0.5);
             });
             DockUtil.preserveDividerLocation(this);
         }
     }
     
     private boolean checkComponent(DockChild parent, DockDropInfo info) {
-        if (parent == info.dropComponent) {
+        if (parent == info.dropComponent()) {
             return true;
         }
-        return parent == info.dropComponent.getComponent().getParent();
+        return parent == info.dropComponent().getComponent().getParent();
     }
 
     @Override
@@ -124,8 +118,8 @@ public class DockSplit extends JSplitPane implements DockChild {
         DockPathEntry next = DockUtil.getNext(content, this);
         if (next != null) {
             Debugging.println("dndp", "%s -> %s", this, next);
-            if (next.type == DockPathEntry.Type.SPLIT
-                    && (next.location == DropType.RIGHT || next.location == DropType.BOTTOM)) {
+            if (next.type() == DockPathEntry.Type.SPLIT
+                    && (next.location() == DropType.RIGHT || next.location() == DropType.BOTTOM)) {
                 right.addContent(content);
             }
             else {

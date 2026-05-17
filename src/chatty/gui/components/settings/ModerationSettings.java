@@ -1,36 +1,24 @@
 
 package chatty.gui.components.settings;
 
-import chatty.gui.Channels;
 import chatty.gui.GuiUtil;
 import chatty.gui.RegexDocumentFilter;
 import chatty.gui.components.LinkLabel;
 import chatty.gui.components.userinfo.PastMessages;
 import chatty.lang.Language;
 import chatty.util.StringUtil;
-import java.awt.Color;
-import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import static java.awt.GridBagConstraints.EAST;
-import java.awt.GridBagLayout;
-import java.awt.Window;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTabbedPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
+
+import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.DocumentFilter;
+import java.awt.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import static java.awt.GridBagConstraints.EAST;
 
 /**
  *
@@ -51,26 +39,26 @@ public class ModerationSettings extends SettingsPanel {
         SettingsUtil.addSubsettings(showModActions, showModActionsRestrict);
         
         modInfoPanel.add(showModActions,
-                d.makeGbc(0, 0, 3, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 0, 3, 1, GridBagConstraints.WEST));
         
         modInfoPanel.add(showModActionsRestrict,
-                d.makeGbcSub(0, 1, 3, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbcSub(0, 1, 3, 1, GridBagConstraints.WEST));
         
         modInfoPanel.add(d.addSimpleBooleanSetting("showActionBy"),
-                d.makeGbc(0, 4, 3, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 4, 3, 1, GridBagConstraints.WEST));
         
         modInfoPanel.add(d.addSimpleBooleanSetting("showAutoMod", "Show messages rejected by AutoMod", ""),
-                d.makeGbc(0, 5, 3, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 5, 3, 1, GridBagConstraints.WEST));
         
         modInfoPanel.add(new JLabel(SettingConstants.HTML_PREFIX
                 + "Approve/deny AutoMod messages in chat through their context menu (right-click) or the User Dialog (left-click) or <code>Extra - AutoMod</code>."),
-                d.makeGbc(1, 6, 2, 1, GridBagConstraints.CENTER));
+                SettingsDialog.makeGbc(1, 6, 2, 1, GridBagConstraints.CENTER));
 
         modInfoPanel.add(d.addSimpleBooleanSetting("showLowTrustInfo"),
-            d.makeGbc(0, 7, 3, 1, GridBagConstraints.WEST));
+            SettingsDialog.makeGbc(0, 7, 3, 1, GridBagConstraints.WEST));
         
         modInfoPanel.add(d.addSimpleBooleanSetting("showRestrictedMessages"),
-            d.makeGbc(0, 8, 3, 1, GridBagConstraints.WEST));
+            SettingsDialog.makeGbc(0, 8, 3, 1, GridBagConstraints.WEST));
         
         //==========================
         // User Dialog
@@ -83,27 +71,27 @@ public class ModerationSettings extends SettingsPanel {
         
         userInfoGeneral.add(d.addSimpleBooleanSetting(
                 "closeUserDialogOnAction"),
-                d.makeGbc(0, 0, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 0, 2, 1, GridBagConstraints.WEST));
         
         userInfoGeneral.add(d.addSimpleBooleanSetting(
                 "openUserDialogByMouse"),
-                d.makeGbc(0, 1, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 1, 2, 1, GridBagConstraints.WEST));
         
         userInfoGeneral.add(d.addSimpleBooleanSetting(
                 "reuseUserDialog"),
-                d.makeGbc(0, 2, 2, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 2, 2, 1, GridBagConstraints.WEST));
         
         HotkeyTextField banReasonsHotkey = new HotkeyTextField(12, null);
         d.addStringSetting("banReasonsHotkey", banReasonsHotkey);
         SettingsUtil.addLabeledComponent(userInfoGeneral, "banReasonsHotkey", 0, 6, 1, EAST, banReasonsHotkey);
         
         userInfoGeneral.add(SettingsUtil.createLabel("banReasonsInfo", true),
-                d.makeGbc(0, 7, 2, 1));
+                SettingsDialog.makeGbc(0, 7, 2, 1));
         
         SettingsUtil.addLabeledComponent(userInfoMsg, "settings.otherMessageSettings.timestamp", 0, 3, 1, EAST, MessageSettings.createTimestampPanel(d, "userDialogTimestamp"));
 
         SettingsUtil.addLabeledComponent(userInfoMsg, "settings.long.clearUserMessages.label", 0, 4, 1, EAST,
-                d.addComboLongSetting("clearUserMessages", new int[]{-1, 3, 6, 12, 24}));
+                d.addComboLongSetting("clearUserMessages", -1, 3, 6, 12, 24));
         
         SettingsUtil.addLabeledComponent(userInfoMsg, "userDialogMessageLimit", 0, 5, 1, EAST,
                 d.addSimpleLongSetting("userDialogMessageLimit", 3, true));
@@ -157,9 +145,7 @@ public class ModerationSettings extends SettingsPanel {
         
         JButton testSim = new JButton("Test Similarity");
         GuiUtil.smallButtonInsets(testSim);
-        testSim.addActionListener(e -> {
-            new TestSimilarity(d, ignoredChars.getText()).setVisible(true);
-        });
+        testSim.addActionListener(e -> new TestSimilarity(d, ignoredChars.getText()).setVisible(true));
         repeatMsgPanel.add(testSim,
                 SettingsDialog.makeGbc(2, 1, 2, 1, GridBagConstraints.EAST));
         
@@ -177,7 +163,7 @@ public class ModerationSettings extends SettingsPanel {
          * Remove all characters that are not in the BMP (except surrogates, so
          * do remove those).
          */
-        public static DocumentFilter IGNORED_CHARS_FILTER = new RegexDocumentFilter("[^\u0000-\uD7FF\uE000-\uFFFF]", null);
+        public static final DocumentFilter IGNORED_CHARS_FILTER = new RegexDocumentFilter("[^\u0000-\uD7FF\uE000-\uFFFF]", null);
         
         private static final String DEFAULT_EXAMPLE_A = "Have you already checked out Chatty's YouTube channel? Might have some useful video guides.";
         private static final String DEFAULT_EXAMPLE_B = "Chatty's YouTube channel might have some useful video guides. Have you checked it out yet?";

@@ -16,7 +16,7 @@ public interface DockChild {
      * 
      * @return 
      */
-    public JComponent getComponent();
+    JComponent getComponent();
     
     /**
      * Split up into two components, whereas the new one will contain the
@@ -25,7 +25,7 @@ public interface DockChild {
      * @param info Contains info on where the new component should be added
      * @param content The content to add
      */
-    public void split(DockDropInfo info, DockContent content);
+    void split(DockDropInfo info, DockContent content);
     
     /**
      * Replace the given child with another one. This is commonly used to change
@@ -35,7 +35,7 @@ public interface DockChild {
      * @param replacement What to replace it with (can be null to replace it
      * with nothing)
      */
-    public void replace(DockChild old, DockChild replacement);
+    void replace(DockChild old, DockChild replacement);
     
     /**
      * Add content to the component. If the component itself does not hold
@@ -43,7 +43,7 @@ public interface DockChild {
      * 
      * @param content The content to add
      */
-    public void addContent(DockContent content);
+    void addContent(DockContent content);
     
     /**
      * Remove content from the component. If the component itself does not hold
@@ -51,18 +51,18 @@ public interface DockChild {
      * 
      * @param content The content to remove
      */
-    public void removeContent(DockContent content);
+    void removeContent(DockContent content);
     
-    public void setActiveContent(DockContent content);
+    void setActiveContent(DockContent content);
     
-    public boolean isContentVisible(DockContent content);
+    boolean isContentVisible(DockContent content);
     
     /**
      * Change the current base of this component.
      * 
      * @param base 
      */
-    public void setBase(DockBase base);
+    void setBase(DockBase base);
     
     /**
      * Determine whether a drop can occur at the given location. If this
@@ -76,7 +76,7 @@ public interface DockChild {
      * @return A DockDropInfo if this component has an opinion on what drop
      * should occur, null otherwise
      */
-    public DockDropInfo findDrop(DockImportInfo info);
+    DockDropInfo findDrop(DockImportInfo info);
     
     /**
      * A drop has occured on this component and should be acted on accordingly.
@@ -88,14 +88,14 @@ public interface DockChild {
      * 
      * @param info 
      */
-    public void drop(DockTransferInfo info);
+    void drop(DockTransferInfo info);
     
     /**
      * Whether this component contains any content.
      * 
      * @return true if the component contains no content, false otherwise
      */
-    public boolean isEmpty();
+    boolean isEmpty();
     
     /**
      * Change the current parent of this component. A change can e.g. happen
@@ -103,21 +103,21 @@ public interface DockChild {
      * 
      * @param parent 
      */
-    public void setDockParent(DockChild parent);
+    void setDockParent(DockChild parent);
     
     /**
      * The component above in the docking structure.
      * 
      * @return The DockChild, can be null
      */
-    public DockChild getDockParent();
+    DockChild getDockParent();
     
     /**
      * Get the path to this component (not including the component itself).
      * 
      * @return 
      */
-    public DockPath getPath();
+    DockPath getPath();
     
     /**
      * Add the current component to the path (if applicable) and continue with
@@ -127,9 +127,9 @@ public interface DockChild {
      * @param child The child component
      * @return 
      */
-    public DockPath buildPath(DockPath path, DockChild child);
+    DockPath buildPath(DockPath path, DockChild child);
     
-    public DockLayoutElement getLayoutElement();
+    DockLayoutElement getLayoutElement();
     
     /**
      * All content contained in this component (should be ordered the way it is
@@ -138,7 +138,7 @@ public interface DockChild {
      * @return The content, possibly and empty collection when there is none
      * (never null)
      */
-    public List<DockContent> getContents();
+    List<DockContent> getContents();
     
     /**
      * Get all contents from the same tab pane relative to the given content.
@@ -148,7 +148,7 @@ public interface DockChild {
      * @return The content, possibly and empty collection when there is none
      * (never null)
      */
-    public List<DockContent> getContentsRelativeTo(DockContent content, int direction);
+    List<DockContent> getContentsRelativeTo(DockContent content, int direction);
     
     /**
      * Set a setting. The setting value should not be modified, since the
@@ -158,9 +158,9 @@ public interface DockChild {
      * @param setting
      * @param value 
      */
-    public void setSetting(DockSetting.Type setting, Object value);
+    void setSetting(DockSetting.Type setting, Object value);
     
-    public void cleanUp();
+    void cleanUp();
     
     /**
      * Sort all tab panes contained in this child based on current tab order.
@@ -168,6 +168,6 @@ public interface DockChild {
      * @param content If given only this content will be resorted, otherwise
      * (null) all tabs are sorted
      */
-    public void sortContent(DockContent content);
+    void sortContent(DockContent content);
     
 }

@@ -55,7 +55,7 @@ public class ColorItem {
     }
     
     public boolean isEmpty() {
-        return foreground == null && background == null;
+        return foreground != null || background != null;
     }
     
     @Override
@@ -107,10 +107,7 @@ public class ColorItem {
         if (this.foregroundEnabled != other.foregroundEnabled) {
             return false;
         }
-        if (this.backgroundEnabled != other.backgroundEnabled) {
-            return false;
-        }
-        return true;
+        return this.backgroundEnabled == other.backgroundEnabled;
     }
     
 }

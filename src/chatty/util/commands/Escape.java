@@ -82,10 +82,7 @@ public class Escape implements Item {
         if (!Objects.equals(this.item, other.item)) {
             return false;
         }
-        if (this.type != other.type) {
-            return false;
-        }
-        return true;
+        return this.type == other.type;
     }
     
     @Override

@@ -4,12 +4,11 @@ package chatty.gui.components.settings;
 import chatty.Chatty;
 import chatty.Chatty.PathType;
 import chatty.gui.components.LinkLabel;
-import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
+
+import javax.swing.*;
+import java.awt.*;
+
 import static java.awt.GridBagConstraints.WEST;
-import javax.swing.JCheckBox;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
 
 /**
  * More settings..
@@ -51,19 +50,19 @@ public class OtherSettings extends SettingsPanel {
         //------------------
         // Graphics settings
         //------------------
-        graphics.add(new JLabel(INFO), d.makeGbc(0, 0, 2, 1));
+        graphics.add(new JLabel(INFO), SettingsDialog.makeGbc(0, 0, 2, 1));
 
         graphics.add(d.addSimpleBooleanSetting(
                 "nod3d",
                 "Disable Direct3D",
                 ""),
-                d.makeGbc(0, 1, 1, 1));
+                SettingsDialog.makeGbc(0, 1, 1, 1));
 
         graphics.add(d.addSimpleBooleanSetting(
                 "noddraw",
                 "Disable DirectDraw",
                 ""),
-                d.makeGbc(1, 1, 1, 1));
+                SettingsDialog.makeGbc(1, 1, 1, 1));
         
         SettingsUtil.addLabeledComponent(graphics, "uiScale", 0, 2, 1, GridBagConstraints.EAST,
                 d.addComboLongSetting("uiScale", 0, 100, 125, 150, 175, 200));
@@ -74,26 +73,24 @@ public class OtherSettings extends SettingsPanel {
         JLabel info = new JLabel(SettingConstants.HTML_PREFIX+"<em>Note:</em> You can manually check for updates via the "
                 + "'Help' menu even if you have automatic checks disabled.");
         updates.add(info,
-                d.makeGbc(0, 0, 1, 1));
+                SettingsDialog.makeGbc(0, 0, 1, 1));
         
         JCheckBox versionCheck = d.addSimpleBooleanSetting(
                 "checkNewVersion",
                 "Automatically check for new version",
                 "Automatically check for a new version every few days and output a message if a new one is available.");
         updates.add(versionCheck,
-                d.makeGbc(0, 1, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 1, 1, 1, GridBagConstraints.WEST));
         
         JCheckBox versionCheckBeta = d.addSimpleBooleanSetting(
                 "checkNewBeta",
                 "Include beta versions",
                 "In addition to full releases, also inform about new betas.");
         updates.add(versionCheckBeta,
-                d.makeGbcSub(0, 2, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbcSub(0, 2, 1, 1, GridBagConstraints.WEST));
         
         versionCheckBeta.setEnabled(false);
-        versionCheck.addItemListener(e -> {
-            versionCheckBeta.setEnabled(versionCheck.isEnabled() && versionCheck.isSelected());
-        });
+        versionCheck.addItemListener(e -> versionCheckBeta.setEnabled(versionCheck.isEnabled() && versionCheck.isSelected()));
         if (!Chatty.VERSION_CHECK_ENABLED) {
             versionCheck.setEnabled(false);
             versionCheck.setToolTipText("Feature disabled in this distributed version.");
@@ -106,16 +103,16 @@ public class OtherSettings extends SettingsPanel {
                 "newsAutoRequest",
                 "Check for important announcements",
                 "Automatically checks for announcements about Chatty"),
-                d.makeGbc(0, 5, 3, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 5, 3, 1, GridBagConstraints.WEST));
         
         other.add(d.addSimpleBooleanSetting(
                 "enableStatusWriter",
                 "Write Stream Status:", ""),
-                d.makeGbc(0, 6, 2, 1));
+                SettingsDialog.makeGbc(0, 6, 2, 1));
         
         other.add(d.addEditorStringSetting(
                 "statusWriter", 20, true, "Write Stream Status:", true, INFO_WRITER),
-                d.makeGbc(2, 6, 1, 1));
+                SettingsDialog.makeGbc(2, 6, 1, 1));
         
         SettingsUtil.addLabeledComponent(other, "titleAddition", 0, 8, 2, WEST,
                 d.addSimpleStringSetting("titleAddition", 10, true));
@@ -124,7 +121,7 @@ public class OtherSettings extends SettingsPanel {
                 "abSaveOnChange",
                 "Save Addressbook immediately after changing entries",
                 "Save immediately after updating addressbook (including changes via commands)"),
-                d.makeGbc(0, 9, 3, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 9, 3, 1, GridBagConstraints.WEST));
         
         JPanel pronouns = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         JCheckBox pronouns1 = d.addSimpleBooleanSetting(

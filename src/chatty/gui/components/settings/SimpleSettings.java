@@ -2,8 +2,9 @@
 package chatty.gui.components.settings;
 
 import chatty.gui.defaults.DefaultsPanel;
-import java.awt.GridBagConstraints;
-import javax.swing.JOptionPane;
+
+import javax.swing.*;
+import java.awt.*;
 
 /**
  *
@@ -41,15 +42,13 @@ public class SimpleSettings extends SettingsPanel {
 
             @Override
             public boolean getEnabled(String option) {
-                switch (option) {
-                    case "notifications":
-                        return d.settings.getLong("nType") == NotificationSettings.NOTIFICATION_TYPE_CUSTOM;
-                    case "userlist":
-                        return d.settings.getBoolean("userlistEnabled");
-                    case "skip":
-                        return true;
-                }
-                return false;
+                return switch (option) {
+                    case "notifications" ->
+                            d.settings.getLong("nType") == NotificationSettings.NOTIFICATION_TYPE_CUSTOM;
+                    case "userlist" -> d.settings.getBoolean("userlistEnabled");
+                    case "skip" -> true;
+                    default -> false;
+                };
             }
 
             @Override

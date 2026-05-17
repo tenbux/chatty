@@ -17,35 +17,14 @@ import chatty.util.api.TwitchApi.AutoModActionResult;
 import chatty.util.api.eventsub.payloads.ModActionPayload;
 import chatty.util.api.eventsub.payloads.ModActionPayload.AutoModMessageUpdate;
 import chatty.util.dnd.DockContent;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.swing.AbstractAction;
-import javax.swing.BorderFactory;
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.DefaultListModel;
-import javax.swing.JComponent;
-import javax.swing.JDialog;
-import javax.swing.JList;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.KeyStroke;
-import javax.swing.ListSelectionModel;
-import javax.swing.ScrollPaneConstants;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
 
 /**
  *
@@ -77,8 +56,8 @@ public class AutoModDialog extends JDialog {
         this.api = api;
         this.client = client;
 
-        list = new JList<Item>() {
-            
+        list = new JList<>() {
+
             /**
              * To prevent horizontal scrolling and allow for tracking of the
              * viewport width.
@@ -89,7 +68,7 @@ public class AutoModDialog extends JDialog {
             public boolean getScrollableTracksViewportWidth() {
                 return true;
             }
-            
+
         };
         data = new DefaultListModel<>();
         list.setModel(data);
@@ -158,13 +137,7 @@ public class AutoModDialog extends JDialog {
             }
         });
         
-        Timer timer = new Timer(30000, new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                list.repaint();
-            }
-        });
+        Timer timer = new Timer(30000, e -> list.repaint());
         timer.setRepeats(true);
         timer.start();
         
@@ -389,11 +362,11 @@ public class AutoModDialog extends JDialog {
         Item item = new Item(modData, user);
 
         if (!cache.containsKey(room)) {
-            cache.put(room, new ArrayList<Item>());
+            cache.put(room, new ArrayList<>());
         }
         cache.get(room).add(item);
         if (cache.get(room).size() > MESSAGE_LIMIT) {
-            cache.get(room).remove(0);
+            cache.get(room).removeFirst();
             if (room.equals(currentRoom) && !data.isEmpty()) {
                 data.remove(0);
             }
@@ -487,13 +460,7 @@ public class AutoModDialog extends JDialog {
     
     private void scrollDown() {
         list.ensureIndexIsVisible(data.size() - 1);
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                list.ensureIndexIsVisible(data.size() - 1);
-            }
-        });
+        SwingUtilities.invokeLater(() -> list.ensureIndexIsVisible(data.size() - 1));
     }
 
     /**
@@ -512,30 +479,16 @@ public class AutoModDialog extends JDialog {
         if (e.isPopupTrigger()) {
             selectClicked(e);
             Item selectedItem = list.getSelectedValue();
-            AutoModContextMenu m = new AutoModContextMenu(selectedItem, helper, new AutoModContextMenu.AutoModContextMenuListener() {
-
-                @Override
-                public void itemClicked(Item item, ActionEvent e) {
-                    if (e.getActionCommand().equals("approve")) {
-                        approve(item);
-                    }
-                    else if (e.getActionCommand().equals("reject")) {
-                        deny(item);
-                    }
-                    else if (e.getActionCommand().equals("copy")) {
-                        MiscUtil.copyToClipboard(item.toString());
-                    }
-                    else if (e.getActionCommand().equals("help")) {
-                        gui.openHelp(null, "automod");
-                    }
-                    else if (e.getActionCommand().equals("user")) {
-                        openUserInfoDialog();
-                    }
-                    else if (e.getActionCommand().equals("close")) {
-                        setVisible(false);
-                    }
-                    helper.menuAction(e);
+            AutoModContextMenu m = new AutoModContextMenu(selectedItem, helper, (item, e1) -> {
+                switch (e1.getActionCommand()) {
+                    case "approve" -> approve(item);
+                    case "reject" -> deny(item);
+                    case "copy" -> MiscUtil.copyToClipboard(item.toString());
+                    case "help" -> gui.openHelp(null, "automod");
+                    case "user" -> openUserInfoDialog();
+                    case "close" -> setVisible(false);
                 }
+                helper.menuAction(e1);
             });
             m.show(list, e.getX(), e.getY());
         }
@@ -742,15 +695,14 @@ public class AutoModDialog extends JDialog {
             if (hasRequestPending) {
                 return "Pending";
             }
-            switch (status) {
-                case STATUS_NONE: return "";
-                case STATUS_HANDLED: return "Handled";
-                case STATUS_APPROVED: return "Approved";
-                case STATUS_DENIED: return "Denied";
-                case STATUS_ERROR: return "Error";
-                case STATUS_NA: return "N/A";
-            }
-            return "";
+            return switch (status) {
+                case STATUS_HANDLED -> "Handled";
+                case STATUS_APPROVED -> "Approved";
+                case STATUS_DENIED -> "Denied";
+                case STATUS_ERROR -> "Error";
+                case STATUS_NA -> "N/A";
+                default -> "";
+            };
         }
         
     }

@@ -5,6 +5,8 @@ import chatty.gui.components.help.About;
 import chatty.lang.Language;
 import chatty.util.commands.Parameters;
 import chatty.util.settings.Settings;
+
+import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -12,7 +14,6 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.swing.ImageIcon;
 
 /**
  * Provides some useful functions for several different context menus.
@@ -149,41 +150,24 @@ public class ContextMenuHelper {
         }
         return result;
     }
-    
-    static class Quality {
-        String displayName;
-        String qualities;
-        
-        Quality(String displayName, String qualities) {
-            this.displayName = displayName;
-            this.qualities = qualities;
-        }
-        
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final Quality other = (Quality) obj;
-            if (!Objects.equals(this.displayName, other.displayName)) {
-                return false;
-            }
-            if (!Objects.equals(this.qualities, other.qualities)) {
-                return false;
-            }
-            return true;
-        }
+
+    record Quality(String displayName, String qualities) {
 
         @Override
-        public int hashCode() {
-            int hash = 7;
-            hash = 83 * hash + Objects.hashCode(this.displayName);
-            hash = 83 * hash + Objects.hashCode(this.qualities);
-            return hash;
-        }
+            public boolean equals(Object obj) {
+                if (obj == null) {
+                    return false;
+                }
+                if (getClass() != obj.getClass()) {
+                    return false;
+                }
+                final Quality other = (Quality) obj;
+                if (!Objects.equals(this.displayName, other.displayName)) {
+                    return false;
+                }
+                return Objects.equals(this.qualities, other.qualities);
+            }
+
     }
     
     public static void addIgnore(ContextMenu m, String name, String submenu, boolean whisper) {

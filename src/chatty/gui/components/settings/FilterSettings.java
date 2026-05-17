@@ -20,13 +20,13 @@ public class FilterSettings extends SettingsPanel {
         
         GridBagConstraints gbc;
         
-        gbc = d.makeGbc(0,0,1,1);
+        gbc = SettingsDialog.makeGbc(0,0,1,1);
         gbc.insets.bottom -= 3;
         gbc.anchor = GridBagConstraints.WEST;
         JCheckBox filterEnabled = d.addSimpleBooleanSetting("filterEnabled");
         base.add(filterEnabled, gbc);
 
-        gbc = d.makeGbc(0,1,1,1);
+        gbc = SettingsDialog.makeGbc(0,1,1,1);
         gbc.insets = new Insets(5,10,5,5);
         ListSelector items = d.addListSetting("filter", "Filter", 220, 250, true, true);
         items.setInfo(HighlightSettings.getMatchingHelp("filter"));
@@ -36,7 +36,7 @@ public class FilterSettings extends SettingsPanel {
             tester.setLinkLabelListener(d.getLinkLabelListener());
             return tester;
         });
-        items.setDataFormatter(input -> input.trim());
+        items.setDataFormatter(String::trim);
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weightx = 1;
         gbc.weighty = 1;

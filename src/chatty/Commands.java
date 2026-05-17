@@ -3,15 +3,10 @@ package chatty;
 
 import chatty.util.StringUtil;
 import chatty.util.commands.Parameters;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+
+import javax.swing.*;
+import java.util.*;
 import java.util.function.Consumer;
-import javax.swing.SwingUtilities;
 
 /**
  *
@@ -67,7 +62,7 @@ public class Commands {
             Collection<String> result = new HashSet<>();
             for (Command c : commands.values()) {
                 result.add(c.name);
-                c.aliases.forEach(name -> result.add(name));
+                result.addAll(c.aliases);
             }
             return result;
         }
@@ -131,9 +126,7 @@ public class Commands {
         
         public void performAction(Room room, Parameters parameters, String enteredCommandName) {
             if (edt && !SwingUtilities.isEventDispatchThread()) {
-                SwingUtilities.invokeLater(() -> {
-                    action.accept(new CommandParameters(room, parameters, this, enteredCommandName));
-                });
+                SwingUtilities.invokeLater(() -> action.accept(new CommandParameters(room, parameters, this, enteredCommandName)));
             }
             else {
                 action.accept(new CommandParameters(room, parameters, this, enteredCommandName));
@@ -141,65 +134,34 @@ public class Commands {
         }
         
     }
-    
-    public static class CommandParameters {
-        
-        private final Room room;
-        private final Parameters parameters;
-        private final Command command;
-        private final String enteredCommandName;
-        
-        public CommandParameters(Room room,
-                                 Parameters parameters,
-                                 Command command,
-                                 String enteredCommandName) {
-            this.room = room;
-            this.parameters = parameters;
-            this.command = command;
-            this.enteredCommandName = enteredCommandName;
-        }
-        
-        public Command getCommand() {
-            return command;
-        }
-        
-        public String getEnteredCommandName() {
-            return enteredCommandName;
-        }
-        
-        public Room getRoom() {
-            return room;
-        }
-        
+
+    public record CommandParameters(Room room, Parameters parameters, Command command, String enteredCommandName) {
+
         public String getChannel() {
-            return room.getChannel();
-        }
-        
-        public Parameters getParameters() {
-            return parameters;
-        }
-        
+                return room.getChannel();
+            }
+
         /**
          * May be null.
-         * 
-         * @return 
+         *
+         * @return
          */
-        public String getArgs() {
-            return parameters.getArgs();
-        }
-        
-        public String getArgsTrimNonNull() {
-            String args = StringUtil.trim(getArgs());
-            if (args != null) {
-                return args;
+            public String getArgs() {
+                return parameters.getArgs();
             }
-            return "";
-        }
-        
+
+        public String getArgsTrimNonNull() {
+                String args = StringUtil.trim(getArgs());
+                if (args != null) {
+                    return args;
+                }
+                return "";
+            }
+
         public boolean hasArgs() {
-            return !StringUtil.isNullOrEmpty(parameters.getArgs());
-        }
-        
+                return !StringUtil.isNullOrEmpty(parameters.getArgs());
+            }
+
         /**
          * Split up the args into {@code numArgs} parts, separated by a space.
          * The last part contains the remaining args text. If there aren't
@@ -207,102 +169,97 @@ public class Commands {
          * <p>
          * Additionally when the args begin with "-" followed by no to several
          * letters they are interpreted as options.
-         * 
+         *
          * @param numArgs Into how many parts total to split the args
          * @return The resulting CommandParsedArgs object, or null
          */
-        public CommandParsedArgs parsedArgs(int numArgs) {
-            return CommandParsedArgs.parse(getArgs(), numArgs);
-        }
-        
+            public CommandParsedArgs parsedArgs(int numArgs) {
+                return CommandParsedArgs.parse(getArgs(), numArgs);
+            }
+
         public CommandParsedArgs parsedArgs(int numArgs, int numRequiredArgs) {
-            return CommandParsedArgs.parse(getArgs(), numArgs, numRequiredArgs);
-        }
-        
+                return CommandParsedArgs.parse(getArgs(), numArgs, numRequiredArgs);
+            }
+
     }
-    
-    public static class CommandParsedArgs {
-        
-        public final String[] args;
-        public final String options;
-        
+
+    public record CommandParsedArgs(String[] args, String options) {
+
         public CommandParsedArgs(String options, String[] args) {
-            this.args = args;
-            this.options = options;
-        }
-        
+                this(args, options);
+            }
+
         public String get(int index) {
-            return args[index];
-        }
-        
-        public boolean has(int index) {
-            return args.length > index;
-        }
-        
-        public String get(int index, String def) {
-            if (has(index)) {
                 return args[index];
             }
-            return def;
-        }
-        
+
+        public boolean has(int index) {
+                return args.length > index;
+            }
+
+        public String get(int index, String def) {
+                if (has(index)) {
+                    return args[index];
+                }
+                return def;
+            }
+
         public int getInt(int index, int def) {
-            if (has(index)) {
-                try {
-                    return Integer.parseInt(args[index]);
+                if (has(index)) {
+                    try {
+                        return Integer.parseInt(args[index]);
+                    } catch (NumberFormatException ex) {
+                        // Do nothing
+                    }
                 }
-                catch (NumberFormatException ex) {
-                    // Do nothing
-                }
+                return def;
             }
-            return def;
-        }
-        
+
         public boolean hasOption(String option) {
-            return options != null && options.contains(option);
-        }
-        
+                return options != null && options.contains(option);
+            }
+
         public static CommandParsedArgs parse(String input, int numArgs) {
-            return parse(input, numArgs, numArgs);
-        }
-        
+                return parse(input, numArgs, numArgs);
+            }
+
         public static CommandParsedArgs parse(String input, int numArgs, int numRequiredArgs) {
-            if (input == null) {
-                if (numRequiredArgs == 0) {
-                    return new CommandParsedArgs(null, "".split(""));
+                if (input == null) {
+                    if (numRequiredArgs == 0) {
+                        return new CommandParsedArgs(null, "".split(""));
+                    }
+                    return null;
                 }
-                return null;
+                String options = null;
+                int optionsTo = 0;
+                if (input.startsWith("-")) {
+                    optionsTo = input.indexOf(" ");
+                    if (optionsTo == -1) {
+                        optionsTo = input.length();
+                    }
+                    options = input.substring(1, optionsTo);
+                    if (options.isEmpty()) {
+                        options = null;
+                    }
+                    optionsTo++;
+                }
+                if (optionsTo >= input.length()) {
+                    if (numArgs == 0) {
+                        return new CommandParsedArgs(options, null);
+                    }
+                    return null;
+                }
+                String args = input.substring(optionsTo);
+                if (numArgs > 0) {
+                    String[] split = args.split(" ", numArgs);
+                    if (split.length >= numRequiredArgs) {
+                        return new CommandParsedArgs(options, split);
+                    }
+                    return null;
+                }
+                return new CommandParsedArgs(options, new String[]{args});
             }
-            String options = null;
-            int optionsTo = 0;
-            if (input.startsWith("-")) {
-                optionsTo = input.indexOf(" ");
-                if (optionsTo == -1) {
-                    optionsTo = input.length();
-                }
-                options = input.substring(1, optionsTo);
-                if (options.isEmpty()) {
-                    options = null;
-                }
-                optionsTo++;
-            }
-            if (optionsTo >= input.length()) {
-                if (numArgs == 0) {
-                    return new CommandParsedArgs(options, null);
-                }
-                return null;
-            }
-            String args = input.substring(optionsTo);
-            if (numArgs > 0) {
-                String[] split = args.split(" ", numArgs);
-                if (split.length >= numRequiredArgs) {
-                    return new CommandParsedArgs(options, split);
-                }
-                return null;
-            }
-            return new CommandParsedArgs(options, new String[]{args});
-        }
-        
+
     }
     
 }

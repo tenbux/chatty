@@ -13,30 +13,19 @@ import chatty.util.DateTime;
 import chatty.util.ElapsedTime;
 import chatty.util.api.StreamInfo;
 import chatty.util.settings.Settings;
-import java.awt.Color;
-import java.awt.Component;
+
+import javax.swing.*;
+import javax.swing.Timer;
+import javax.swing.border.Border;
+import javax.swing.border.TitledBorder;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.logging.Logger;
-import javax.swing.BorderFactory;
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.ImageIcon;
-import javax.swing.JList;
-import javax.swing.JPopupMenu;
-import javax.swing.JTextArea;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
-import javax.swing.border.Border;
-import javax.swing.border.TitledBorder;
 
 /**
  *
@@ -94,9 +83,7 @@ public class LiveStreamsList extends JList<StreamInfo> {
         updateTimer.setRepeats(true);
         updateTimer.start();
         
-        resortTimer = new Timer(50, e -> {
-            resortTimer();
-        });
+        resortTimer = new Timer(50, e -> resortTimer());
         
         ChangeListener favChangeListener = () -> {
             // Listener may be in ChannelFavorites lock, but calling it should
@@ -158,20 +145,16 @@ public class LiveStreamsList extends JList<StreamInfo> {
     public void setComparator(LiveStreamsDialog.Sorting s, boolean favFirst) {
         Comparator<StreamInfo> comp = s.comparator;
         if (favFirst) {
-            comp = new Comparator<StreamInfo>() {
-
-                @Override
-                public int compare(StreamInfo o1, StreamInfo o2) {
-                    boolean fav1 = favs.contains(o1.stream) || gameFavs.contains(o1.getGame());
-                    boolean fav2 = favs.contains(o2.stream) || gameFavs.contains(o2.getGame());
-                    if (fav1 && !fav2) {
-                        return -1;
-                    }
-                    if (fav2 && !fav1) {
-                        return 1;
-                    }
-                    return s.comparator.compare(o1, o2);
+            comp = (o1, o2) -> {
+                boolean fav1 = favs.contains(o1.stream) || gameFavs.contains(o1.getGame());
+                boolean fav2 = favs.contains(o2.stream) || gameFavs.contains(o2.getGame());
+                if (fav1 && !fav2) {
+                    return -1;
                 }
+                if (fav2 && !fav1) {
+                    return 1;
+                }
+                return s.comparator.compare(o1, o2);
             };
         }
         data.setComparator(comp);
@@ -186,9 +169,7 @@ public class LiveStreamsList extends JList<StreamInfo> {
         }
         this.favsOnly = favsOnly;
         if (favsOnly) {
-            data.setFilter(item -> {
-                return favs.contains(item.stream) || gameFavs.contains(item.getGame());
-            });
+            data.setFilter(item -> favs.contains(item.stream) || gameFavs.contains(item.getGame()));
         }
         else {
             data.setFilter(null);
@@ -489,7 +470,7 @@ public class LiveStreamsList extends JList<StreamInfo> {
         }
         
         private ImageIcon getTitleIcon(boolean fav, boolean gameFav, boolean isOpen) {
-            int id = (fav ? 1 << 0 : 0) + (gameFav ? 1 << 1 : 0) + (isOpen ? 1 << 2 : 0);
+            int id = (fav ? 1 : 0) + (gameFav ? 1 << 1 : 0) + (isOpen ? 1 << 2 : 0);
             ImageIcon icon = iconCache.get(id);
             if (icon != null) {
                 return icon;

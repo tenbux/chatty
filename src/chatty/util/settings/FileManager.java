@@ -4,30 +4,18 @@ package chatty.util.settings;
 import chatty.util.DateTime;
 import chatty.util.MiscUtil;
 import chatty.util.settings.FileManager.SaveResult.CancelReason;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.FileVisitOption;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 /**
  * Load and save a pre-defined set of files, with convenience features such as
@@ -47,7 +35,7 @@ public class FileManager {
     private static final String AUTO_BACKUP_PREFIX = "auto_";
     private static final String SESSION_BACKUP_PREFIX = "session_";
     
-    private static final Charset CHARSET = Charset.forName("UTF-8");
+    private static final java.nio.charset.Charset CHARSET = StandardCharsets.UTF_8;
     
     private final Map<String, FileSettings> files = new HashMap<>();
     private final Set<String> backupLoaded = new HashSet<>();
@@ -154,7 +142,7 @@ public class FileManager {
     }
     
     private String loadFromFile(Path file) throws IOException {
-        return new String(Files.readAllBytes(file), CHARSET);
+        return Files.readString(file, CHARSET);
     }
     
     private void saveToFile(Path file, String content) throws IOException {
@@ -329,10 +317,9 @@ public class FileManager {
         List<FileInfo> result = new ArrayList<>();
         Set<FileVisitOption> options = new HashSet<>();
         options.add(FileVisitOption.FOLLOW_LINKS);
-        Files.walkFileTree(backupPath, options, 1, new SimpleFileVisitor<Path>() {
-            
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
-                    throws IOException {
+        Files.walkFileTree(backupPath, options, 1, new SimpleFileVisitor<>() {
+
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                 String fileName = file.getFileName().toString();
                 String origFileName = getOrigFileName(fileName);
                 if (hasValidPrefix(fileName) && origFileName != null) {
@@ -343,30 +330,23 @@ public class FileManager {
                             String content = loadFromFile(file);
                             FileContentInfo info = s.infoProvider.getInfo(content);
                             result.add(new FileInfo(s, file, attrs.lastModifiedTime().toMillis(), attrs.size(), getTimestamp(fileName), info.isValid, info.info));
-                        }
-                        catch (IOException ex) {
-                            result.add(new FileInfo(s, file, attrs.lastModifiedTime().toMillis(), attrs.size(), getTimestamp(fileName), false, "Error: "+ex));
+                        } catch (IOException ex) {
+                            result.add(new FileInfo(s, file, attrs.lastModifiedTime().toMillis(), attrs.size(), getTimestamp(fileName), false, "Error: " + ex));
                         }
                     }
                 }
                 return FileVisitResult.CONTINUE;
             }
-            
+
         });
-        Collections.sort(result, (a, b) -> {
+        result.sort((a, b) -> {
             if (a.modifiedTime > b.modifiedTime) {
                 return 1;
             }
             if (a.modifiedTime < b.modifiedTime) {
                 return -1;
             }
-            if (a.timestamp > b.timestamp) {
-                return 1;
-            }
-            if (a.timestamp < b.timestamp) {
-                return -1;
-            }
-            return 0;
+            return Long.compare(a.timestamp, b.timestamp);
         });
         return new FileInfos(result);
     }
@@ -410,22 +390,9 @@ public class FileManager {
         }
         return -1;
     }
-    
-    public static class FileSettings {
-        
-        public final String id;
-        public final Path path;
-        public final boolean backupEnabled;
-        public final FileContentInfoProvider infoProvider;
-        
-        public FileSettings(String id, Path path, boolean backupEnabled,
-                            FileContentInfoProvider infoProvider) {
-            this.id = id;
-            this.path = path;
-            this.backupEnabled = backupEnabled;
-            this.infoProvider = infoProvider;
-        }
-        
+
+    public record FileSettings(String id, Path path, boolean backupEnabled, FileContentInfoProvider infoProvider) {
+
     }
     
     public static class FileInfos {
@@ -473,82 +440,41 @@ public class FileManager {
         }
         
     }
-    
-    public static class FileInfo {
-        
-        private final FileSettings settings;
-        private final String info;
-        private final long modifiedTime;
-        private final boolean isValid;
-        private final Path file;
-        private final long timestamp;
-        private final long size;
+
+    public record FileInfo(FileSettings settings, String info, long modifiedTime, boolean isValid, Path file,
+                           long timestamp, long size) {
 
         public FileInfo(FileSettings settings, Path file, long modifiedTime, long size, long timestamp, boolean isValid, String info) {
-            this.file = file;
-            this.modifiedTime = modifiedTime;
-            this.info = info;
-            this.isValid = isValid;
-            this.timestamp = timestamp;
-            this.settings = settings;
-            this.size = size;
-        }
-        
-        public FileSettings getSettings() {
-            return settings;
-        }
-        
-        public String getInfo() {
-            return info;
-        }
-        
-        public boolean isValid() {
-            return isValid;
-        }
-        
-        public Path getFile() {
-            return file;
-        }
-        
+                this(settings, info, modifiedTime, isValid, file, timestamp, size);
+            }
+
         public boolean nameStartsWith(String prefix) {
-            return file.getFileName().toString().startsWith(prefix);
-        }
-        
-        public long getModifiedTime() {
-            return modifiedTime;
-        }
-        
-        public long getSize() {
-            return size;
-        }
-        
-        public long getTimestamp() {
-            return timestamp;
-        }
-        
+                return file.getFileName().toString().startsWith(prefix);
+            }
+
         /**
          * Session backups are created/modified at the same time. Other backups
          * are copied, so they retain their original modified time, but have
          * an additional created timestamp added in the name.
-         * 
+         *
          * @return The timestamp, in milliseconds, when the backup was created
          * (written or copied)
          */
-        public long getCreated() {
-            return timestamp == -1 ? modifiedTime : timestamp*1000;
-        }
-        
+            public long getCreated() {
+                return timestamp == -1 ? modifiedTime : timestamp * 1000;
+            }
+
         @Override
-        public String toString() {
-            return String.format("[%s] Mod:%s Bu:%s valid: %s (%s)",
-                    file, DateTime.ago(modifiedTime), DateTime.ago(timestamp*1000), isValid, info);
-        }
-        
+            public String toString() {
+                return String.format("[%s] Mod:%s Bu:%s valid: %s (%s)",
+                        file, DateTime.ago(modifiedTime), DateTime.ago(timestamp * 1000), isValid, info);
+            }
+
     }
     
-    public static interface FileContentInfoProvider {
+    public interface FileContentInfoProvider {
         
-        public FileContentInfo getInfo(String content);
+        FileContentInfo getInfo(String content);
         
     }
     
@@ -560,7 +486,7 @@ public class FileManager {
         
         private static class Builder {
             
-            private String id;
+            private final String id;
             private boolean written;
             private boolean backupWritten;
             private Throwable writeError;
@@ -635,31 +561,19 @@ public class FileManager {
         }
         
     }
-    
-    public static class FileContentInfo {
-        
-        public final boolean isValid;
-        public final String info;
-        
-        public FileContentInfo(boolean isValid, String info) {
-            this.isValid = isValid;
-            this.info = info;
-        }
-        
+
+    public record FileContentInfo(boolean isValid, String info) {
+
     }
     
-    public static final void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException {
         FileManager m = new FileManager(Paths.get("H:\\test123"), Paths.get("H:\\test123\\backupp"));
         String content = "content\nabc\rblah\r\n";
-        m.add("test", "filename", true, new FileContentInfoProvider() {
-
-            @Override
-            public FileContentInfo getInfo(String content) {
-                if (content != null && !content.isEmpty()) {
-                    return new FileContentInfo(true, content.length()+" characters");
-                }
-                return new FileContentInfo(false, "Empty file");
+        m.add("test", "filename", true, content1 -> {
+            if (content1 != null && !content1.isEmpty()) {
+                return new FileContentInfo(true, content1.length()+" characters");
             }
+            return new FileContentInfo(false, "Empty file");
         });
 //        m.save("test", content);
 //        

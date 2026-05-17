@@ -20,10 +20,10 @@ public class MacTTSProvider implements TTSProvider {
         List<String> command = new ArrayList<>();
         command.add("say");
         command.add("-v");
-        command.add(request.voice);
+        command.add(request.voice());
         command.add("-r");
-        command.add(String.valueOf(request.rate));
-        command.add(request.text);
+        command.add(String.valueOf(request.rate()));
+        command.add(request.text());
 
         ProcessBuilder pb = new ProcessBuilder(command);
         Process process = pb.start();

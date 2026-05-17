@@ -4,7 +4,15 @@ package chatty.util.jws;
 import chatty.util.DateTime;
 import chatty.util.ElapsedTime;
 import chatty.util.TimedCounter;
+import org.java_websocket.WebSocket;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.exceptions.WebsocketNotConnectedException;
+import org.java_websocket.framing.CloseFrame;
+import org.java_websocket.framing.Framedata;
+import org.java_websocket.handshake.ServerHandshake;
+
 import java.net.URI;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
@@ -12,12 +20,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-import org.java_websocket.WebSocket;
-import org.java_websocket.client.WebSocketClient;
-import org.java_websocket.exceptions.WebsocketNotConnectedException;
-import org.java_websocket.framing.CloseFrame;
-import org.java_websocket.framing.Framedata;
-import org.java_websocket.handshake.ServerHandshake;
 
 /**
  * Intended for a websocket connection that, once initialized, will stay open
@@ -62,12 +64,7 @@ public class JWSClient implements MessageHandler {
      * as handler
      */
     public JWSClient(URI server, MessageHandler handler) {
-        if (handler != null) {
-            this.handler = handler;
-        }
-        else {
-            this.handler = this;
-        }
+        this.handler = Objects.requireNonNullElse(handler, this);
         c = new WebSocketClient(server) {
             
             @Override
@@ -327,23 +324,13 @@ public class JWSClient implements MessageHandler {
     @Override
     public void handleDisconnect(int code) {
     }
-    
-    public static class Received {
-        
+
+    public record Received(Type type, String message, int code) {
+
         public enum Type {
-            OPEN, MESSAGE, CLOSE
-        }
-        
-        public final Type type;
-        public final String message;
-        public final int code;
-        
-        public Received(Type type, String message, int code) {
-            this.type = type;
-            this.message = message;
-            this.code = code;
-        }
-        
+                OPEN, MESSAGE, CLOSE
+            }
+
     }
     
 }

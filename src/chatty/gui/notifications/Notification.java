@@ -11,7 +11,6 @@ import chatty.util.commands.CustomCommand;
 import chatty.util.irc.MsgTags;
 import java.awt.Color;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -58,7 +57,7 @@ public class Notification {
         }
         
         private static List<TypeOption> createStreamStatusSubtypes() {
-            return new ArrayList<>(Arrays.asList(
+            return new ArrayList<>(List.of(
                     TypeOption.NOW_LIVE,
                     TypeOption.NEW_STREAM,
                     TypeOption.LIVE,
@@ -68,7 +67,7 @@ public class Notification {
         }
         
         private static List<TypeOption> createMessageSubtypes() {
-            return new ArrayList<>(Arrays.asList(
+            return new ArrayList<>(List.of(
                     TypeOption.OWN_MSG,
                     TypeOption.CONTAINS_BITS,
                     TypeOption.FAV_CHAN));
@@ -88,7 +87,7 @@ public class Notification {
         FAV_GAME("favGame"),
         CONTAINS_BITS("bits");
         
-        public String id;
+        public final String id;
         
         TypeOption(String id) {
             this.id = id;
@@ -106,8 +105,8 @@ public class Notification {
         CHANNEL_AND_APP_NOT_ACTIVE(6, "Chan/app not focused");
         
         
-        public String label;
-        public int id;
+        public final String label;
+        public final int id;
         
         State(int id, String label) {
             this.label = label;

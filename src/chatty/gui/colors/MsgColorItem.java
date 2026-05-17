@@ -7,6 +7,7 @@ import chatty.gui.Highlighter;
 import chatty.gui.Highlighter.HighlightItem;
 import chatty.util.irc.MsgTags;
 import java.awt.Color;
+import java.util.Objects;
 
 /**
  *
@@ -20,12 +21,7 @@ public class MsgColorItem extends ColorItem {
             Color foreground, boolean foregroundEnabled,
             Color background, boolean backgroundEnabled) {
         super(item, foreground, foregroundEnabled, background, backgroundEnabled);
-        if (item != null) {
-            this.search = new Highlighter.HighlightItem(item, "msgcolor");
-        }
-        else {
-            this.search = new Highlighter.HighlightItem("", "msgcolor");
-        }
+        this.search = new HighlightItem(Objects.requireNonNullElse(item, ""), "msgcolor");
     }
     
     public boolean matches(HighlightItem.Type type, String text, int msgStart, int msgEnd, String channel,

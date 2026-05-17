@@ -2,24 +2,16 @@
 package chatty.util;
 
 import chatty.Chatty;
+
+import javax.swing.*;
 import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.logging.Logger;
-import javax.swing.SwingUtilities;
 
 /**
  * Stuff to help with debugging.
@@ -207,7 +199,7 @@ public class Debugging {
     
     public interface OutputListener {
         
-        public void debug(String line);
+        void debug(String line);
     }
     
     /**
@@ -222,7 +214,7 @@ public class Debugging {
     }
     
     public static void writeToFile(String output) {
-        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get("E:\\abcdtest"), Charset.forName("UTF-8"))) {
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get("E:\\abcdtest"), StandardCharsets.UTF_8)) {
             writer.append(output);
         } catch (IOException ex) {
             System.out.println(ex);
@@ -231,9 +223,7 @@ public class Debugging {
     
     public static String getStacktrace(Exception ex) {
         try {
-            StringWriter sw = new StringWriter();
-            ex.printStackTrace(new PrintWriter(sw));
-            return sw.toString();
+            return MiscUtil.getStackTrace(ex);
         } catch (Exception ex2) {
             LOGGER.warning("Error occured trying to get stacktrace: "+ex2);
         }
@@ -271,13 +261,12 @@ public class Debugging {
     public static List<String> filterStacktrace(StackTraceElement[] st) {
         List<String> result = new ArrayList<>();
         String filtered = null;
-        for (int i = 0; i < st.length; i++) {
-            StackTraceElement el = st[i];
+        for (StackTraceElement el : st) {
             boolean show = true;
             for (String filter : STACKTRACE_FILTER) {
                 if (el.getClassName().startsWith(filter)) {
                     if (!filter.equals(filtered)) {
-                        result.add("["+filter+"]");
+                        result.add("[" + filter + "]");
                         filtered = filter;
                     }
                     show = false;
@@ -300,10 +289,9 @@ public class Debugging {
     }
     
     public static String getThreadInfo(Thread thread) {
-        StringBuilder b = new StringBuilder();
-        b.append("[").append(thread.getName()).append("/").append(thread.getState()).append("]");
-        b.append(StringUtil.join(thread.getStackTrace()));
-        return b.toString();
+        String b = "[" + thread.getName() + "/" + thread.getState() + "]" +
+                StringUtil.join(thread.getStackTrace());
+        return b;
     }
     
     // For testing

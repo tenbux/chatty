@@ -7,16 +7,14 @@ import chatty.util.srl.Race;
 import chatty.util.srl.Race.Entrant;
 import chatty.util.srl.SpeedrunsLive;
 import chatty.util.srl.SpeedrunsLiveListener;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
 
 /**
  * Manages the GUI part of the SRL races stuff. Requests updates of the race
@@ -74,13 +72,7 @@ public class SRL {
             }
         });
         
-        Timer timer = new Timer(UPDATE_DELAY, new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                update();
-            }
-        });
+        Timer timer = new Timer(UPDATE_DELAY, e -> update());
         timer.setRepeats(true);
         timer.start();
         
@@ -239,24 +231,12 @@ public class SRL {
 
         @Override
         public void racesReceived(final List<Race> newRaces) {
-            SwingUtilities.invokeLater(new Runnable() {
-
-                @Override
-                public void run() {
-                    setRaces(newRaces);
-                }
-            });
+            SwingUtilities.invokeLater(() -> setRaces(newRaces));
         }
 
         @Override
         public void error(final String description) {
-            SwingUtilities.invokeLater(new Runnable() {
-
-                @Override
-                public void run() {
-                    requestError(description);
-                }
-            });
+            SwingUtilities.invokeLater(() -> requestError(description));
         }
     }
     
@@ -268,11 +248,11 @@ public class SRL {
      * @param races
      * @return 
      */
-    public static final Collection<Race> findRaces(String stream, Collection<Race> races) {
+    public static Collection<Race> findRaces(String stream, Collection<Race> races) {
         Collection<Race> result = new ArrayList<>();
         for (Race r : races) {
             for (Entrant e : r.getEntrants()) {
-                if (stream.equalsIgnoreCase(e.twitch)) {
+                if (stream.equalsIgnoreCase(e.twitch())) {
                     result.add(r);
                 }
             }
@@ -289,10 +269,10 @@ public class SRL {
      * @return The SRL name for the given stream or {@code null} if not in this
      * race
      */
-    public static final String findSrlName(String stream, Race race) {
+    public static String findSrlName(String stream, Race race) {
         for (Entrant entrant : race.getEntrants()) {
-            if (stream.equalsIgnoreCase(entrant.twitch)) {
-                return entrant.name;
+            if (stream.equalsIgnoreCase(entrant.twitch())) {
+                return entrant.name();
             }
         }
         return null;

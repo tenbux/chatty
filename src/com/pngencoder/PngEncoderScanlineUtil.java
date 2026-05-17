@@ -1,6 +1,6 @@
 package com.pngencoder;
 
-import java.awt.Transparency;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.DataBufferInt;
@@ -121,7 +121,7 @@ class PngEncoderScanlineUtil {
             for (int x = 0; x < width; x++) {
                 bytes[y*rowByteSize + x*channels + 1] = elements[(y*width + x)*3 + 2]; // R
                 bytes[y*rowByteSize + x*channels + 2] = elements[(y*width + x)*3 + 1]; // G
-                bytes[y*rowByteSize + x*channels + 3] = elements[(y*width + x)*3 + 0]; // B
+                bytes[y*rowByteSize + x*channels + 3] = elements[(y * width + x) * 3]; // B
             }
         }
         return bytes;

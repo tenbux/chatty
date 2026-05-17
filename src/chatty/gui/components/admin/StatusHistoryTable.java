@@ -6,27 +6,17 @@ import chatty.lang.Language;
 import chatty.util.DateTime;
 import chatty.util.StringUtil;
 import chatty.util.api.StreamCategory;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.List;
-import javax.swing.ImageIcon;
-import javax.swing.JLabel;
-import javax.swing.JPopupMenu;
-import javax.swing.JTable;
-import javax.swing.JTextArea;
-import javax.swing.ListSelectionModel;
-import javax.swing.RowFilter;
-import javax.swing.RowSorter;
-import javax.swing.SortOrder;
-import javax.swing.SwingUtilities;
+
+import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableRowSorter;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -141,13 +131,10 @@ public class StatusHistoryTable extends JTable {
                 public boolean include(RowFilter.Entry<? extends Model, ? extends Integer> entry) {
                     Model model = entry.getModel();
                     StatusHistoryEntry e = model.get(entry.getIdentifier());
-                    if (game != null && !game.equals(e.game)) {
+                    if (game != null && !game.equals(e.game())) {
                         return false;
                     }
-                    if (favorites && !e.favorite) {
-                        return false;
-                    }
-                    return true;
+                    return !favorites || e.favorite();
                 }
             });
         }
@@ -290,14 +277,14 @@ public class StatusHistoryTable extends JTable {
             }
             Long lastActivity = (Long)value;
             setText(DateTime.agoText(lastActivity));
-            JLabel label = (JLabel)this;
+            JLabel label = this;
             label.setHorizontalAlignment(JLabel.CENTER);
         }
         
     }
     
     private static class FavoriteRenderer extends DefaultTableCellRenderer {
-        ImageIcon icon = new ImageIcon(getClass().getResource("/chatty/gui/star.png"));
+        final ImageIcon icon = new ImageIcon(getClass().getResource("/chatty/gui/star.png"));
         
         @Override
         public void setValue(Object value) {
@@ -308,7 +295,7 @@ public class StatusHistoryTable extends JTable {
                 else {
                     this.setIcon(null);
                 }
-                JLabel label = (JLabel)this;
+                JLabel label = this;
                 label.setHorizontalAlignment(JLabel.CENTER);
             }
         }
@@ -323,25 +310,16 @@ public class StatusHistoryTable extends JTable {
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
             StatusHistoryEntry entry = get(rowIndex);
-            switch (columnIndex) {
-                case FAV_COLUMN:
-                    return entry.favorite;
-                case TITLE_COLUMN:
-                    return entry.title;
-                case GAME_COLUMN:
-                    return entry.game.name;
-                case TAGS_COLUMN:
-                    return StringUtil.join(entry.tags, ", ");
-                case LABELS_COLUMN:
-                    return StringUtil.join(entry.labels, ", ");
-                case ACTIVITY_COLUMN:
-                    return entry.lastActivity;
-                case USAGE_COLUMN:
-                    return entry.timesUsed;
-                default:
-                    break;
-            }
-            return null;
+            return switch (columnIndex) {
+                case FAV_COLUMN -> entry.favorite();
+                case TITLE_COLUMN -> entry.title();
+                case GAME_COLUMN -> entry.game().name();
+                case TAGS_COLUMN -> StringUtil.join(entry.tags(), ", ");
+                case LABELS_COLUMN -> StringUtil.join(entry.labels(), ", ");
+                case ACTIVITY_COLUMN -> entry.lastActivity();
+                case USAGE_COLUMN -> entry.timesUsed();
+                default -> null;
+            };
         }
         
         /**

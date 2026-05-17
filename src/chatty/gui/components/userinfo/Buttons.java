@@ -6,20 +6,15 @@ import chatty.gui.components.menus.CommandMenuItem;
 import chatty.gui.components.menus.CommandMenuItems;
 import chatty.util.commands.CustomCommand;
 import chatty.util.commands.Parameters;
-import java.awt.FlowLayout;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.swing.AbstractAction;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.KeyStroke;
 
 /**
  *
@@ -66,7 +61,7 @@ public class Buttons {
     public void set(String setting, boolean isTest, Parameters parameters) {
         this.isTest = isTest;
         if (setting.contains("nokeylabels")) {
-            setting = setting.replaceAll("nokeylabels", "");
+            setting = setting.replace("nokeylabels", "");
             noKeyLabels = true;
         }
         items = CommandMenuItems.parse(setting);

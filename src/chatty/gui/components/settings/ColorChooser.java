@@ -1,18 +1,13 @@
 
 package chatty.gui.components.settings;
 
-import chatty.util.colors.HtmlColors;
 import chatty.lang.Language;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import javax.swing.JButton;
-import javax.swing.JColorChooser;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
+import chatty.util.colors.HtmlColors;
+
+import javax.swing.*;
 import javax.swing.colorchooser.AbstractColorChooserPanel;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
+import java.awt.*;
+import java.awt.event.ActionListener;
 
 /**
  * A color chooser with a preview that has a primary and secondary color.
@@ -46,8 +41,7 @@ public class ColorChooser extends JDialog {
     private final JColorChooser chooser = new JColorChooser();
     private final MyPreview preview = new MyPreview();
     private final JButton doneButton = new JButton(Language.getString("settings.colorChooser.button.useSelected"));
-    private final JButton cancelButton = new JButton(Language.getString("dialog.button.cancel"));
-    
+
     /**
      * The secondary color that is used for the preview.
      */
@@ -69,13 +63,7 @@ public class ColorChooser extends JDialog {
         configureChooser();
         
         // Add listener to update preview when a new color has been selected
-        chooser.getSelectionModel().addChangeListener(new ChangeListener() {
-
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                updatePreview();
-            }
-        });
+        chooser.getSelectionModel().addChangeListener(e -> updatePreview());
         
         // Layout
         GridBagConstraints gbc = new GridBagConstraints();
@@ -96,18 +84,15 @@ public class ColorChooser extends JDialog {
         gbc.gridx = 1;
         
         gbc.weightx = 0.2;
+        JButton cancelButton = new JButton(Language.getString("dialog.button.cancel"));
         add(cancelButton, gbc);
         
         // Button listener to close the dialog
-        ActionListener buttonListener = new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (e.getSource() == doneButton) {
-                    returnNewColor = true;
-                }
-                setVisible(false);
+        ActionListener buttonListener = e -> {
+            if (e.getSource() == doneButton) {
+                returnNewColor = true;
             }
+            setVisible(false);
         };
         
         // Add button listener to buttons

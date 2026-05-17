@@ -3,12 +3,14 @@ package chatty.gui.components;
 
 import chatty.Chatty;
 import chatty.Helper;
-import chatty.gui.laf.LaF;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.menus.HistoryContextMenu;
+import chatty.gui.laf.LaF;
 import chatty.lang.Language;
 import chatty.util.api.StreamInfo.StreamType;
 import chatty.util.api.StreamInfoHistoryItem;
+
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -16,8 +18,6 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.logging.Logger;
-import javax.swing.JComponent;
-import javax.swing.SwingUtilities;
 
 /**
  * Shows a graph with the viewer count history.
@@ -81,7 +81,7 @@ public class ViewerHistory extends JComponent {
     /**
      * The background color, can be set from the outside thus no constant.
      */
-    private Color background_color = new Color(250,250,250);
+    private final Color background_color = new Color(250,250,250);
     
     /**
      * Store the current history.
@@ -115,11 +115,11 @@ public class ViewerHistory extends JComponent {
      * Store the actual locations of points on the component, this is updated
      * with every redraw.
      */
-    private LinkedHashMap<Point, Long> locations = new LinkedHashMap<>();
+    private final LinkedHashMap<Point, Long> locations = new LinkedHashMap<>();
     /**
      * Store color for every entry, this is updated when a new history is set.
      */
-    private LinkedHashMap<Long, Color> colors = new LinkedHashMap<>();
+    private final LinkedHashMap<Long, Color> colors = new LinkedHashMap<>();
     
     private final HistoryContextMenu contextMenu = new HistoryContextMenu();
     
@@ -127,7 +127,6 @@ public class ViewerHistory extends JComponent {
      * Values that affect what is rendered.
      */
     private boolean mouseEntered = false;
-    private boolean showInfo = true;
     private long hoverEntry = -1;
     private boolean fixedHoverEntry = false;
     private boolean verticalZoom = false;
@@ -139,7 +138,7 @@ public class ViewerHistory extends JComponent {
         // Starting with 1 because selecting fixed range checks for 0 (which it
         // shouldn't be outside testing)
         public long currentTime = 1;
-        public LinkedHashMap<Long, StreamInfoHistoryItem> history = new LinkedHashMap<>();
+        public final LinkedHashMap<Long, StreamInfoHistoryItem> history = new LinkedHashMap<>();
         public long startTime;
         public long picnicStartTime;
         
@@ -239,6 +238,7 @@ public class ViewerHistory extends JComponent {
      * @return 
      */
     private boolean isShowingInfo() {
+        boolean showInfo = true;
         if (showInfo) {
             return true;
         }
@@ -284,7 +284,7 @@ public class ViewerHistory extends JComponent {
         // viewercount
         int nowTextX = 0;
         if (history != null && hoverEntry == -1) {
-            Integer viewers = history.get(endTime).getViewers();
+            int viewers = history.get(endTime).getViewers();
             long ago = System.currentTimeMillis() - endTime;
             String text;
             if (ago > CONSIDERED_AS_NOW) {
@@ -340,7 +340,7 @@ public class ViewerHistory extends JComponent {
         boolean displayMaxValue = true;
         
         if (hoverEntry != -1) {
-            Integer viewers = history.get(hoverEntry).getViewers();
+            int viewers = history.get(hoverEntry).getViewers();
             Date d = new Date(hoverEntry);
             String text = Language.getString("channelInfo.viewers.hover", Helper.formatViewerCount(viewers))+" ("+sdf.format(d)+")";
             if (viewers == -1) {
@@ -449,9 +449,8 @@ public class ViewerHistory extends JComponent {
             // Save point locations to draw points and to find entries on hover
             locations.put(new Point(x,y),time);
         }
-        
-        
-        prevItem = null;
+
+
         // Draw points (after lines, so they are in front)
         for (Point point : locations.keySet()) {
             int x = point.x;
@@ -479,9 +478,8 @@ public class ViewerHistory extends JComponent {
 //            } else {
                 g.fillOval(x - pointSize / 2, y - pointSize / 2, pointSize, pointSize);
 //            }
-            
-            
-            prevItem = historyObject;
+
+
         }
     }
     
@@ -718,7 +716,7 @@ public class ViewerHistory extends JComponent {
      */
     public void setRange(int minutes) {
         contextMenu.setRange(minutes);
-        this.currentRange = minutes*60*1000;
+        this.currentRange = (long) minutes *60*1000;
         fixedStartTime = -1;
         fixedEndTime = -1;
         if (history != null) {
@@ -746,12 +744,10 @@ public class ViewerHistory extends JComponent {
             // Don't use last entry as start
             return;
         }
-        if (fixedStartTime > 0 && startAt > 0) {
-            fixedEndTime = startAt;
-        } else {
+        if (fixedStartTime <= 0 || startAt <= 0) {
             fixedStartTime = startAt;
-            fixedEndTime = startAt;
         }
+        fixedEndTime = startAt;
         if (history != null) {
             updateVars();
         }

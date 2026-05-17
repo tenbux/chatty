@@ -3,10 +3,10 @@ package chatty.gui.components.textpane;
 
 import chatty.User;
 import chatty.gui.Highlighter.Match;
-import chatty.util.Pair;
 import chatty.util.irc.MsgTags;
 import chatty.util.irc.MsgTags.Link;
-import java.awt.Color;
+
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -150,7 +150,7 @@ public class InfoMessage {
         List<Link> result = new ArrayList<>();
         if (tags != null) {
             for (Link link : tags.getLinks()) {
-                if (link.startIndex == -1) {
+                if (link.startIndex() == -1) {
                     result.add(link);
                 }
             }

@@ -1,23 +1,22 @@
 
 package chatty.util.seventv;
 
-import chatty.Helper;
 import chatty.util.ImageCache.ImageRequest;
 import chatty.util.ImageCache.ImageResult;
-import chatty.util.MiscUtil;
 import chatty.util.gif.GifUtil;
 import chatty.util.gif.ListAnimatedImage;
 import chatty.util.gif.ListAnimatedImageFrame;
-import java.awt.Dimension;
+import webpdecoderjn.WebPDecoder;
+import webpdecoderjn.WebPDecoder.WebPImage;
+import webpdecoderjn.WebPDecoder.WebPImageFrame;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
-import javax.swing.ImageIcon;
-import webpdecoderjn.WebPDecoder;
-import webpdecoderjn.WebPDecoder.WebPImage;
-import webpdecoderjn.WebPDecoder.WebPImageFrame;
 
 /**
  * Handles executing code only if WebP Decoding is available, e.g. performing an
@@ -131,7 +130,7 @@ public class WebPUtil {
             Dimension actualBaseSize = request.getUrlFactorCorrectedSize(img.canvasWidth, img.canvasHeight);
             Dimension scaledSize = request.getScaledSizeIfNecessary(actualBaseSize);
             if (img.frameCount == 1) {
-                ImageIcon icon = new ImageIcon(img.frames.get(0).img);
+                ImageIcon icon = new ImageIcon(img.frames.getFirst().img);
                 icon.setDescription("WebP");
                 return request.finishIcon(icon, false);
             }

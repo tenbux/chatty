@@ -7,22 +7,14 @@ import chatty.gui.GuiUtil;
 import chatty.gui.components.Channel;
 import chatty.gui.components.ChannelEditBox;
 import chatty.util.StringUtil;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.KeyboardFocusManager;
-import java.awt.SecondaryLoop;
-import java.awt.Toolkit;
-import java.awt.Window;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Objects;
 import java.util.Set;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Shows a dialog where the user can input text.
@@ -75,7 +67,7 @@ public class Input implements Item {
     
     @Override
     public String toString() {
-        return "Input "+type+" '"+message+"' "+initial+"";
+        return "Input "+type+" '"+message+"' "+initial;
     }
 
     @Override
@@ -109,10 +101,7 @@ public class Input implements Item {
         if (!Objects.equals(this.message, other.message)) {
             return false;
         }
-        if (!Objects.equals(this.initial, other.initial)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.initial, other.initial);
     }
 
     @Override
@@ -126,24 +115,23 @@ public class Input implements Item {
     }
     
     private static class InputResult {
-        
-        private String result;
-        
+
         public String getResult(String type, String msg, String preset, Parameters parameters) {
+            AtomicReference<String> result = new AtomicReference<>();
             GuiUtil.edtAndWait(() -> {
                 Window activeWindow = KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow();
                 if ("simple".equals(type)) {
-                    result = JOptionPane.showInputDialog(activeWindow, msg, preset);
+                    result.set(JOptionPane.showInputDialog(activeWindow, msg, preset));
                 }
                 else {
-                    result = InputDialog.showInputDialog(
+                    result.set(InputDialog.showInputDialog(
                             activeWindow,
                             parameters.get("chan"),
                             msg,
-                            preset);
+                            preset));
                 }
             }, "Custom Command Input");
-            return result;
+            return result.get();
         }
         
     }
@@ -196,9 +184,7 @@ public class Input implements Item {
             // To set the completion colors
             input.setForeground(input.getForeground());
             input.setBackground(input.getBackground());
-            input.addActionListener(e -> {
-                ok();
-            });
+            input.addActionListener(e -> ok());
             input.setText(preset);
             setLayout(new GridBagLayout());
             
@@ -238,18 +224,10 @@ public class Input implements Item {
             gbc.insets = new Insets(5, 5, 5, 5);
             add(cancelButton, gbc);
             
-            okButton.addActionListener(e -> {
-                ok();
-            });
-            cancelButton.addActionListener(e -> {
-                dispose();
-            });
+            okButton.addActionListener(e -> ok());
+            cancelButton.addActionListener(e -> dispose());
             
-            GuiUtil.addChangeListener(input.getDocument(), e -> {
-                SwingUtilities.invokeLater(() -> {
-                    pack();
-                });
-            });
+            GuiUtil.addChangeListener(input.getDocument(), e -> SwingUtilities.invokeLater(this::pack));
             pack();
             setLocationRelativeTo(owner);
             setResizable(false);

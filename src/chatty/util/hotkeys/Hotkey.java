@@ -1,8 +1,9 @@
 
 package chatty.util.hotkeys;
 
+import javax.swing.*;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import javax.swing.KeyStroke;
 
 /**
  * A hotkey containing an actionId referring to the action to be performed, a
@@ -21,8 +22,8 @@ public class Hotkey {
         GLOBAL(2, "Global"),
         UNDEFINED(-1, "undefined");
         
-        public int id;
-        public String name;
+        public final int id;
+        public final String name;
         
         Type(int id, String name) {
             this.id = id;
@@ -81,7 +82,7 @@ public class Hotkey {
             return true;
         }
         long timePassed = System.currentTimeMillis() - lastActionExecuted;
-        if (timePassed > delay*100) {
+        if (timePassed > delay* 100L) {
             lastActionExecuted = System.currentTimeMillis();
             return true;
         }
@@ -99,7 +100,7 @@ public class Hotkey {
      * @return The String
      */
     public static String keyStrokeToText(KeyStroke keyStroke) {
-        String mod = KeyEvent.getKeyModifiersText(keyStroke.getModifiers());
+        String mod = InputEvent.getModifiersExText(keyStroke.getModifiers());
         String key = KeyEvent.getKeyText(keyStroke.getKeyCode());
         if (mod.isEmpty() || mod.equals(key)) {
             return key;

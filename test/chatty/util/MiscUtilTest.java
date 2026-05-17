@@ -1,16 +1,12 @@
 
 package chatty.util;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import org.junit.Test;
-import static org.junit.Assert.*;
+
+import java.util.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  *
@@ -88,14 +84,14 @@ public class MiscUtilTest {
         }
         
         for (Set<Integer> set : MiscUtil.splitSetByLimit(test, 0)) {
-            assertTrue(set.size() == 1);
+            assertEquals(1, set.size());
         }
-        assertTrue(MiscUtil.splitSetByLimit(test, 0).size() == 32);
+        assertEquals(32, MiscUtil.splitSetByLimit(test, 0).size());
         
         for (Set<Integer> set : MiscUtil.splitSetByLimit(test, 1)) {
-            assertTrue(set.size() == 1);
+            assertEquals(1, set.size());
         }
-        assertTrue(MiscUtil.splitSetByLimit(test, 1).size() == 32);
+        assertEquals(32, MiscUtil.splitSetByLimit(test, 1).size());
         
         // Only one element
         Set<String> test2 = new HashSet<>();
@@ -118,23 +114,23 @@ public class MiscUtilTest {
         Set<String> target = new HashSet<>();
         
         MiscUtil.addLimited(source, target, 0);
-        assertEquals(target.size(), 0);
+        assertEquals(0, target.size());
         
         MiscUtil.addLimited(source, target, 1);
-        assertEquals(target.size(), 1);
+        assertEquals(1, target.size());
         
         for (int i=0;i<20;i++) {
             source.add(String.valueOf(i));
         }
         
         MiscUtil.addLimited(source, target, 10);
-        assertEquals(target.size(), 10);
+        assertEquals(10, target.size());
         
         MiscUtil.addLimited(source, target, 20);
-        assertEquals(target.size(), 20);
+        assertEquals(20, target.size());
         
         MiscUtil.addLimited(source, target, 30);
-        assertEquals(target.size(), 21);
+        assertEquals(21, target.size());
     }
     
 }

@@ -1,11 +1,7 @@
 
 package chatty.util;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -21,7 +17,7 @@ public class ProcessManager {
     
     // Store currently running processes
     private static final Map<Integer, Proc> processes
-            = Collections.synchronizedMap(new TreeMap<Integer, Proc>());
+            = Collections.synchronizedMap(new TreeMap<>());
     
     /**
      * Handle input from the /proc command.
@@ -40,32 +36,34 @@ public class ProcessManager {
         if (split.length == 2) {
             parameter = split[1];
         }
-        if (command.equals("exec")) {
-            execute(parameter, "Custom", null);
-            return "Trying to start process.";
-        }
-        else if (command.equals("execEcho")) {
-            execute(parameter, "Custom", messageListener);
-            return "Trying to start process.";
-        }
-        else if (command.equals("kill")) {
-            try {
-                if (kill(Integer.parseInt(parameter))) {
-                    return "Trying to kill process.";
+        switch (command) {
+            case "exec" -> {
+                execute(parameter, "Custom", null);
+                return "Trying to start process.";
+            }
+            case "execEcho" -> {
+                execute(parameter, "Custom", messageListener);
+                return "Trying to start process.";
+            }
+            case "kill" -> {
+                try {
+                    if (kill(Integer.parseInt(parameter))) {
+                        return "Trying to kill process.";
+                    }
+                    return "No process with this id.";
+                } catch (NumberFormatException ex) {
+                    return "Invalid parameter.";
                 }
-                return "No process with this id.";
-            } catch (NumberFormatException ex) {
-                return "Invalid parameter.";
             }
-        }
-        else if (command.equals("list")) {
-            Collection<String> list = getList();
-            StringBuilder result = new StringBuilder("Currently "+list.size()+" processes.");
-            for (String p : list) {
-                result.append("\n");
-                result.append(p);
+            case "list" -> {
+                Collection<String> list = getList();
+                StringBuilder result = new StringBuilder("Currently " + list.size() + " processes.");
+                for (String p : list) {
+                    result.append("\n");
+                    result.append(p);
+                }
+                return result.toString();
             }
-            return result.toString();
         }
         return "Invalid input.";
     }

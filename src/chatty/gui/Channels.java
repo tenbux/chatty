@@ -14,41 +14,18 @@ import chatty.util.Debugging;
 import chatty.util.IconManager;
 import chatty.util.KeyChecker;
 import chatty.util.MiscUtil;
-import chatty.util.dnd.DockContent;
-import chatty.util.dnd.DockLayout;
-import chatty.util.dnd.DockLayoutPopout;
-import chatty.util.dnd.DockListener;
-import chatty.util.dnd.DockManager;
-import chatty.util.dnd.DockPath;
-import chatty.util.dnd.DockPathEntry;
-import chatty.util.dnd.DockSetting;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Point;
-import java.awt.Window;
-import java.util.*;
-import javax.swing.JPopupMenu;
-import javax.swing.JTabbedPane;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
+import chatty.util.dnd.*;
+import chatty.util.settings.Settings;
+
+import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import chatty.util.dnd.DockPopout;
-import chatty.util.dnd.DockUtil;
-import chatty.util.settings.Settings;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
-import javax.swing.BorderFactory;
-import javax.swing.Icon;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
+import java.util.*;
+import java.util.List;
 
 /**
  * Managing the Channel objects in the main window and popouts, providing a
@@ -134,8 +111,7 @@ public class Channels {
         dock = new DockManager(new DockListener() {
             @Override
             public void activeContentChanged(DockPopout window, DockContent content, boolean focusChange) {
-                if (content.getComponent() instanceof Channel) {
-                    Channel c = (Channel) content.getComponent();
+                if (content.getComponent() instanceof Channel c) {
                     lastActiveChannel = c;
                     if (!focusChange) {
                         // Changing focus due to a focus change is dodgy, so don't
@@ -227,9 +203,7 @@ public class Channels {
         updateSettings();
         gui.getSettings().addSettingChangeListener((setting, type, value) -> {
             if (setting.startsWith("tab") || setting.equals("laf")) {
-                SwingUtilities.invokeLater(() -> {
-                    updateSettings();
-                });
+                SwingUtilities.invokeLater(this::updateSettings);
             }
         });
         KeyChecker.watch(KeyEvent.VK_SHIFT);
@@ -319,21 +293,19 @@ public class Channels {
     }
     
     private int getTabLayoutPolicyValue(String type) {
-        switch(type) {
-            case "wrap": return JTabbedPane.WRAP_TAB_LAYOUT;
-            case "scroll": return JTabbedPane.SCROLL_TAB_LAYOUT;
-        }
-        return JTabbedPane.WRAP_TAB_LAYOUT;
+        return switch (type) {
+            case "scroll" -> JTabbedPane.SCROLL_TAB_LAYOUT;
+            default -> JTabbedPane.WRAP_TAB_LAYOUT;
+        };
     }
     
     private int getTabPlacementValue(String location) {
-        switch(location) {
-            case "top": return JTabbedPane.TOP;
-            case "bottom": return JTabbedPane.BOTTOM;
-            case "left": return JTabbedPane.LEFT;
-            case "right": return JTabbedPane.RIGHT;
-        }
-        return JTabbedPane.TOP;
+        return switch (location) {
+            case "bottom" -> JTabbedPane.BOTTOM;
+            case "left" -> JTabbedPane.LEFT;
+            case "right" -> JTabbedPane.RIGHT;
+            default -> JTabbedPane.TOP;
+        };
     }
     
     private DockSetting.TabOrder getTabOrderValue(String order) {
@@ -344,11 +316,11 @@ public class Channels {
     }
     
     private DockSetting.PopoutType getPopoutTypeValue(int type) {
-        switch (type) {
-            case 1: return DockSetting.PopoutType.DIALOG;
-            case 2: return DockSetting.PopoutType.FRAME;
-        }
-        return DockSetting.PopoutType.NONE;
+        return switch (type) {
+            case 1 -> DockSetting.PopoutType.DIALOG;
+            case 2 -> DockSetting.PopoutType.FRAME;
+            default -> DockSetting.PopoutType.NONE;
+        };
     }
     
     private void updateSettings(Channel chan) {
@@ -418,9 +390,9 @@ public class Channels {
         // Window/Layout
         //--------------------------
         if (d.loadMain()) {
-            gui.setLocation(mainWindow.location);
-            gui.setSize(mainWindow.size);
-            gui.setExtendedState(mainWindow.state);
+            gui.setLocation(mainWindow.location());
+            gui.setSize(mainWindow.size());
+            gui.setExtendedState(mainWindow.state());
         }
         
         loadLayout(layout);
@@ -591,8 +563,9 @@ public class Channels {
         
     }
     
+    @SuppressWarnings("unchecked")
     private void loadLastSessionLayout() {
-        DockLayout layout = DockLayout.fromList((List) gui.getSettings().mapGet("layouts", ""));
+        DockLayout layout = DockLayout.fromList((List<Object>) gui.getSettings().mapGet("layouts", ""));
         if (layout != null) {
             loadingLayout = true;
             
@@ -696,7 +669,7 @@ public class Channels {
      * @param channel 
      */
     public void setChannelHighlighted(Channel channel) {
-        if (!channel.getDockContent().hasNewHighlight()
+        if (channel.getDockContent().hasNewHighlight()
                 && !dock.isContentVisible(channel.getDockContent())) {
             channel.getDockContent().setNewHighlight(true);
         }
@@ -710,7 +683,7 @@ public class Channels {
      */
     public void setChannelNewMessage(Channel channel) {
         if (!channel.getDockContent().hasNewMessages()
-                && !channel.getDockContent().hasNewHighlight()
+                && channel.getDockContent().hasNewHighlight()
                 && !dock.isContentVisible(channel.getDockContent())) {
             channel.getDockContent().setNewMessage(true);
         }
@@ -1057,7 +1030,7 @@ public class Channels {
         Dimension size = null;
         clearOpenPopoutsAttributes();
         if (!dialogsAttributes.isEmpty()) {
-            LocationAndSize attr = dialogsAttributes.remove(0);
+            LocationAndSize attr = dialogsAttributes.removeFirst();
             if (GuiUtil.isPointOnScreen(attr.location, 5, 5)) {
                 location = attr.location;
             }
@@ -1084,7 +1057,7 @@ public class Channels {
         if (savePopoutAttributes) {
             LocationAndSize attr = new LocationAndSize(popout.getWindow());
             dialogsAttributes.remove(attr);
-            dialogsAttributes.add(0, attr);
+            dialogsAttributes.addFirst(attr);
         }
 //        if (!contents.isEmpty() && defaultChannel != null
 //                && !contents.contains(defaultChannel.getDockContent())
@@ -1154,8 +1127,8 @@ public class Channels {
             if (location != null && size != null) {
                 dialogsAttributes.add(
                         new LocationAndSize(
-                                new Point(location.a, location.b),
-                                new Dimension(size.a, size.b)));
+                                new Point(location.a(), location.b()),
+                                new Dimension(size.a(), size.b())));
             }
         }
     }
@@ -1167,7 +1140,7 @@ public class Channels {
     private void clearOpenPopoutsAttributes() {
         for (DockPopout popout : dock.getPopouts()) {
             LocationAndSize attr = new LocationAndSize(popout.getWindow());
-            dialogsAttributes.removeIf(entry -> attr.equals(entry));
+            dialogsAttributes.removeIf(attr::equals);
         }
     }
     
@@ -1403,8 +1376,7 @@ public class Channels {
     public List<Channel> getChannelsOfType(Channel.Type type) {
         List<Channel> result = new ArrayList<>();
         for (DockContent content : dock.getContents()) {
-            if (content.getComponent() instanceof Channel) {
-                Channel chan = (Channel)content.getComponent();
+            if (content.getComponent() instanceof Channel chan) {
                 boolean typeMatches = type == null || type == chan.getType();
                 if (typeMatches && doesChannelExist(chan)) {
                     result.add(chan);
@@ -1500,9 +1472,7 @@ public class Channels {
                      * otherwise the focus doesn't change and the request focus
                      * function returns false (not entirely sure why).
                      */
-                    SwingUtilities.invokeLater(() -> {
-                        channel2.requestFocusInWindow();
-                    });
+                    SwingUtilities.invokeLater(channel2::requestFocusInWindow);
                 }
                 else {
                     channel2.requestFocusInWindow();
@@ -1714,6 +1684,7 @@ public class Channels {
     }
     
     public static Map<Long, List<String>> getTabPosIds(Settings settings) {
+        @SuppressWarnings("unchecked")
         Map<String, Long> tabsPos = settings.getMap("tabsPos");
         Map<Long, List<String>> result = new HashMap<>();
         for (Map.Entry<String, Long> entry : tabsPos.entrySet()) {
@@ -1776,7 +1747,7 @@ public class Channels {
 
     }
     
-    private class ClosingDialog extends JDialog {
+    private static class ClosingDialog extends JDialog {
         
         private final JCheckBox rememberChoice;
         
@@ -1803,8 +1774,9 @@ public class Channels {
             });
             
             rememberChoice = new JCheckBox(Language.getString("popoutClose.rememberChoice"));
-            
-            GridBagConstraints gbc = GuiUtil.makeGbc(1, 0, 1, 1);
+
+            GuiUtil.makeGbc(1, 0, 1, 1);
+            GridBagConstraints gbc;
             
             Icon icon = UIManager.getIcon("OptionPane.questionIcon");
             if (icon != null) {
@@ -1846,11 +1818,11 @@ public class Channels {
         
     }
     
-    private static final int LAYOUT_OPTION_CURRENT_CHANS = 1 << 0;
+    private static final int LAYOUT_OPTION_CURRENT_CHANS = 1;
     private static final int LAYOUT_OPTION_LAYOUT_CHANS = 1 << 1;
     private static final int LAYOUT_OPTION_MAIN = 1 << 2;
     
-    private class ChangeLayoutDialog extends JDialog {
+    private static class ChangeLayoutDialog extends JDialog {
         
         private final List<String> joinChannels = new ArrayList<>();
         private final List<String> addChannels = new ArrayList<>();

@@ -1,24 +1,15 @@
 
 package chatty.util.api.eventsub;
 
-import chatty.Logging;
 import chatty.gui.components.eventlog.EventLog;
 import chatty.util.Debugging;
 import chatty.util.StringUtil;
 import chatty.util.api.TwitchApi;
 import chatty.util.jws.JWSClient;
+
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -37,9 +28,9 @@ public class EventSubManager {
     /**
      * Storage of user ids for easier lookup to turn an id into a channel name.
      */
-    private final Map<String, String> userIds = Collections.synchronizedMap(new HashMap<String, String>());
+    private final Map<String, String> userIds = Collections.synchronizedMap(new HashMap<>());
     
-    private final Set<Topic> pendingTopics = Collections.synchronizedSet(new HashSet<Topic>());
+    private final Set<Topic> pendingTopics = Collections.synchronizedSet(new HashSet<>());
     
     private volatile String localUserId;
     private volatile String localUsername;
@@ -64,7 +55,7 @@ public class EventSubManager {
                     listener.info(String.format(Locale.ROOT, "%s--> %s",
                             c.getConnectionPrefix(id),
                             StringUtil.trim(received)));
-                    if (message != null && message.data != null) {
+                    if (message != null && message.data() != null) {
                         listener.messageReceived(message);
                     }
                 }
@@ -125,10 +116,8 @@ public class EventSubManager {
     }
     
     public void logActiveTopics() {
-        api.getEventSubSubs(s -> {
-            listener.info(String.format("[Current topics according to API]\n%s total\nPer sesssion: %s\n%s",
-                                              s.total, s.getCountBySession(), s.toString()));
-        });
+        api.getEventSubSubs(s -> listener.info(String.format("[Current topics according to API]\n%s total\nPer sesssion: %s\n%s",
+                s.total(), s.getCountBySession(), s)));
         listener.info(String.format("[Current topics according to Chatty]%s\n",
                                           getTopics()));
     }
@@ -332,9 +321,7 @@ public class EventSubManager {
      * @return The user id, or -1 if user id still has to be requested
      */
     private void requestUserId(String username) {
-        api.waitForUserId(r -> {
-            EventSubManager.this.setUserId(username, r.getId(username));
-        }, username);
+        api.waitForUserId(r -> EventSubManager.this.setUserId(username, r.getId(username)), username);
     }
     
     private String getUserId(String username) {
@@ -419,9 +406,7 @@ public class EventSubManager {
                     LOGGER.warning("Unexpected topic: "+t);
                 }
             });
-            Collections.sort(topics2, (o1, o2) -> {
-                         return o1.stream.compareTo(o2.stream);
-                     });
+            topics2.sort(Comparator.comparing(o -> o.stream));
             int count = 0;
             String currentStream = null;
             for (StreamTopic t : topics2) {
@@ -481,10 +466,7 @@ public class EventSubManager {
                 return false;
             }
             final StreamTopic other = (StreamTopic) obj;
-            if (!Objects.equals(this.stream, other.stream)) {
-                return false;
-            }
-            return true;
+            return Objects.equals(this.stream, other.stream);
         }
         
         @Override

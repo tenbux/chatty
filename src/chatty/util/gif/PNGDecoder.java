@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.zip.CRC32;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
@@ -69,7 +70,7 @@ public class PNGDecoder {
         final int numComponents;
         final boolean hasAlpha;
 
-        private Format(int numComponents, boolean hasAlpha) {
+        Format(int numComponents, boolean hasAlpha) {
             this.numComponents = numComponents;
             this.hasAlpha = hasAlpha;
         }
@@ -222,41 +223,26 @@ public class PNGDecoder {
      * @throws UnsupportedOperationException if this PNG file can't be decoded
      */
     public Format decideTextureFormat(Format fmt) {
-        switch (colorType) {
-        case COLOR_TRUECOLOR:
-            switch (fmt) {
-            case ABGR:
-            case RGBA:
-            case BGRA:
-            case RGB: return fmt;
-            default: return Format.RGB;
-            }
-        case COLOR_TRUEALPHA:
-            switch (fmt) {
-            case ABGR:
-            case RGBA:
-            case BGRA:
-            case RGB: return fmt;
-            default: return Format.RGBA;
-            }
-        case COLOR_GREYSCALE:
-            switch (fmt) {
-            case LUMINANCE:
-            case ALPHA: return fmt;
-            default: return Format.LUMINANCE;
-            }
-        case COLOR_GREYALPHA:
-            return Format.LUMINANCE_ALPHA;
-        case COLOR_INDEXED:
-            switch (fmt) {
-            case ABGR:
-            case RGBA:
-            case BGRA: return fmt;
-            default: return Format.RGBA;
-            }
-        default:
-            throw new UnsupportedOperationException("Not yet implemented");
-        }
+        return switch (colorType) {
+            case COLOR_TRUECOLOR -> switch (fmt) {
+                case ABGR, RGBA, BGRA, RGB -> fmt;
+                default -> Format.RGB;
+            };
+            case COLOR_TRUEALPHA -> switch (fmt) {
+                case ABGR, RGBA, BGRA, RGB -> fmt;
+                default -> Format.RGBA;
+            };
+            case COLOR_GREYSCALE -> switch (fmt) {
+                case LUMINANCE, ALPHA -> fmt;
+                default -> Format.LUMINANCE;
+            };
+            case COLOR_GREYALPHA -> Format.LUMINANCE_ALPHA;
+            case COLOR_INDEXED -> switch (fmt) {
+                case ABGR, RGBA, BGRA -> fmt;
+                default -> Format.RGBA;
+            };
+            default -> throw new UnsupportedOperationException("Not yet implemented");
+        };
     }
     
     /**
@@ -285,15 +271,17 @@ public class PNGDecoder {
 
                 switch (colorType) {
                 case COLOR_TRUECOLOR:
-                    switch (fmt) {
-                    case RGBA: copyRGBtoRGBA(pixels, curLine); break;
-                    default: throw new UnsupportedOperationException("Unsupported format for this image");
+                    if (Objects.requireNonNull(fmt) == Format.RGBA) {
+                        copyRGBtoRGBA(pixels, curLine);
+                    } else {
+                        throw new UnsupportedOperationException("Unsupported format for this image");
                     }
                     break;
                 case COLOR_TRUEALPHA:
-                    switch (fmt) {
-                    case RGBA: copyRGBA(pixels, curLine); break;
-                    default: throw new UnsupportedOperationException("Unsupported format for this image");
+                    if (Objects.requireNonNull(fmt) == Format.RGBA) {
+                        copyRGBA(pixels, curLine);
+                    } else {
+                        throw new UnsupportedOperationException("Unsupported format for this image");
                     }
                     break;
                 case COLOR_INDEXED:
@@ -304,9 +292,10 @@ public class PNGDecoder {
                         case 1: expand1(curLine, palLine); break;
                         default: throw new UnsupportedOperationException("Unsupported bitdepth for this image");
                     }
-                    switch (fmt) {
-                    case RGBA: copyPALtoRGBA(pixels, palLine); break;
-                    default: throw new UnsupportedOperationException("Unsupported format for this image");
+                    if (Objects.requireNonNull(fmt) == Format.RGBA) {
+                        copyPALtoRGBA(pixels, palLine);
+                    } else {
+                        throw new UnsupportedOperationException("Unsupported format for this image");
                     }
                     break;
                 default:
@@ -414,7 +403,7 @@ public class PNGDecoder {
         if(paletteA != null) {
             for(int i=1,n=curLine.length ; i<n ; i+=1) {
                 int idx = curLine[i] & 255;
-                byte r = palette[idx*3 + 0];
+                byte r = palette[idx * 3];
                 byte g = palette[idx*3 + 1];
                 byte b = palette[idx*3 + 2];
                 byte a = paletteA[idx];
@@ -423,7 +412,7 @@ public class PNGDecoder {
         } else {
             for(int i=1,n=curLine.length ; i<n ; i+=1) {
                 int idx = curLine[i] & 255;
-                byte r = palette[idx*3 + 0];
+                byte r = palette[idx * 3];
                 byte g = palette[idx*3 + 1];
                 byte b = palette[idx*3 + 2];
                 byte a = (byte)0xFF;
@@ -436,7 +425,7 @@ public class PNGDecoder {
         if(paletteA != null) {
             for(int i=1,n=curLine.length ; i<n ; i+=1) {
                 int idx = curLine[i] & 255;
-                byte r = palette[idx*3 + 0];
+                byte r = palette[idx * 3];
                 byte g = palette[idx*3 + 1];
                 byte b = palette[idx*3 + 2];
                 byte a = paletteA[idx];
@@ -445,7 +434,7 @@ public class PNGDecoder {
         } else {
             for(int i=1,n=curLine.length ; i<n ; i+=1) {
                 int idx = curLine[i] & 255;
-                byte r = palette[idx*3 + 0];
+                byte r = palette[idx * 3];
                 byte g = palette[idx*3 + 1];
                 byte b = palette[idx*3 + 2];
                 byte a = (byte)0xFF;
@@ -458,7 +447,7 @@ public class PNGDecoder {
         if(paletteA != null) {
             for(int i=1,n=curLine.length ; i<n ; i+=1) {
                 int idx = curLine[i] & 255;
-                byte r = palette[idx*3 + 0];
+                byte r = palette[idx * 3];
                 byte g = palette[idx*3 + 1];
                 byte b = palette[idx*3 + 2];
                 byte a = paletteA[idx];
@@ -467,7 +456,7 @@ public class PNGDecoder {
         } else {
             for(int i=1,n=curLine.length ; i<n ; i+=1) {
                 int idx = curLine[i] & 255;
-                byte r = palette[idx*3 + 0];
+                byte r = palette[idx * 3];
                 byte g = palette[idx*3 + 1];
                 byte b = palette[idx*3 + 2];
                 byte a = (byte)0xFF;
@@ -479,38 +468,34 @@ public class PNGDecoder {
     private void expand4(byte[] src, byte[] dst) {
         for(int i=1,n=dst.length ; i<n ; i+=2) {
             int val = src[1 + (i >> 1)] & 255;
-            switch(n-i) {
-                default: dst[i+1] = (byte)(val & 15);
-                case 1:  dst[i  ] = (byte)(val >> 4);
+            if(n-i >= 2) {
+                dst[i+1] = (byte)(val & 15);
             }
+            dst[i] = (byte)(val >> 4);
         }
     }
 
     private void expand2(byte[] src, byte[] dst) {
         for(int i=1,n=dst.length ; i<n ; i+=4) {
             int val = src[1 + (i >> 2)] & 255;
-            switch(n-i) {
-                default: dst[i+3] = (byte)((val     ) & 3);
-                case 3:  dst[i+2] = (byte)((val >> 2) & 3);
-                case 2:  dst[i+1] = (byte)((val >> 4) & 3);
-                case 1:  dst[i  ] = (byte)((val >> 6)    );
-            }
+            if(n-i >= 4) { dst[i+3] = (byte)((val     ) & 3); }
+            if(n-i >= 3) { dst[i+2] = (byte)((val >> 2) & 3); }
+            if(n-i >= 2) { dst[i+1] = (byte)((val >> 4) & 3); }
+            dst[i  ] = (byte)((val >> 6)    );
         }
     }
 
     private void expand1(byte[] src, byte[] dst) {
         for(int i=1,n=dst.length ; i<n ; i+=8) {
             int val = src[1 + (i >> 3)] & 255;
-            switch(n-i) {
-                default: dst[i+7] = (byte)((val     ) & 1);
-                case 7:  dst[i+6] = (byte)((val >> 1) & 1);
-                case 6:  dst[i+5] = (byte)((val >> 2) & 1);
-                case 5:  dst[i+4] = (byte)((val >> 3) & 1);
-                case 4:  dst[i+3] = (byte)((val >> 4) & 1);
-                case 3:  dst[i+2] = (byte)((val >> 5) & 1);
-                case 2:  dst[i+1] = (byte)((val >> 6) & 1);
-                case 1:  dst[i  ] = (byte)((val >> 7)    );
-            }
+            if(n-i >= 8) { dst[i+7] = (byte)((val     ) & 1); }
+            if(n-i >= 7) { dst[i+6] = (byte)((val >> 1) & 1); }
+            if(n-i >= 6) { dst[i+5] = (byte)((val >> 2) & 1); }
+            if(n-i >= 5) { dst[i+4] = (byte)((val >> 3) & 1); }
+            if(n-i >= 4) { dst[i+3] = (byte)((val >> 4) & 1); }
+            if(n-i >= 3) { dst[i+2] = (byte)((val >> 5) & 1); }
+            if(n-i >= 2) { dst[i+1] = (byte)((val >> 6) & 1); }
+            dst[i  ] = (byte)((val >> 7)    );
         }
     }
     
@@ -756,7 +741,7 @@ public class PNGDecoder {
                 }
             } while(length > 0);
         } catch (DataFormatException ex) {
-            throw (IOException)(new IOException("inflate error").initCause(ex));
+            throw new IOException("inflate error", ex);
         }
     }
 

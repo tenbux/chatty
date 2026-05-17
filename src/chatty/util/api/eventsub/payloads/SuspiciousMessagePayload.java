@@ -4,14 +4,11 @@ package chatty.util.api.eventsub.payloads;
 import chatty.util.JSONUtil;
 import chatty.util.api.TwitchApi;
 import chatty.util.api.eventsub.Payload;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import org.json.simple.JSONObject;
+
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import org.json.simple.JSONObject;
 
 /**
  *
@@ -168,13 +165,11 @@ public class SuspiciousMessagePayload extends Payload {
     }
     
     public static String getTreatmentShort(Treatment treatment) {
-        switch (treatment) {
-            case ACTIVE_MONITORING:
-                return "Monitored user";
-            case RESTRICTED:
-                return "Restricted user";
-        }
-        return treatment.description;
+        return switch (treatment) {
+            case ACTIVE_MONITORING -> "Monitored user";
+            case RESTRICTED -> "Restricted user";
+            default -> treatment.description;
+        };
     }
     
     public String makeInfo() {
@@ -218,7 +213,7 @@ public class SuspiciousMessagePayload extends Payload {
         api.getCachedUserInfoById(new ArrayList<>(bannedInChannels), userInfoMap -> {
             // Result may contain null values in case of errors, so filter out
             synchronized (bannedInChannelsNames) {
-                bannedInChannelsNames.addAll(userInfoMap.values().stream().filter(Objects::nonNull).map(u -> u.displayName).collect(Collectors.toSet()));
+                bannedInChannelsNames.addAll(userInfoMap.values().stream().filter(Objects::nonNull).map(u -> u.displayName()).collect(Collectors.toSet()));
             }
             reportDone.run();
         });

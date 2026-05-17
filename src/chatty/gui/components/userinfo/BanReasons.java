@@ -6,24 +6,13 @@ import chatty.gui.components.settings.GenericComboSetting;
 import chatty.gui.components.settings.SettingsDialog;
 import chatty.lang.Language;
 import chatty.util.settings.Settings;
-import java.awt.Component;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.KeyboardFocusManager;
-import java.awt.Window;
+
+import javax.swing.*;
+import javax.swing.plaf.basic.BasicComboBoxRenderer;
+import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import javax.swing.AbstractAction;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JList;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.KeyStroke;
-import javax.swing.plaf.basic.BasicComboBoxRenderer;
 
 /**
  *
@@ -53,13 +42,7 @@ public class BanReasons extends JPanel {
             JButton editButton = new JButton();
             editButton.setIcon(new ImageIcon(SettingsDialog.class.getResource("edit.png")));
             editButton.setMargin(new Insets(0,2,0,2));
-            editButton.addActionListener(new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    editReasons();
-                }
-            });
+            editButton.addActionListener(e -> editReasons());
             
             settingEditor = new Editor(parent);
             settingEditor.setAllowEmpty(true);
@@ -92,7 +75,7 @@ public class BanReasons extends JPanel {
                     super.getListCellRendererComponent(list, value, index, isSelected, hasFocus);
                     
                     if (index == -1 && value != null) {
-                        String text = ((GenericComboSetting.Entry<String>)value).value;
+                        String text = (String) ((GenericComboSetting.Entry<?>) value).value();
                         if (text != null && !text.isEmpty()) {
                             setText(text);
                         }
@@ -105,17 +88,13 @@ public class BanReasons extends JPanel {
             /**
              * Add/remove custom reason input box if last item is selected.
              */
-            combo.addActionListener(new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    if (combo.getItemCount() > 1 && combo.getSelectedIndex() == combo.getItemCount() - 1) {
-                        addCustomInput();
-                    } else {
-                        removeCustomInput();
-                    }
-                    
+            combo.addActionListener(e -> {
+                if (combo.getItemCount() > 1 && combo.getSelectedIndex() == combo.getItemCount() - 1) {
+                    addCustomInput();
+                } else {
+                    removeCustomInput();
                 }
+
             });
             
             /**
@@ -160,13 +139,7 @@ public class BanReasons extends JPanel {
                     combo.setPopupVisible(!combo.isPopupVisible());
                 }
             });
-            customReasonInput.addActionListener(new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    KeyboardFocusManager.getCurrentKeyboardFocusManager().focusPreviousComponent();
-                }
-            });
+            customReasonInput.addActionListener(e -> KeyboardFocusManager.getCurrentKeyboardFocusManager().focusPreviousComponent());
             customReasonInput.addKeyListener(new KeyAdapter() {
                 
                 @Override

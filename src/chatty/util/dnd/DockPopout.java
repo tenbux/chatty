@@ -10,15 +10,15 @@ import java.util.Collection;
  */
 public interface DockPopout {
 
-    public Window getWindow();
+    Window getWindow();
     
-    public DockBase getBase();
+    DockBase getBase();
     
-    public void setTitle(String title);
+    void setTitle(String title);
     
-    public String getId();
+    String getId();
     
-    public void setId(String id);
+    void setId(String id);
     
     /**
      * Sets an id, avoiding ids that are already in use. Must be called before
@@ -26,9 +26,9 @@ public interface DockPopout {
      * 
      * @param inUse 
      */
-    public void setId(Collection<DockPopout> inUse);
+    void setId(Collection<DockPopout> inUse);
     
-    public static String makeId(String prefix, Collection<DockPopout> existingPopouts) {
+    static String makeId(String prefix, Collection<DockPopout> existingPopouts) {
         for (int i = 0; i < Integer.MAX_VALUE; i++) {
             String attempt = prefix+i;
             if (!idUsed(attempt, existingPopouts)) {
@@ -38,7 +38,7 @@ public interface DockPopout {
         return null;
     }
     
-    public static boolean idUsed(String id, Collection<DockPopout> existingPopouts) {
+    static boolean idUsed(String id, Collection<DockPopout> existingPopouts) {
         for (DockPopout p : existingPopouts) {
             if (p.getId().equals(id)) {
                 return true;

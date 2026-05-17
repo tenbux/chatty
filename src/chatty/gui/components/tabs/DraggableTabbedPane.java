@@ -1,20 +1,12 @@
 
 package chatty.gui.components.tabs;
 
-import java.awt.Component;
-import java.awt.Graphics;
-import java.awt.Image;
-import java.awt.Point;
-import java.awt.Rectangle;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.image.BufferedImage;
-import javax.swing.Icon;
-import javax.swing.JTabbedPane;
-import javax.swing.SwingUtilities;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 /**
  * Allow tabs to be dragged to be repositioned.
@@ -126,14 +118,10 @@ public class DraggableTabbedPane extends JTabbedPane {
             }
         });
         
-        addChangeListener(new ChangeListener() {
-
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                dragging = false;
-                dragStarted = 0;
-                repaint();
-            }
+        addChangeListener(e -> {
+            dragging = false;
+            dragStarted = 0;
+            repaint();
         });
     }
     

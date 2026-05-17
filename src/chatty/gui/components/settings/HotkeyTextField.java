@@ -4,18 +4,9 @@ package chatty.gui.components.settings;
 import chatty.gui.GuiUtil;
 import chatty.lang.Language;
 import chatty.util.hotkeys.Hotkey;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.KeyboardFocusManager;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JMenuItem;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JTextField;
-import javax.swing.KeyStroke;
+
+import javax.swing.*;
+import java.awt.*;
 
 /**
  * Text field allowing the user to enter a KeyStroke.
@@ -63,9 +54,7 @@ public class HotkeyTextField extends JPanel implements StringSetting {
         setButton.setToolTipText(Language.getString("settings.hotkeys.key.button.set"));
         
         JButton resetButton = new JButton("Remove");
-        resetButton.addActionListener(e -> {
-            setHotkey(null);
-        });
+        resetButton.addActionListener(e -> setHotkey(null));
         resetButton.setMargin(GuiUtil.SMALLER_BUTTON_INSETS);
         GuiUtil.matchHeight(resetButton, textField);
         resetButton.setToolTipText(Language.getString("settings.hotkeys.key.button.clear"));
@@ -139,14 +128,14 @@ public class HotkeyTextField extends JPanel implements StringSetting {
          * 
          * @param newHotkey The new KeyStroke
          */
-        public void hotkeyChanged(KeyStroke newHotkey);
+        void hotkeyChanged(KeyStroke newHotkey);
         
         /**
          * Hotkey has been changed by the user entering a new one.
          * 
          * @param newHotkey The new KeyStroke
          */
-        public void hotkeyEntered(KeyStroke newHotkey);
+        void hotkeyEntered(KeyStroke newHotkey);
     }
     
 }

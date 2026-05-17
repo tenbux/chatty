@@ -2,13 +2,12 @@
 package chatty;
 
 import chatty.User.UserSettings;
-import chatty.gui.colors.UsercolorManager;
-import chatty.util.api.usericons.UsericonManager;
 import chatty.util.BotNameManager;
 import chatty.util.StringUtil;
 import chatty.util.settings.Settings;
-import java.util.Map.Entry;
+
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.logging.Logger;
 
 /**
@@ -26,7 +25,7 @@ public class UserManager {
 
     private static final Logger LOGGER = Logger.getLogger(UserManager.class.getName());
     
-    private static final int CLEAR_MESSAGES_TIMER = 1*60*60*1000;
+    private static final int CLEAR_MESSAGES_TIMER = 60 * 60 * 1000;
     
     private final Set<UserManagerListener> listeners = new HashSet<>();
     
@@ -34,7 +33,12 @@ public class UserManager {
     public final User specialUser = new User("[specialUser]", Room.createRegular("[nochannel]"));
     
     private final HashMap<String, HashMap<String, User>> users = new HashMap<>();
-    private final HashMap<String, String> cachedColors = new HashMap<>();
+    private final Map<String, String> cachedColors = new java.util.LinkedHashMap<>(256, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
+            return size() > 5_000;
+        }
+    };
     private boolean capitalizedNames = false;
     
     private final User errorUser = new User("[Error]", Room.createRegular("#[error]"));
@@ -119,15 +123,11 @@ public class UserManager {
     public void setCustomNamesManager(CustomNames m) {
         if (m != null) {
             this.customNamesManager = m;
-            m.addListener(new CustomNames.CustomNamesListener() {
-
-                @Override
-                public void setName(String name, String customNick) {
-                    List<User> users = getUsersByName(name);
-                    for (User user : users) {
-                        user.setCustomNick(customNick);
-                        userUpdated(user);
-                    }
+            m.addListener((name, customNick) -> {
+                List<User> users = getUsersByName(name);
+                for (User user : users) {
+                    user.setCustomNick(customNick);
+                    userUpdated(user);
                 }
             });
         }
@@ -140,12 +140,20 @@ public class UserManager {
      * @return 
      */
     public synchronized HashMap<String, User> getUsersByChannel(String channel) {
-        HashMap<String, User> result = users.get(channel);
-        if (result == null) {
-            result = new HashMap<>();
-            users.put(channel, result);
-        }
+        HashMap<String, User> result = users.computeIfAbsent(channel, k -> new HashMap<>());
         return result;
+    }
+
+    /**
+     * Returns the users for the given channel without creating an empty map
+     * for unknown channels. Safe to call with arbitrary channel names.
+     *
+     * @param channel
+     * @return existing user map, or an empty unmodifiable map if not found
+     */
+    public synchronized Map<String, User> getUsersByChannelReadOnly(String channel) {
+        HashMap<String, User> result = users.get(channel);
+        return result != null ? result : Collections.emptyMap();
     }
 
     /**
@@ -159,9 +167,7 @@ public class UserManager {
     public synchronized List<User> getUsersByName(String name) {
         name = StringUtil.toLowerCase(name);
         List<User> result = new ArrayList<>();
-        Iterator<HashMap<String, User>> it = users.values().iterator();
-        while (it.hasNext()) {
-            HashMap<String, User> channelUsers = it.next();
+        for (HashMap<String, User> channelUsers : users.values()) {
             User user = channelUsers.get(name);
             if (user != null) {
                 result.add(user);
@@ -258,10 +264,7 @@ public class UserManager {
         String lowercaseName = StringUtil.toLowerCase(name);
         HashMap<String,User> result = new HashMap<>();
         
-        Iterator<Entry<String, HashMap<String, User>>> it = users.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, HashMap<String, User>> channel = it.next();
-            
+        for (Entry<String, HashMap<String, User>> channel : users.entrySet()) {
             String channelName = channel.getKey();
             HashMap<String,User> channelUsers = channel.getValue();
             
@@ -315,17 +318,15 @@ public class UserManager {
      * or not)
      */
     public synchronized int clearLines(String channel, boolean messageNumberOnly) {
+        int result = 0;
         if (channel == null) {
-            int result = 0;
             for (String chan : users.keySet()) {
                 if (chan != null) {
                     result += clearLines(chan, messageNumberOnly);
                 }
             }
-            return result;
         }
         else {
-            int result = 0;
             Map<String, User> usersOfChannel = users.get(channel);
             if (usersOfChannel != null) {
                 result += usersOfChannel.size();
@@ -338,8 +339,8 @@ public class UserManager {
                     }
                 }
             }
-            return result;
         }
+        return result;
     }
     
     /**
@@ -397,12 +398,11 @@ public class UserManager {
     /**
      * The list of mods received with channel context, set the containing names
      * as mod. Returns the changed users so they can be updated in the GUI.
-     * 
+     *
      * @param channel
      * @param modsList
-     * @return 
      */
-    protected synchronized List<User> modsListReceived(Room room, List<String> modsList) {
+    protected synchronized void modsListReceived(Room room, List<String> modsList) {
         // Demod everyone on the channel
         Map<String,User> usersToDemod = getUsersByChannel(room.getChannel());
         for (User user : usersToDemod.values()) {
@@ -420,11 +420,10 @@ public class UserManager {
                 changedUsers.add(user);
             }
         }
-        return changedUsers;
     }
     
-    public static interface UserManagerListener {
-        public void userUpdated(User user);
+    public interface UserManagerListener {
+        void userUpdated(User user);
     }
     
 }

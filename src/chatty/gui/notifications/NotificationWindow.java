@@ -2,32 +2,17 @@
 package chatty.gui.notifications;
 
 import chatty.Helper;
-import chatty.gui.MainGui;
 import chatty.util.ActivityListener;
 import chatty.util.ActivityTracker;
 import chatty.util.IconManager;
 import chatty.util.colors.ColorCorrection;
 import chatty.util.colors.ColorCorrectionNew;
-import java.awt.Color;
-import java.awt.Dialog;
-import java.awt.Dimension;
-import java.awt.GraphicsDevice;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Point;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+
+import javax.swing.*;
+import javax.swing.border.Border;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JWindow;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
-import javax.swing.border.Border;
 
 /**
  * A notification which is displayed in a window.
@@ -56,7 +41,7 @@ public class NotificationWindow {
     
     private static final float DEFAULT_OPACITY = 0.99f;
 
-    private static final int UPDATE_TIME_INTERVAL = 1*60*1000;
+    private static final int UPDATE_TIME_INTERVAL = 60 * 1000;
     
     private static final boolean SHORTER_AFTER_ACTIVITY = true;
     private static final int SHORTER_CUTOFF = 2*SECOND;
@@ -207,13 +192,7 @@ public class NotificationWindow {
         updateCreatedTime();
         
         // Update Time Timer
-        updateTimeTimer = new Timer(UPDATE_TIME_INTERVAL, new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                updateCreatedTime();
-            }
-        });
+        updateTimeTimer = new Timer(UPDATE_TIME_INTERVAL, e -> updateCreatedTime());
         updateTimeTimer.setRepeats(true);
         updateTimeTimer.start();
     }
@@ -322,13 +301,7 @@ public class NotificationWindow {
      */
     private void fadeOut() {
         if (fadeOutTimer == null) {
-            fadeOutTimer = new Timer(80, new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    performFadeOut();
-                }
-            });
+            fadeOutTimer = new Timer(80, e -> performFadeOut());
             fadeOutTimer.start();
         }
     }
@@ -348,25 +321,14 @@ public class NotificationWindow {
                     timerDelay = SHORTER_CUTOFF;
                 }
             }
-            regularTimer = new Timer(timerDelay, new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    hide();
-                }
-            });
+            regularTimer = new Timer(timerDelay, e -> hide());
             regularTimer.setRepeats(false);
             regularTimer.start();
         }
     }
 
     private void startFallbackTimer() {
-        fallbackTimer = new Timer(fallbackTimeout, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                hide();
-            }
-        });
+        fallbackTimer = new Timer(fallbackTimeout, e -> hide());
         fallbackTimer.setRepeats(false);
         fallbackTimer.start();
     }

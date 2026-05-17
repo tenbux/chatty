@@ -1,33 +1,24 @@
 
 package chatty.util;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
+import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.logging.Logger;
-import javax.swing.SwingUtilities;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 
 /**
  * A class that provides help for common tasks of requesting data that can be
@@ -195,9 +186,9 @@ public class CachedBulkManager<Key,Item> {
     }
     
     private boolean shouldRefresh(CacheItem<Item> item) {
-        return item == null
-                || shouldRemove(item)
-                || (cacheRefresh > 0 && item.millisecondsPassed(cacheRefresh));
+        return item != null
+                && !shouldRemove(item)
+                && (cacheRefresh <= 0 || !item.millisecondsPassed(cacheRefresh));
     }
     
     private void checkRemoveCache(Key key) {
@@ -224,7 +215,7 @@ public class CachedBulkManager<Key,Item> {
             }
             data.put("items", items);
             
-            try (BufferedWriter writer = Files.newBufferedWriter(file, Charset.forName("UTF-8"))) {
+            try (BufferedWriter writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
                 writer.write(data.toJSONString());
                 LOGGER.info(String.format("%sSaved to %s (%d/%d items)",
                         debugPrefix, file, items.size(), cache.size()));
@@ -238,7 +229,7 @@ public class CachedBulkManager<Key,Item> {
     
     public void loadCacheFromFile(Path file, Function<String, Pair<Key, Item>> stringToItem) {
         synchronized (LOCK) {
-            try (BufferedReader reader = Files.newBufferedReader(file, Charset.forName("UTF-8"))) {
+            try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
                 JSONParser parser = new JSONParser();
                 JSONObject root = (JSONObject) parser.parse(reader);
                 JSONArray items = (JSONArray) root.get("items");
@@ -249,9 +240,9 @@ public class CachedBulkManager<Key,Item> {
                     
                     Pair<Key, Item> parsedItem = stringToItem.apply(value);
                     if (parsedItem != null) {
-                        CacheItem<Item> cacheItem = new CacheItem<>(parsedItem.value, timestamp);
+                        CacheItem<Item> cacheItem = new CacheItem<>(parsedItem.value(), timestamp);
                         if (!shouldRemove(cacheItem)) {
-                            cache.put(parsedItem.key, cacheItem);
+                            cache.put(parsedItem.key(), cacheItem);
                         }
                     }
                 }
@@ -289,8 +280,8 @@ public class CachedBulkManager<Key,Item> {
         query(listener, settings, Arrays.asList(keys));
     }
     
-    public Object query(ResultListener<Key, Item> listener, int settings, Collection<Key> keys) {
-        return query(null, listener, settings, keys);
+    public void query(ResultListener<Key, Item> listener, int settings, Collection<Key> keys) {
+        query(null, listener, settings, keys);
     }
     
     @SafeVarargs
@@ -417,7 +408,7 @@ public class CachedBulkManager<Key,Item> {
             if (cached != null) {
                 result = cached.value;
             }
-            if (!shouldRefresh(cached)) {
+            if (shouldRefresh(cached)) {
                 return result;
             }
         }
@@ -707,8 +698,7 @@ public class CachedBulkManager<Key,Item> {
             if (queries.isEmpty()) {
                 return null;
             }
-            Collection<Result<Key, Item>> results = getDoneQueries2();
-            return results;
+            return getDoneQueries2();
         }
     }
     
@@ -750,7 +740,7 @@ public class CachedBulkManager<Key,Item> {
                  * The cached should not be included if a request should still
                  * take place, because otherwise it may not be requested.
                  */
-                if (!shouldRefresh(cached)
+                if (shouldRefresh(cached)
                         || (cached != null && q.isResponseReceived(k))) {
                     results.put(k, cached.value);
                 }
@@ -793,7 +783,7 @@ public class CachedBulkManager<Key,Item> {
             boolean hasAllKeysOrErrors = results.size() + waitErrors.size() == q.keys.size();
             boolean partial = option(q, PARTIAL) || option(q, RETRY);
             boolean enoughKeys = option(q, PARTIAL) || hasAllKeysOrErrors;
-            if (hasAllKeys || (partial && results.size() > 0 && enoughKeys)) {
+            if (hasAllKeys || (partial && !results.isEmpty() && enoughKeys)) {
                 Result<Key, Item> result = new Result<>(results, q, hasAllKeys);
                 if (!q.sameResult(result)) {
                     q.setResult(result);
@@ -835,7 +825,7 @@ public class CachedBulkManager<Key,Item> {
     
     public interface ResultListener<Key, Item> {
         
-        public void result(Result<Key, Item> result);
+        void result(Result<Key, Item> result);
         
     }
     
@@ -862,7 +852,7 @@ public class CachedBulkManager<Key,Item> {
          * @param normal
          * @param backlog 
          */
-        public void request(CachedBulkManager<Key,Item> manager, Set<Key> asap, Set<Key> normal, Set<Key> backlog);
+        void request(CachedBulkManager<Key, Item> manager, Set<Key> asap, Set<Key> normal, Set<Key> backlog);
     }
     
     public static class Result<Key, Item> {
@@ -926,10 +916,7 @@ public class CachedBulkManager<Key,Item> {
                 return false;
             }
             final Result<?, ?> other = (Result<?, ?>) obj;
-            if (!Objects.equals(this.results, other.results)) {
-                return false;
-            }
-            return true;
+            return Objects.equals(this.results, other.results);
         }
 
         @Override
@@ -940,41 +927,25 @@ public class CachedBulkManager<Key,Item> {
         }
         
     }
-    
-    private static class Options {
-        
-        private final int options;
-        
-        protected Options(int options) {
-            this.options = options;
-        }
-        
+
+    private record Options(int options) {
+
         public boolean contains(int option) {
-            return (options & option) == option;
-        }
+                return (options & option) == option;
+            }
 
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
+            @Override
+            public boolean equals(Object obj) {
+                if (obj == null) {
+                    return false;
+                }
+                if (getClass() != obj.getClass()) {
+                    return false;
+                }
+                final Options other = (Options) obj;
+                return this.options == other.options;
             }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final Options other = (Options) obj;
-            if (this.options != other.options) {
-                return false;
-            }
-            return true;
-        }
 
-        @Override
-        public int hashCode() {
-            int hash = 7;
-            hash = 37 * hash + this.options;
-            return hash;
-        }
-        
     }
     
     private static class Query<Key, Item> {
@@ -1043,10 +1014,7 @@ public class CachedBulkManager<Key,Item> {
             if (!Objects.equals(this.resultListener, other.resultListener)) {
                 return false;
             }
-            if (!Objects.equals(this.keys, other.keys)) {
-                return false;
-            }
-            return true;
+            return Objects.equals(this.keys, other.keys);
         }
 
         @Override
@@ -1126,9 +1094,7 @@ v4/channels/<stream_id> -> set[]
         
         Collection<String> keys = new ArrayList<>();
         keys.add("a");
-        m.query(null, (result) -> {
-            System.out.println(result);
-        }, ASAP, keys);
+        m.query(null, System.out::println, ASAP, keys);
         Thread.sleep(150);
         System.out.println("----");
 //        System.out.println("Get:"+m.get("a"));
@@ -1136,13 +1102,9 @@ v4/channels/<stream_id> -> set[]
 //            System.out.println(result);
 //        }, ASAP, "a"));
 
-        m.query(null, r -> {
-            System.out.println(r);
-        }, ASAP, "a");
+        m.query(null, System.out::println, ASAP, "a");
         
-        m.query(null, r -> {
-            System.out.println(r);
-        }, ASAP, "a");
+        m.query(null, System.out::println, ASAP, "a");
         
         System.out.println(m.debugVerbose());
     }

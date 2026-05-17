@@ -63,13 +63,7 @@ public class HalfWeakSet2<T> implements Iterable<T> {
     
     public void cleanUp() {
         if (weak != null) {
-            Iterator<WeakReference<T>> it = weak.iterator();
-            while (it.hasNext()) {
-//                if (it.next().refersTo(null)) { // Doesn't work on Java 8
-                if (it.next().get() == null) {
-                    it.remove();
-                }
-            }
+            weak.removeIf(tWeakReference -> tWeakReference.refersTo(null));
             if (weak.isEmpty()) {
                 weak = null;
             }
@@ -182,10 +176,10 @@ public class HalfWeakSet2<T> implements Iterable<T> {
         
     }
     
-    public static void main(String[] args) throws InterruptedException {
-        Object a = new String("a");
-        Object b = new String("b");
-        Object c = new String("c");
+    public static void main(String[] args) {
+        Object a = "a";
+        Object b = "b";
+        Object c = "c";
         
         HalfWeakSet2<Object> test = new HalfWeakSet2<>();
 //        test.add(a);
@@ -201,10 +195,6 @@ public class HalfWeakSet2<T> implements Iterable<T> {
             System.out.println(item);
         }
 
-        a = null;
-        b = null;
-        c = null;
-        
         for (Object item : test) {
             System.out.println(item);
         }

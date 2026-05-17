@@ -20,7 +20,7 @@ public class PngEncoder {
      * Compression level 9 is the default.
      * It produces images with a size comparable to ImageIO.
      */
-    public static int DEFAULT_COMPRESSION_LEVEL = Deflater.BEST_COMPRESSION;
+    public static final int DEFAULT_COMPRESSION_LEVEL = Deflater.BEST_COMPRESSION;
 
     private final BufferedImage bufferedImage;
     private final int compressionLevel;

@@ -2,8 +2,9 @@
 package chatty.util.hotkeys;
 
 import com.tulskiy.keymaster.common.Provider;
+
+import javax.swing.*;
 import java.util.logging.Logger;
-import javax.swing.KeyStroke;
 
 /**
  * JKeymaster (JNA) global hotkey handling.
@@ -51,7 +52,7 @@ public class GlobalHotkeySetter {
      * @return true if global hotkeys can be added, false otherwise
      */
     public boolean isActive() {
-        return hotkeys != null && hotkeys.isRunning();
+        return hotkeys == null || !hotkeys.isRunning();
     }
     
     /**
@@ -62,14 +63,12 @@ public class GlobalHotkeySetter {
      * depending on the system)
      */
     public void registerHotkey(Object hotkeyId, KeyStroke keyStroke) {
-        if (!isActive()) {
+        if (isActive()) {
             return;
         }
         try {
             LOGGER.info("[Global Hotkeys] Trying to register hotkey: " + hotkeyId);
-            hotkeys.register(keyStroke, h -> {
-                listener.onHotkey(hotkeyId);
-            });
+            hotkeys.register(keyStroke, h -> listener.onHotkey(hotkeyId));
             anyRegistered = true;
         } catch (Throwable ex) {
             // I don't think there can be an exception, but just in case
@@ -81,7 +80,7 @@ public class GlobalHotkeySetter {
      * Removes all registered hotkeys.
      */
     public void unregisterAllHotkeys() {
-        if (!isActive() || !anyRegistered) {
+        if (isActive() || !anyRegistered) {
             return;
         }
         try {
@@ -99,7 +98,7 @@ public class GlobalHotkeySetter {
      * afterwards.
      */
     public void cleanUp() {
-        if (!isActive()) {
+        if (isActive()) {
             return;
         }
         try {
@@ -112,7 +111,7 @@ public class GlobalHotkeySetter {
     }
     
     public interface GlobalHotkeyListener {
-        public void onHotkey(Object hotkeyId);
+        void onHotkey(Object hotkeyId);
     }
     
 }

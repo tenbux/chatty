@@ -4,22 +4,14 @@ package chatty.gui.components;
 import chatty.gui.GuiUtil;
 import chatty.gui.MainGui;
 import chatty.lang.Language;
-import java.awt.Color;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.HashMap;
 import java.util.Map;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JTextField;
-import javax.swing.Timer;
 
 /**
  * Dialog to search text in the chat.
@@ -35,7 +27,6 @@ public class SearchDialog extends JDialog {
     
     private final Timer timer;
     private final JTextField searchText = new JTextField(20);
-    private final JButton searchButton = new JButton(Language.getString("searchDialog.button.search"));
     //private final JCheckBox highlightAll = new JCheckBox("Highlight all occurences");
     
     private Channel chan;
@@ -73,26 +64,17 @@ public class SearchDialog extends JDialog {
         add(searchText, gbc);
         gbc.gridx = 1;
         gbc.weightx = 0;
+        JButton searchButton = new JButton(Language.getString("searchDialog.button.search"));
         GuiUtil.smallButtonInsets(searchButton);
         searchButton.setFocusable(false);
         add(searchButton, gbc);
 
-        timer = new Timer(NO_RESULT_COLOR_TIME, new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                searchText.setBackground(COLOR_NORMAL);
-            }
-        });
+        timer = new Timer(NO_RESULT_COLOR_TIME, e -> searchText.setBackground(COLOR_NORMAL));
         timer.setRepeats(false);
-        ActionListener listener = new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (!g.search(chan, searchText.getText())) {
-                    searchText.setBackground(COLOR_NO_RESULT);
-                    timer.restart();
-                }
+        ActionListener listener = e -> {
+            if (!g.search(chan, searchText.getText())) {
+                searchText.setBackground(COLOR_NO_RESULT);
+                timer.restart();
             }
         };
         searchText.addActionListener(listener);

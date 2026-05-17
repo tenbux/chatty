@@ -9,6 +9,6 @@ import chatty.util.api.StreamInfoHistoryItem;
  */
 public interface ViewerHistoryListener {
 
-    public void itemSelected(StreamInfoHistoryItem item);
-    public void noItemSelected();
+    void itemSelected(StreamInfoHistoryItem item);
+    void noItemSelected();
 }

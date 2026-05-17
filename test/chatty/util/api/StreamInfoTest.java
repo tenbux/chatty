@@ -2,14 +2,11 @@
 package chatty.util.api;
 
 import chatty.util.DateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Set;
-import org.junit.Assert;
-import static org.junit.Assert.assertEquals;
 import org.junit.Test;
+
+import java.util.LinkedHashMap;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -38,8 +35,8 @@ public class StreamInfoTest {
         
 //        testHistory.output();
         
-        assertEquals(-1, info.getHistoryStreamStart(1*MINUTE, false));
-        assertEquals(-1, info.getHistoryStreamStart(1*MINUTE, true));
+        assertEquals(-1, info.getHistoryStreamStart(MINUTE, false));
+        assertEquals(-1, info.getHistoryStreamStart(MINUTE, true));
         assertEquals(-1, info.getHistoryStreamStart(4*MINUTE, false));
         assertEquals(-1, info.getHistoryStreamStart(22*MINUTE-1, false));
         assertEquals(1200000, info.getHistoryStreamStart(22*MINUTE, false));
@@ -54,8 +51,8 @@ public class StreamInfoTest {
     
     private static class TestHistory {
         
-        private long currentTime = 1;
-        public LinkedHashMap<Long, StreamInfoHistoryItem> history = new LinkedHashMap<>();
+        private long currentTime;
+        public final LinkedHashMap<Long, StreamInfoHistoryItem> history = new LinkedHashMap<>();
         public long startTime;
         public long picnicStartTime;
         public boolean live;
@@ -77,7 +74,7 @@ public class StreamInfoTest {
         }
         
         public void addTime(int minutes) {
-            this.currentTime += minutes*60*1000;
+            this.currentTime += (long) minutes *60*1000;
         }
         
         public void addItems(int count, int minutes) {
@@ -99,13 +96,13 @@ public class StreamInfoTest {
         public void output() {
             for (StreamInfoHistoryItem item : history.values()) {
                 if (item.isOnline()) {
-                    System.out.println(String.format("%s / %s / %s (%s / %s)",
+                    System.out.printf("%s / %s / %s (%s / %s)%n",
                             DateTime.duration(item.getTime()),
                             DateTime.duration(item.getTime() - item.getStreamStartTime()),
                             DateTime.duration(item.getTime() - item.getStreamStartTimeWithPicnic()),
                             item.getStreamStartTime(),
                             item.getStreamStartTimeWithPicnic()
-                    ));
+                    );
                 }
                 else {
                     System.out.println(DateTime.duration(item.getTime()));

@@ -1,19 +1,12 @@
 
 package chatty.util;
 
-import java.awt.AWTEvent;
-import java.awt.MouseInfo;
-import java.awt.Point;
-import java.awt.PointerInfo;
-import java.awt.Toolkit;
-import java.awt.event.AWTEventListener;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import javax.swing.*;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Logger;
-import javax.swing.Timer;
 
 /**
  * Tracks whether there is user activity. Currently only tracks the moues
@@ -44,21 +37,9 @@ public class ActivityTracker {
     public static void startTracking() {
         if (timer == null) {
             checkMouseLocation();
-            timer = new Timer(DELAY, new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    checkMouseLocation();
-                }
-            });
+            timer = new Timer(DELAY, e -> checkMouseLocation());
             timer.start();
-            Toolkit.getDefaultToolkit().addAWTEventListener(new AWTEventListener() {
-
-                @Override
-                public void eventDispatched(AWTEvent event) {
-                    triggerActivity();
-                }
-            }, AWTEvent.KEY_EVENT_MASK + AWTEvent.MOUSE_EVENT_MASK);
+            Toolkit.getDefaultToolkit().addAWTEventListener(event -> triggerActivity(), AWTEvent.KEY_EVENT_MASK + AWTEvent.MOUSE_EVENT_MASK);
             LOGGER.info("Started tracking user activity..");
         }
     }

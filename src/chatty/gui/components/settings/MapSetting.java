@@ -9,7 +9,7 @@ import java.util.Map;
  */
 public interface MapSetting<K, V> {
 
-        public Map<K, V> getSettingValue();
+        Map<K, V> getSettingValue();
 
-        public void setSettingValue(Map<K,V> value);
+        void setSettingValue(Map<K, V> value);
 }

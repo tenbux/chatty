@@ -11,12 +11,8 @@ import chatty.util.StringUtil;
 import chatty.util.api.TwitchApi;
 import chatty.util.api.TwitchApi.SimpleRequestResultListener;
 import chatty.util.irc.MsgTags;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -37,11 +33,9 @@ public class TwitchCommands {
      * (no message output).
      */
     private final Set<String> silentModsRequestChannel
-            = Collections.synchronizedSet(new HashSet<String>());
+            = Collections.synchronizedSet(new HashSet<>());
 
-    private static final Set<String> SIMPLE_COMMANDS = new HashSet<>(Arrays.asList(new String[]{
-        "commercial"
-    }));
+    private static final Set<String> SIMPLE_COMMANDS = new HashSet<>(List.of("commercial"));
 
     /**
      * Commands that don't have a parameter, and probably never will have, so
@@ -49,15 +43,12 @@ public class TwitchCommands {
      * through the Channel Context Menu using the Command Name format, where it
      * automatically adds a parameter.
      */
-    private static final Set<String> NO_PARAMETER_COMMANDS = new HashSet<>(Arrays.asList(new String[]{
-        
-    }));
+    private static final Set<String> NO_PARAMETER_COMMANDS = new HashSet<>(List.of());
     
     /**
      * Other commands, only used for isCommand().
      */
-    private static final Set<String> OTHER_COMMANDS = new HashSet<>(Arrays.asList(new String[]{
-    }));
+    private static final Set<String> OTHER_COMMANDS = new HashSet<>(List.of());
     
     private final TwitchConnection c;
     
@@ -70,10 +61,7 @@ public class TwitchCommands {
         if (SIMPLE_COMMANDS.contains(command)) {
             return true;
         }
-        if (OTHER_COMMANDS.contains(command)) {
-            return true;
-        }
-        return false;
+        return OTHER_COMMANDS.contains(command);
     }
     
     public boolean command(String channel, String msgId, String command, String parameter) {
@@ -116,7 +104,7 @@ public class TwitchCommands {
                     g.printSystem("Usage: /announce"+color+" <message>");
                 }
                 else {
-                    api.sendAnnouncement(p.getRoom().getStream(), p.getArgs(), color);
+                    api.sendAnnouncement(p.room().getStream(), p.getArgs(), color);
                 }
             });
         }
@@ -133,83 +121,43 @@ public class TwitchCommands {
                 reason = "";
             }
             String info = StringUtil.append(formatDuration(seconds), ", ", reason);
-            userCommand(client, p, args, (user, resultListener) -> {
-                api.ban(user, seconds, reason, resultListener);
-            }, StringUtil.aEmptyb(info, "", " (%s)"));
+            userCommand(client, p, args, (user, resultListener) -> api.ban(user, seconds, reason, resultListener), StringUtil.aEmptyb(info, "", " (%s)"));
         }, "to");
         commands.add("ban", "<user> [reason]", p -> {
             Commands.CommandParsedArgs args = p.parsedArgs(2, 1);
             String reason = args != null ? args.get(1, "") : "";
-            userCommand(client, p, args, (user, resultListener) -> {
-                api.ban(user, 0, reason, resultListener);
-            }, StringUtil.aEmptyb(reason, "", " (%s)"));
+            userCommand(client, p, args, (user, resultListener) -> api.ban(user, 0, reason, resultListener), StringUtil.aEmptyb(reason, "", " (%s)"));
         });
-        commands.add("unban", "<user>", p -> {
-            userCommand(client, p, p.parsedArgs(1, 1), (user, resultListener) -> {
-                api.unban(user, resultListener);
-            }, "");
-        }, "untimeout");
+        commands.add("unban", "<user>", p -> userCommand(client, p, p.parsedArgs(1, 1), api::unban, ""), "untimeout");
         commands.add("delete", "<messageId>", p -> {
             Commands.CommandParsedArgs args = p.parsedArgs(1, 1);
-            channelCommand(client, p, args, listener -> {
-                api.deleteMsg(p.getRoom(), args.get(0), listener);
-            });
+            channelCommand(client, p, args, listener -> api.deleteMsg(p.room(), args.get(0), listener));
         });
-        commands.add("clear", p -> {
-            channelCommand(client, p, p.parsedArgs(1, 0), listener -> {
-                api.deleteMsg(p.getRoom(), null, listener);
-            });
-        });
-        commands.add("shoutout", "<user>", p -> {
-            userCommand(client, p, p.parsedArgs(1, 1), (user, resultListener) -> {
-                api.shoutout(user, resultListener);
-            }, "");
-        });
+        commands.add("clear", p -> channelCommand(client, p, p.parsedArgs(1, 0), listener -> api.deleteMsg(p.room(), null, listener)));
+        commands.add("shoutout", "<user>", p -> userCommand(client, p, p.parsedArgs(1, 1), api::shoutout, ""));
         commands.add("warn", "<user> <reason>", p -> {
             Commands.CommandParsedArgs args = p.parsedArgs(2, 2);
             String reason = args != null ? args.get(1, "") : "";
-            userCommand(client, p, args, (user, resultListener) -> {
-                api.warn(user, reason, resultListener);
-            }, StringUtil.aEmptyb(reason, "", " (%s)"));
+            userCommand(client, p, args, (user, resultListener) -> api.warn(user, reason, resultListener), StringUtil.aEmptyb(reason, "", " (%s)"));
         });
         //--------------------------
         // Broadcaster
         //--------------------------
-        commands.add("mod", "<user>", p -> {
-            userCommand(client, p, p.parsedArgs(1, 1), (user, resultListener) -> {
-                api.setModerator(user, true, resultListener);
-            }, "");
-        });
-        commands.add("unmod", "<user>", p -> {
-            userCommand(client, p, p.parsedArgs(1, 1), (user, resultListener) -> {
-                api.setModerator(user, false, resultListener);
-            }, "");
-        });
-        commands.add("vip", "<user>", p -> {
-            userCommand(client, p, p.parsedArgs(1, 1), (user, resultListener) -> {
-                api.setVip(user, true, resultListener);
-            }, "");
-        });
-        commands.add("unvip", "<user>", p -> {
-            userCommand(client, p, p.parsedArgs(1, 1), (user, resultListener) -> {
-                api.setVip(user, false, resultListener);
-            }, "");
-        });
+        commands.add("mod", "<user>", p -> userCommand(client, p, p.parsedArgs(1, 1), (user, resultListener) -> api.setModerator(user, true, resultListener), ""));
+        commands.add("unmod", "<user>", p -> userCommand(client, p, p.parsedArgs(1, 1), (user, resultListener) -> api.setModerator(user, false, resultListener), ""));
+        commands.add("vip", "<user>", p -> userCommand(client, p, p.parsedArgs(1, 1), (user, resultListener) -> api.setVip(user, true, resultListener), ""));
+        commands.add("unvip", "<user>", p -> userCommand(client, p, p.parsedArgs(1, 1), (user, resultListener) -> api.setVip(user, false, resultListener), ""));
         commands.add("mods", p -> {
-            if (localUserIsBroadcaster(p.getRoom(), client)) {
-                channelCommand(client, p, p.parsedArgs(1, 0), listener -> {
-                    api.requestModerators(p.getRoom(), listener);
-                });
+            if (localUserIsBroadcaster(p.room(), client)) {
+                channelCommand(client, p, p.parsedArgs(1, 0), listener -> api.requestModerators(p.room(), listener));
             }
             else {
                 sendMessage(p.getChannel(), "/mods", Language.getString("chat.twitchcommands.mods")+" (will only work for broadcaster after February 18, 2023)");
             }
         });
         commands.add("vips", p -> {
-            if (localUserIsBroadcaster(p.getRoom(), client)) {
-                channelCommand(client, p, p.parsedArgs(1, 0), listener -> {
-                    api.requestVips(p.getRoom(), listener);
-                });
+            if (localUserIsBroadcaster(p.room(), client)) {
+                channelCommand(client, p, p.parsedArgs(1, 0), listener -> api.requestVips(p.room(), listener));
             }
             else {
                 sendMessage(p.getChannel(), "/vips", Language.getString("chat.twitchcommands.vips")+" (will only work for broadcaster after February 18, 2023)");
@@ -217,31 +165,21 @@ public class TwitchCommands {
         });
         commands.add("raid", p -> {
             Commands.CommandParsedArgs args = p.parsedArgs(1, 1);
-            channelCommand(client, p, args, listener -> {
-                api.startRaid(p.getRoom(), args.get(0), listener);
-            }, () -> args.get(0));
+            channelCommand(client, p, args, listener -> api.startRaid(p.room(), args.get(0), listener), () -> args.get(0));
         });
-        commands.add("unraid", p -> {
-            channelCommand(client, p, p.parsedArgs(1, 0), listener -> {
-                api.cancelRaid(p.getRoom(), listener);
-            });
-        });
+        commands.add("unraid", p -> channelCommand(client, p, p.parsedArgs(1, 0), listener -> api.cancelRaid(p.room(), listener)));
         // Add here so it keeps working (API) after chat command is removed
         commands.add("commercial", p -> {
             Commands.CommandParsedArgs args = p.parsedArgs(1, 0);
-            client.runCommercial(p.getRoom().getStream(), args.getInt(0, 30));
+            client.runCommercial(p.room().getStream(), args.getInt(0, 30));
         });
         //--------------------------
         // Chat Settings
         //--------------------------
-        commands.add("uniquechat", p -> {
-            updateChatSettings(client, p, "",
-                    TwitchApi.CHAT_SETTINGS_UNIQUE, true);
-        }, "r9kbeta", "r9k");
-        commands.add("uniquechatOff", p -> {
-            updateChatSettings(client, p, "",
-                    TwitchApi.CHAT_SETTINGS_UNIQUE, false);
-        }, "r9kbetaOff", "r9kOff");
+        commands.add("uniquechat", p -> updateChatSettings(client, p, "",
+                TwitchApi.CHAT_SETTINGS_UNIQUE, true), "r9kbeta", "r9k");
+        commands.add("uniquechatOff", p -> updateChatSettings(client, p, "",
+                TwitchApi.CHAT_SETTINGS_UNIQUE, false), "r9kbetaOff", "r9kOff");
         commands.add("followers", p -> {
             int minutes = (int) DateTime.parseDurationSeconds(p.getArgs(), TimeUnit.MINUTES) / 60;
             if (minutes == -1) {
@@ -254,10 +192,8 @@ public class TwitchCommands {
                         TwitchApi.CHAT_SETTINGS_FOLLOWER_MODE_DURATION, minutes);
             }
         });
-        commands.add("followersOff", p -> {
-            updateChatSettings(client, p, "",
-                    TwitchApi.CHAT_SETTINGS_FOLLOWER_MODE, false);
-        });
+        commands.add("followersOff", p -> updateChatSettings(client, p, "",
+                TwitchApi.CHAT_SETTINGS_FOLLOWER_MODE, false));
         commands.add("slow", p -> {
             int seconds = (int) DateTime.parseDurationSeconds(p.getArgs());
             if (seconds == -1) {
@@ -270,44 +206,24 @@ public class TwitchCommands {
                         TwitchApi.CHAT_SETTINGS_SLOWMODE_TIME, seconds);
             }
         });
-        commands.add("slowOff", p -> {
-            updateChatSettings(client, p, "",
-                    TwitchApi.CHAT_SETTINGS_SLOWMODE, false);
-        });
-        commands.add("subscribers", p -> {
-            updateChatSettings(client, p, "",
-                    TwitchApi.CHAT_SETTINGS_SUBONLY, true);
-        });
-        commands.add("subscribersOff", p -> {
-            updateChatSettings(client, p, "",
-                    TwitchApi.CHAT_SETTINGS_SUBONLY, false);
-        });
-        commands.add("emoteonly", p -> {
-            updateChatSettings(client, p, "",
-                    TwitchApi.CHAT_SETTINGS_EMOTEONLY, true);
-        });
-        commands.add("emoteonlyOff", p -> {
-            updateChatSettings(client, p, "",
-                    TwitchApi.CHAT_SETTINGS_EMOTEONLY, false);
-        });
-        commands.add("shieldMode", p -> {
-            channelCommand(client, p, p.parsedArgs(1, 0), listener -> {
-                api.setShieldMode(p.getRoom(), true, listener);
-            });
-        });
-        commands.add("shieldModeOff", p -> {
-            channelCommand(client, p, p.parsedArgs(1, 0), listener -> {
-                api.setShieldMode(p.getRoom(), false, listener);
-            });
-        });
+        commands.add("slowOff", p -> updateChatSettings(client, p, "",
+                TwitchApi.CHAT_SETTINGS_SLOWMODE, false));
+        commands.add("subscribers", p -> updateChatSettings(client, p, "",
+                TwitchApi.CHAT_SETTINGS_SUBONLY, true));
+        commands.add("subscribersOff", p -> updateChatSettings(client, p, "",
+                TwitchApi.CHAT_SETTINGS_SUBONLY, false));
+        commands.add("emoteonly", p -> updateChatSettings(client, p, "",
+                TwitchApi.CHAT_SETTINGS_EMOTEONLY, true));
+        commands.add("emoteonlyOff", p -> updateChatSettings(client, p, "",
+                TwitchApi.CHAT_SETTINGS_EMOTEONLY, false));
+        commands.add("shieldMode", p -> channelCommand(client, p, p.parsedArgs(1, 0), listener -> api.setShieldMode(p.room(), true, listener)));
+        commands.add("shieldModeOff", p -> channelCommand(client, p, p.parsedArgs(1, 0), listener -> api.setShieldMode(p.room(), false, listener)));
         //--------------------------
         // User Settings
         //--------------------------
         commands.add("color", p -> {
             Commands.CommandParsedArgs args = p.parsedArgs(1, 1);
-            simpleCommand(client, p, args, listener -> {
-                api.setColor(args.get(0), listener);
-            }, () -> args.get(0));
+            simpleCommand(client, p, args, listener -> api.setColor(args.get(0), listener), () -> args.get(0));
         });
         //--------------------------
         // Other
@@ -345,24 +261,19 @@ public class TwitchCommands {
                                     Object append,
                                     Object... data) {
         if (!Helper.isValidChannelStrict(p.getChannel())) {
-            client.g.printSystem(p.getRoom(), "Invalid channel.");
+            client.g.printSystem(p.room(), "Invalid channel.");
             return;
         }
         if (data == null) {
-            client.g.printSystem(p.getRoom(), "Invalid command");
+            client.g.printSystem(p.room(), "Invalid command");
             return;
         }
-        String msg = makeMsg(p.getCommand(), append);
-        Object objectId = client.g.printLine(p.getRoom(), msg);
-        client.api.updateChatSettings(p.getRoom(), r -> {
-            if (r.error == null) {
-                // Success
-                client.g.addToLine(p.getRoom(), objectId, "OK");
-            }
-            else {
-                // Failed
-                client.g.addToLine(p.getRoom(), objectId, r.error);
-            }
+        String msg = makeMsg(p.command(), append);
+        Object objectId = client.g.printLine(p.room(), msg);
+        client.api.updateChatSettings(p.room(), r -> {
+            // Success
+            // Failed
+            client.g.addToLine(p.room(), objectId, Objects.requireNonNullElse(r.error, "OK"));
         }, data);
     }
     
@@ -383,28 +294,28 @@ public class TwitchCommands {
                              BiConsumer<User, SimpleRequestResultListener> doRequest,
                              String append) {
         if (!Helper.isValidChannelStrict(p.getChannel())) {
-            client.g.printSystem(p.getRoom(), "Invalid channel.");
+            client.g.printSystem(p.room(), "Invalid channel.");
             return;
         }
         if (args == null) {
-            client.g.printSystem(p.getRoom(), getInvalidParametersMessage(p));
+            client.g.printSystem(p.room(), getInvalidParametersMessage(p));
             return;
         }
         User user = client.getUser(p.getChannel(), args.get(0));
         String msg = String.format("Trying to %s %s%s..",
-                p.getCommand().getName(),
+                p.command().getName(),
                 user.getName(),
                 append);
-        Object objectId = client.g.printLine(p.getRoom(), msg);
+        Object objectId = client.g.printLine(p.room(), msg);
         doRequest.accept(user, r -> {
             if (r.error == null) {
                 // Success
-                client.g.addToLine(p.getRoom(), objectId, "OK");
+                client.g.addToLine(p.room(), objectId, "OK");
                 RecentlyAffectedUsers.addUser(user);
             }
             else {
                 // Failed
-                client.g.addToLine(p.getRoom(), objectId, r.error);
+                client.g.addToLine(p.room(), objectId, r.error);
             }
         });
     }
@@ -422,7 +333,7 @@ public class TwitchCommands {
                                Consumer<SimpleRequestResultListener> doRequest,
                                Supplier<String> outputArg) {
         if (!Helper.isValidChannelStrict(p.getChannel())) {
-            client.g.printSystem(p.getRoom(), "Invalid channel.");
+            client.g.printSystem(p.room(), "Invalid channel.");
             return;
         }
         simpleCommand(client, p, args, doRequest, outputArg);
@@ -447,32 +358,32 @@ public class TwitchCommands {
                                Consumer<SimpleRequestResultListener> doRequest,
                                Supplier<String> outputArg) {
         if (args != null) {
-            String msg = makeMsg(p.getCommand(), outputArg.get());
-            Object objectId = client.g.printLine(p.getRoom(), msg);
+            String msg = makeMsg(p.command(), outputArg.get());
+            Object objectId = client.g.printLine(p.room(), msg);
             doRequest.accept(r -> {
                 if (r.error == null) {
                     // Success
                     if (r.result == null) {
-                        client.g.addToLine(p.getRoom(), objectId, "OK");
+                        client.g.addToLine(p.room(), objectId, "OK");
                     }
                     else {
-                        client.g.printLine(p.getRoom(), r.result);
+                        client.g.printLine(p.room(), r.result);
                     }
                 }
                 else {
                     // Failed
-                    client.g.addToLine(p.getRoom(), objectId, r.error);
+                    client.g.addToLine(p.room(), objectId, r.error);
                 }
             });
         }
         else {
             // Invalid parameters
-            client.g.printSystem(p.getRoom(), getInvalidParametersMessage(p));
+            client.g.printSystem(p.room(), getInvalidParametersMessage(p));
         }
     }
     
     private static String getInvalidParametersMessage(Commands.CommandParameters p) {
-        String usage = p.getCommand().getUsage();
+        String usage = p.command().getUsage();
         return !StringUtil.isNullOrEmpty(usage) ? usage : "Invalid parameters";
     }
     

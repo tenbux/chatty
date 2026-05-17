@@ -21,12 +21,12 @@ public class ComboLongSetting extends GenericComboSetting<Long> implements LongS
         }
         catch (ClassCastException ex) {
             try {
-                Object v = ((Entry) getSelectedItem()).value;
+                Object v = ((Entry) getSelectedItem()).value();
                 if (v instanceof String) {
                     return Long.valueOf((String) v);
                 }
             }
-            catch (NumberFormatException ex2) {
+            catch (NumberFormatException ignored) {
             }
         }
         return 0L;

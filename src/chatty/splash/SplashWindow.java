@@ -2,20 +2,11 @@
 package chatty.splash;
 
 import chatty.util.IconManager;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.GraphicsDevice;
+
+import javax.swing.*;
+import java.awt.*;
+
 import static java.awt.GraphicsDevice.WindowTranslucency.PERPIXEL_TRANSLUCENT;
-import java.awt.GraphicsEnvironment;
-import java.awt.Image;
-import java.awt.Point;
-import java.awt.Toolkit;
-import javax.swing.ImageIcon;
-import javax.swing.JComponent;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JWindow;
-import java.util.ArrayList;
 
 /**
  * Backup splashscreen, when the "native" one doesn't work (for example for the
@@ -98,7 +89,7 @@ public class SplashWindow extends JFrame {
             }, null);
             Thread.sleep(3000);
             System.exit(0);
-        } catch (InterruptedException ex) {
+        } catch (InterruptedException ignored) {
         }
     }
     

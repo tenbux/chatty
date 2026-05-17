@@ -8,24 +8,14 @@ import chatty.lang.Language;
 import chatty.util.MiscUtil;
 import chatty.util.StringUtil;
 import chatty.util.settings.FileManager;
-import java.awt.GridBagConstraints;
-import static java.awt.GridBagConstraints.EAST;
-import java.io.File;
+
+import javax.swing.*;
+import java.awt.*;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.LinkedHashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TimeZone;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
+
+import static java.awt.GridBagConstraints.EAST;
 
 /**
  *
@@ -44,7 +34,7 @@ public class MainSettings extends SettingsPanel {
         //=========
         // Startup
         //=========
-        gbc = d.makeGbc(0, 0, 2, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(0, 0, 2, 1, GridBagConstraints.WEST);
         startSettingsPanel.add(d.addSimpleBooleanSetting("splash"), gbc);
         
         Map<Long, String> onStartDef = new LinkedHashMap<>();
@@ -71,16 +61,16 @@ public class MainSettings extends SettingsPanel {
         });
         
         JCheckBox restoreLayout = d.addSimpleBooleanSetting("restoreLayout");
-        gbc = d.makeGbc(0, 3, 2, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(0, 3, 2, 1, GridBagConstraints.WEST);
         startSettingsPanel.add(restoreLayout, gbc);
         
         JCheckBox restoreLayoutWhisper = d.addSimpleBooleanSetting("restoreLayoutWhisper");
-        gbc = d.makeGbcSub(0, 4, 2, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbcSub(0, 4, 2, 1, GridBagConstraints.WEST);
         startSettingsPanel.add(restoreLayoutWhisper, gbc);
         
         SettingsUtil.addSubsettings(restoreLayout, restoreLayoutWhisper);
         
-        gbc = d.makeGbc(0, 5, 2, 1, GridBagConstraints.WEST);
+        gbc = SettingsDialog.makeGbc(0, 5, 2, 1, GridBagConstraints.WEST);
         startSettingsPanel.add(connectDialogIfMissing, gbc);
         
         SettingsUtil.addLabeledComponent(startSettingsPanel, "minimizeOnStart", 0, 6, 2, GridBagConstraints.EAST,
@@ -90,11 +80,11 @@ public class MainSettings extends SettingsPanel {
         // Language
         //==========
         languagePanel.add(new JLabel(Language.getString("settings.language.language")),
-                d.makeGbc(0, 0, 1, 1, GridBagConstraints.EAST));
+                SettingsDialog.makeGbc(0, 0, 1, 1, GridBagConstraints.EAST));
         ComboStringSetting languageSetting = d.addComboStringSetting(
                 "language", 0, false, getLanguageOptions());
         languagePanel.add(languageSetting,
-                d.makeGbc(1, 0, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(1, 0, 1, 1, GridBagConstraints.WEST));
         
         languagePanel.add(new LinkLabel(SettingConstants.HTML_PREFIX
                 +Language.getString("settings.language.info")
@@ -102,10 +92,10 @@ public class MainSettings extends SettingsPanel {
                 + "If you would like to help with translations, check "
                 + "[url:https://chatty.github.io/localization.html the website].",
                 d.getLinkLabelListener()),
-                d.makeGbc(0, 1, 2, 1));
+                SettingsDialog.makeGbc(0, 1, 2, 1));
         
         DialogComboSetting localeSetting = new DialogComboSetting(d,
-                () -> getLocaleOptions(),
+                MainSettings::getLocaleOptions,
                 value -> {
                     if (value.isEmpty()) {
                         return "Default";
@@ -117,9 +107,9 @@ public class MainSettings extends SettingsPanel {
         
         JLabel timezoneLabel = SettingsUtil.createLabel("timezone");
         languagePanel.add(timezoneLabel,
-                d.makeGbc(0, 3, 1, 1));
+                SettingsDialog.makeGbc(0, 3, 1, 1));
         DialogComboSetting timezoneSetting = new DialogComboSetting(d,
-                () -> getTimezoneOptions(),
+                MainSettings::getTimezoneOptions,
                 value -> {
                     TimeZone tz = DEFAULT_TIMEZONE;
                     String def = " [" + Language.getString("status.default") + "]";
@@ -134,7 +124,7 @@ public class MainSettings extends SettingsPanel {
                 });
         timezoneLabel.setLabelFor(timezoneSetting);
         d.addStringSetting("timezone", timezoneSetting);
-        gbc = d.makeGbc(1, 3, 1, 1);
+        gbc = SettingsDialog.makeGbc(1, 3, 1, 1);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1;
         languagePanel.add(timezoneSetting,
@@ -150,30 +140,28 @@ public class MainSettings extends SettingsPanel {
         
         JLabel dirLabel = new JLabel(Language.getString("settings.directory.info", dirInfo));
         dirPanel.add(dirLabel,
-                d.makeGbc(0, 0, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 0, 1, 1, GridBagConstraints.WEST));
         
         JTextField dir = new JTextField(Chatty.getPath(Chatty.PathType.SETTINGS).toString(), 30);
         dirLabel.setLabelFor(dir);
         dir.setEditable(false);
-        gbc = d.makeGbc(0, 1, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 1, 1, 1);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1;
         dirPanel.add(dir, gbc);
         
         JButton openDirButton = new JButton(Language.getString("settings.chooseFolder.button.open"));
         GuiUtil.smallButtonInsets(openDirButton);
-        openDirButton.addActionListener(e -> {
-            MiscUtil.openFile(Chatty.getPath(Chatty.PathType.SETTINGS), this);
-        });
-        dirPanel.add(openDirButton, d.makeGbc(1, 1, 1, 1));
+        openDirButton.addActionListener(e -> MiscUtil.openFile(Chatty.getPath(Chatty.PathType.SETTINGS), this));
+        dirPanel.add(openDirButton, SettingsDialog.makeGbc(1, 1, 1, 1));
         
         if (Chatty.getInvalidCustomPath(Chatty.PathType.SETTINGS) != null) {
             dirPanel.add(new JLabel(Language.getString("settings.directory.invalid")),
-                    d.makeGbc(0, 2, 1, 1, GridBagConstraints.WEST));
+                    SettingsDialog.makeGbc(0, 2, 1, 1, GridBagConstraints.WEST));
             
             JTextField invalidDir = new JTextField(Chatty.getInvalidCustomPath(Chatty.PathType.SETTINGS), 30);
             invalidDir.setEditable(false);
-            gbc = d.makeGbc(0, 3, 2, 1);
+            gbc = SettingsDialog.makeGbc(0, 3, 2, 1);
             gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.weightx = 1;
             dirPanel.add(invalidDir, gbc);
@@ -194,7 +182,7 @@ public class MainSettings extends SettingsPanel {
             mg.open();
             fm.setSavingPaused(false);
         });
-        gbc = d.makeGbc(0, 4, 2, 1);
+        gbc = SettingsDialog.makeGbc(0, 4, 2, 1);
         dirPanel.add(openBackupButton, gbc);
         
         dirPanel.add(d.addSimpleBooleanSetting("initSettingsDialog"),
@@ -228,13 +216,8 @@ public class MainSettings extends SettingsPanel {
     public static Map<String, String> getLocaleOptions() {
         Map<String, String> result = new LinkedHashMap<>();
         result.put("", "Default");
-        List<Locale> locales = new ArrayList<>();
-        for (Locale locale : Locale.getAvailableLocales()) {
-            locales.add(locale);
-        }
-        Collections.sort(locales, (o1, o2) -> {
-            return o1.getDisplayName().compareToIgnoreCase(o2.getDisplayName());
-        });
+        List<Locale> locales = new ArrayList<>(Arrays.asList(Locale.getAvailableLocales()));
+        locales.sort((o1, o2) -> o1.getDisplayName().compareToIgnoreCase(o2.getDisplayName()));
         for (Locale locale : locales) {
             if (!locale.getDisplayName().trim().isEmpty()) {
                 result.put(locale.toLanguageTag(), locale.getDisplayName());
@@ -252,13 +235,7 @@ public class MainSettings extends SettingsPanel {
             TimeZone tz = TimeZone.getTimeZone(id);
             timezones.add(tz);
         }
-        Collections.sort(timezones, new Comparator<TimeZone>() {
-
-            @Override
-            public int compare(TimeZone o1, TimeZone o2) {
-                return o1.getOffset(System.currentTimeMillis()) - o2.getOffset(System.currentTimeMillis());
-            }
-        });
+        timezones.sort(Comparator.comparingInt(o -> o.getOffset(System.currentTimeMillis())));
         options.put("", String.format("%s [%s]",
                 formatTimezone(DEFAULT_TIMEZONE, sdf, now),
                 Language.getString("status.default")));

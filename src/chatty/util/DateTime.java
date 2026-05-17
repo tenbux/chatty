@@ -6,15 +6,7 @@ import java.text.SimpleDateFormat;
 import java.time.Month;
 import java.time.MonthDay;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.Random;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -55,26 +47,32 @@ public class DateTime {
     }
     
     public static String currentTime(SimpleDateFormat sdf) {
-        synchronized(sdf) {
-            Calendar cal = Calendar.getInstance();
-            return sdf.format(cal.getTime());
-        }
+        Calendar cal = Calendar.getInstance();
+        return sdf.format(cal.getTime());
     }
     
     public static String fullDateTime() {
-        return currentTime(FULL_DATETIME);
+        synchronized(FULL_DATETIME) {
+            return currentTime(FULL_DATETIME);
+        }
     }
     
     public static String currentTime() {
-        return currentTime(SDF);
+        synchronized(SDF) {
+            return currentTime(SDF);
+        }
     }
     
     public static String currentTimeExact() {
-        return currentTime(SDF3);
+        synchronized(SDF3) {
+            return currentTime(SDF3);
+        }
     }
     
     public static String formatExact(long time) {
-        return format(time, SDF3);
+        synchronized(SDF3) {
+            return format(time, SDF3);
+        }
     }
     
     public static String currentTime(String format) {
@@ -82,21 +80,25 @@ public class DateTime {
     }
     
     public static String format(long time, SimpleDateFormat sdf) {
-        synchronized(sdf) {
-            return sdf.format(new Date(time));
-        }
+        return sdf.format(new Date(time));
     }
     
     public static String format(long time) {
-        return format(time, SDF);
+        synchronized(SDF) {
+            return format(time, SDF);
+        }
     }
     
     public static String formatFullDatetime(long time) {
-        return format(time, FULL_DATETIME);
+        synchronized(FULL_DATETIME) {
+            return format(time, FULL_DATETIME);
+        }
     }
     
     public static String format2(long time) {
-        return format(time, SDF2);
+        synchronized(SDF2) {
+            return format(time, SDF2);
+        }
     }
     
     public static String formatAccountAge(long time, Formatting... options) {
@@ -198,7 +200,7 @@ public class DateTime {
         return String.format("%dm", minutes);
     }
     
-    public static enum Formatting {
+    public enum Formatting {
         /**
          * Short time names.
          */
@@ -557,7 +559,7 @@ public class DateTime {
         return TimeUnit.SECONDS;
     }
     
-    public static final void main(String[] args) {
+    public static void main(String[] args) {
 //        System.out.println("'"+dur(HOUR*2+1, Formatting.COMPACT, 0, -2, 2, 2, 2)+"'");
 //        System.out.println("'"+duration(1000*MINUTE*1+1000, Formatting.COMPACT, N, 0, 0, 0, 2)+"'");
         //System.out.println(agoSingleVerbose(System.currentTimeMillis() ));
@@ -586,7 +588,7 @@ public class DateTime {
 //        
 //        System.out.println(formatAccountAgeCompact(System.currentTimeMillis() - 2500*1000));
 //        System.out.println(formatAccountAgeCompact(System.currentTimeMillis() - DAY*3*1000));
-        System.out.println(formatAccountAgeCompact(System.currentTimeMillis() - YEAR*1*1000, true));
+        System.out.println(formatAccountAgeCompact(System.currentTimeMillis() - YEAR * 1000, true));
 //        System.out.println(formatAccountAgeCompact(System.currentTimeMillis() - 12500*1000));
 //        System.out.println(formatAccountAgeVerbose(System.currentTimeMillis() - 300*DAY*1000));
         

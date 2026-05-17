@@ -1,18 +1,18 @@
 
 package chatty.util.api;
 
-import chatty.util.HalfWeakSet;
 import chatty.util.HalfWeakSet2;
 import chatty.util.api.CachedImage.CachedImageRequester;
+import chatty.util.api.CachedImage.CachedImageUser;
 import chatty.util.api.CachedImage.ImageType;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
 import java.util.Objects;
-import chatty.util.api.CachedImage.CachedImageUser;
-import java.awt.Image;
+import java.util.Set;
 import java.util.function.Function;
-import javax.swing.ImageIcon;
 
 /**
  * Provides a facility to manage loading and caching of images.
@@ -99,7 +99,7 @@ public class CachedImageManager<T> {
             Iterator<CachedImage<T>> it = images.strongIterator();
             while (it.hasNext()) {
                 CachedImage<T> image = it.next();
-                if (image.getLastUsedAge() > imageExpireMinutes*60*1000) {
+                if (image.getLastUsedAge() > (long) imageExpireMinutes *60*1000) {
                     toRemove.add(image);
                 }
             }

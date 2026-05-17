@@ -31,10 +31,10 @@ public class DockPath {
     }
     
     public String getPopoutId() {
-        if (list.isEmpty() || list.getFirst().type != Type.POPOUT) {
+        if (list.isEmpty() || list.getFirst().type() != Type.POPOUT) {
             return null;
         }
-        return list.getFirst().id;
+        return list.getFirst().id();
     }
     
     /**
@@ -76,10 +76,7 @@ public class DockPath {
             return false;
         }
         final DockPath other = (DockPath) obj;
-        if (!Objects.equals(this.list, other.list)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.list, other.list);
     }
 
     @Override

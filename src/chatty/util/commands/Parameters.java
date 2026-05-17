@@ -6,10 +6,8 @@ import chatty.User;
 import chatty.util.StringUtil;
 import chatty.util.api.StreamInfo;
 import chatty.util.api.usericons.Usericon;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
+
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -194,9 +192,7 @@ public class Parameters {
         if (!toEnd) {
             result.add(args[startIndex]);
         } else {
-            for (int i = startIndex; i < args.length; i++) {
-                result.add(args[i]);
-            }
+            result.addAll(Arrays.asList(args).subList(startIndex, args.length));
         }
         return result;
     }

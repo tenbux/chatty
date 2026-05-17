@@ -8,13 +8,11 @@ import chatty.gui.MainGui;
 import chatty.gui.components.menus.ContextMenuAdapter;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.menus.UserContextMenu;
-import static chatty.gui.components.userinfo.Util.makeGbc;
 import chatty.lang.Language;
 import chatty.util.MiscUtil;
 import chatty.util.Pronouns;
 import chatty.util.StringUtil;
 import chatty.util.Timestamp;
-import chatty.util.api.ChannelInfo;
 import chatty.util.api.Follower;
 import chatty.util.api.FollowerInfo;
 import chatty.util.api.TwitchApi;
@@ -22,16 +20,16 @@ import chatty.util.api.UserInfo;
 import chatty.util.commands.CustomCommand;
 import chatty.util.commands.Parameters;
 import chatty.util.settings.Settings;
+
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.text.SimpleDateFormat;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
-import javax.swing.*;
+
+import static chatty.gui.components.userinfo.Util.makeGbc;
 
 /**
  *
@@ -87,22 +85,18 @@ public class UserInfoDialog extends JDialog {
         GuiUtil.installEscapeCloseOperation(this);
         banReasons = new BanReasons(this, settings);
         
-        buttons = new Buttons(this, new ActionListener() {
+        buttons = new Buttons(this, e -> {
+            if (settings.getBoolean("closeUserDialogOnAction")
+                    && isPinned()) {
+                dispose();
+            }
+            CustomCommand command = getCommand(e.getSource());
+            if (command == null) {
+                return;
+            }
 
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (settings.getBoolean("closeUserDialogOnAction")
-                        && !isPinned()) {
-                    dispose();
-                }
-                CustomCommand command = getCommand(e.getSource());
-                if (command == null) {
-                    return;
-                }
-                
-                if (listener != null) {
-                    listener.anonCustomCommand(getUser().getRoom(), command, makeParameters());
-                }
+            if (listener != null) {
+                listener.anonCustomCommand(getUser().getRoom(), command, makeParameters());
             }
         });
         
@@ -144,13 +138,11 @@ public class UserInfoDialog extends JDialog {
         gbc.weightx = 1;
         gbc.anchor = GridBagConstraints.EAST;
         GuiUtil.smallButtonInsets(notesButton);
-        notesButton.addActionListener(e -> {
-            UserNotes.instance().showDialog(currentUser, this, user -> {
-                if (user == currentUser) {
-                    updateStuff(currentUser);
-                }
-            });
-        });
+        notesButton.addActionListener(e -> UserNotes.instance().showDialog(currentUser, this, user -> {
+            if (user == currentUser) {
+                updateStuff(currentUser);
+            }
+        }));
         topPanel.add(notesButton, gbc);
         
         gbc = makeGbc(3, 1, 1, 1);
@@ -437,7 +429,7 @@ public class UserInfoDialog extends JDialog {
         }
         String displayNickInfo = user.hasDisplayNickSet() ? "" : "*";
         additionalInfo = StringUtil.append(UserNotes.instance().getChatNotes(user), ", ", additionalInfo);
-        this.setTitle(Language.getString("userDialog.title")+" "+user.toString()
+        this.setTitle(Language.getString("userDialog.title")+" "+ user
                 +(user.hasCustomNickSet() ? " ("+user.getDisplayNick()+")" : "")
                 +(!user.hasRegularDisplayNick() ? " ("+user.getName()+")" : "")
                 +displayNickInfo
@@ -511,7 +503,7 @@ public class UserInfoDialog extends JDialog {
     }
     
     public boolean isPinned() {
-        return pinnedDialog.isSelected();
+        return !pinnedDialog.isSelected();
     }
     
     public void setPinned(boolean isPinned) {
@@ -519,7 +511,7 @@ public class UserInfoDialog extends JDialog {
     }
 
     public void setUserInfo(UserInfo info) {
-        if (currentUser == null || !currentUser.getName().equals(info.login)) {
+        if (currentUser == null || !currentUser.getName().equals(info.login())) {
             return;
         }
         infoPanel.setUserInfo(info);
@@ -531,9 +523,7 @@ public class UserInfoDialog extends JDialog {
             return requester.getCachedUserInfo(currentUser.getName(), info -> {
                 // Can return null in case of request error
                 if (info != null) {
-                    SwingUtilities.invokeLater(() -> {
-                        setUserInfo(info);
-                    });
+                    SwingUtilities.invokeLater(() -> setUserInfo(info));
                 }
             });
         }

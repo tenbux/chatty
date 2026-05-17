@@ -1,22 +1,14 @@
 
 package chatty.gui.components.tabs;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Point;
-import java.awt.Rectangle;
+import javax.swing.*;
+import javax.swing.event.ChangeListener;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseWheelEvent;
-import java.awt.event.MouseWheelListener;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JTabbedPane;
-import javax.swing.event.ChangeListener;
 
 /**
  * A JPanel that can have one or more Components added to it, and it will show
@@ -54,20 +46,16 @@ public class Tabs extends JPanel {
     public Tabs() {
         setLayout(new BorderLayout());
         tabs.setOpaque(false);
-        tabs.addMouseWheelListener(new MouseWheelListener() {
-
-            @Override
-            public void mouseWheelMoved(MouseWheelEvent e) {
-                if (mouseWheelScrolling) {
-                    // Only scroll if actually on tabs area
-                    int index = tabs.indexAtLocation(e.getX(), e.getY());
-                    if (mouseWheelScrollingAnywhere || index != -1
-                            || isNearLastTab(e.getPoint())) {
-                        if (e.getWheelRotation() < 0) {
-                            setSelectedPrevious();
-                        } else if (e.getWheelRotation() > 0) {
-                            setSelectedNext();
-                        }
+        tabs.addMouseWheelListener(e -> {
+            if (mouseWheelScrolling) {
+                // Only scroll if actually on tabs area
+                int index = tabs.indexAtLocation(e.getX(), e.getY());
+                if (mouseWheelScrollingAnywhere || index != -1
+                        || isNearLastTab(e.getPoint())) {
+                    if (e.getWheelRotation() < 0) {
+                        setSelectedPrevious();
+                    } else if (e.getWheelRotation() > 0) {
+                        setSelectedNext();
                     }
                 }
             }
@@ -126,13 +114,12 @@ public class Tabs extends JPanel {
     }
         
     private int getTabPlacementValue(String location) {
-        switch(location) {
-            case "top": return JTabbedPane.TOP;
-            case "bottom": return JTabbedPane.BOTTOM;
-            case "left": return JTabbedPane.LEFT;
-            case "right": return JTabbedPane.RIGHT;
-        }
-        return JTabbedPane.TOP;
+        return switch (location) {
+            case "bottom" -> JTabbedPane.BOTTOM;
+            case "left" -> JTabbedPane.LEFT;
+            case "right" -> JTabbedPane.RIGHT;
+            default -> JTabbedPane.TOP;
+        };
     }
     
     public void setTabLayoutPolicy(String type) {
@@ -140,11 +127,10 @@ public class Tabs extends JPanel {
     }
     
     private int getTabLayoutPolicyValue(String type) {
-        switch(type) {
-            case "wrap": return JTabbedPane.WRAP_TAB_LAYOUT;
-            case "scroll": return JTabbedPane.SCROLL_TAB_LAYOUT;
-        }
-        return JTabbedPane.WRAP_TAB_LAYOUT;
+        return switch (type) {
+            case "scroll" -> JTabbedPane.SCROLL_TAB_LAYOUT;
+            default -> JTabbedPane.WRAP_TAB_LAYOUT;
+        };
     }
     
     public void setPopupMenu(JPopupMenu menu) {

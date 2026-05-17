@@ -6,20 +6,13 @@ import chatty.gui.GuiUtil;
 import chatty.gui.components.settings.PresetsComboSetting;
 import chatty.util.DateTime;
 import chatty.util.settings.Settings;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Window;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import javax.swing.BorderFactory;
-import javax.swing.JCheckBox;
-import javax.swing.JComponent;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
 
 /**
  *
@@ -39,20 +32,12 @@ public class ModerationPanel extends JPanel {
     
     public ModerationPanel(Window parent, Settings settings) {
         
-        followeronlyDuration = new PresetsComboSetting<>(parent, settings, "followeronlyDurations", s -> {
-            return DateTime.parseDurationSeconds(s);
-        },
-        v -> {
-            return DateTime.duration(v * 1000, DateTime.Formatting.NO_ZERO_VALUES, DateTime.Formatting.VERBOSE);
-        }, null, null, false);
+        followeronlyDuration = new PresetsComboSetting<>(parent, settings, "followeronlyDurations", DateTime::parseDurationSeconds,
+        v -> DateTime.duration(v * 1000, DateTime.Formatting.NO_ZERO_VALUES, DateTime.Formatting.VERBOSE), null, null, false);
         followeronlyDuration.init();
         
-        slowmodeDuration = new PresetsComboSetting<>(parent, settings, "slowmodeDurations", s -> {
-            return DateTime.parseDurationSeconds(s);
-        },
-        v -> {
-            return DateTime.duration(v * 1000, DateTime.Formatting.NO_ZERO_VALUES, DateTime.Formatting.VERBOSE);
-        }, null, null, false);
+        slowmodeDuration = new PresetsComboSetting<>(parent, settings, "slowmodeDurations", DateTime::parseDurationSeconds,
+        v -> DateTime.duration(v * 1000, DateTime.Formatting.NO_ZERO_VALUES, DateTime.Formatting.VERBOSE), null, null, false);
         slowmodeDuration.init();
         
         
@@ -96,17 +81,11 @@ public class ModerationPanel extends JPanel {
         // Command Listeners
         //===================
         
-        addListener(c -> {
-            return subonlyCheckbox.isSelected() ? "/subscribers" : "/subscribersOff";
-        }, subonlyCheckbox);
+        addListener(c -> subonlyCheckbox.isSelected() ? "/subscribers" : "/subscribersOff", subonlyCheckbox);
         
-        addListener(c -> {
-            return emoteonlyCheckbox.isSelected() ? "/emoteonly" : "/emoteonlyOff";
-        }, emoteonlyCheckbox);
+        addListener(c -> emoteonlyCheckbox.isSelected() ? "/emoteonly" : "/emoteonlyOff", emoteonlyCheckbox);
         
-        addListener(c -> {
-            return uniquechatCheckbox.isSelected() ? "/uniquechat" : "/uniquechatOff";
-        }, uniquechatCheckbox);
+        addListener(c -> uniquechatCheckbox.isSelected() ? "/uniquechat" : "/uniquechatOff", uniquechatCheckbox);
         
         addListener(c -> {
             if (followeronlyCheckbox.isSelected()) {
@@ -199,9 +178,7 @@ public class ModerationPanel extends JPanel {
             JFrame frame = new JFrame();
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             ModerationPanel panel = new ModerationPanel(frame, settings);
-            panel.addCommandListener(s -> {
-                System.out.println(s);
-            });
+            panel.addCommandListener(System.out::println);
             frame.add(panel);
             frame.pack();
             frame.setLocationRelativeTo(null);

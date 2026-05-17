@@ -7,16 +7,15 @@ import chatty.gui.components.menus.ContextMenu;
 import chatty.util.MiscUtil;
 import chatty.util.dnd.DockContent;
 import chatty.util.settings.Settings;
-import java.awt.Component;
-import java.awt.Window;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
 
 /**
  * Manages docking related actions, such as docking, undocking, settings and so
@@ -40,7 +39,7 @@ import javax.swing.JMenuItem;
  */
 public class DockedDialogHelper {
     
-    public final static int DOCKED = 1 << 0;
+    public final static int DOCKED = 1;
     public final static int AUTO_OPEN = 1 << 1;
     public final static int AUTO_OPEN_ACTIVITY = 1 << 2;
     public final static int FIXED_CHANNEL = 1 << 3;
@@ -187,7 +186,7 @@ public class DockedDialogHelper {
     public void loadSettings() {
         int value = 0;
         Object o = settings.mapGet("dock", content.getId());
-        if (o != null && o instanceof Number) {
+        if (o instanceof Number) {
             value = ((Number) o).intValue();
         }
         setDocked(MiscUtil.isBitEnabled(value, DOCKED));
@@ -289,10 +288,7 @@ public class DockedDialogHelper {
         menu.registerSubmenu(changeChanMenu);
         menu.registerSubmenu(openChansMenu);
 
-        Collections.sort(open, (o1, o2) -> {
-            // Stream name should always be available for regular channels
-            return o1.getChannel().compareTo(o2.getChannel());
-        });
+        open.sort(Comparator.comparing(Channel::getChannel));
         if (!open.isEmpty()) {
             menu.add(openChansMenu);
             if (addAllEntry) {

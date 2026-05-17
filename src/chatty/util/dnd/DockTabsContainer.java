@@ -2,20 +2,11 @@
 package chatty.util.dnd;
 
 import chatty.util.dnd.DockDropInfo.DropType;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.KeyboardFocusManager;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.Arrays;
 import java.util.List;
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
 
 /**
  * Contains a tab pane, which may not be shown when only a single content is
@@ -24,9 +15,7 @@ import javax.swing.JPanel;
  * @author tduva
  */
 public class DockTabsContainer extends JPanel implements DockChild {
-    
-    private DockBase base;
-    
+
     /**
      * The current content in single mode. Must be null if in tabs mode.
      */
@@ -232,7 +221,6 @@ public class DockTabsContainer extends JPanel implements DockChild {
 
     @Override
     public void setBase(DockBase base) {
-        this.base = base;
         tabs.setBase(base);
     }
 
@@ -240,7 +228,7 @@ public class DockTabsContainer extends JPanel implements DockChild {
     public DockDropInfo findDrop(DockImportInfo info) {
         if (singleContent != null || isEmpty()) {
             DockDropInfo.DropType location = DockDropInfo.determineLocation(this, info.getLocation(this), 30, 1200, 20);
-            if (location == location.CENTER) {
+            if (location == DropType.CENTER) {
                 return new DockDropInfo(this, DropType.TAB, DockDropInfo.makeRect(this, location, 40, 1200), isEmpty() ? 0 : 1);
             }
             return null;
@@ -253,10 +241,10 @@ public class DockTabsContainer extends JPanel implements DockChild {
     @Override
     public void drop(DockTransferInfo info) {
         if (isEmpty()) {
-            info.importInfo.content.setTargetPath(null);
+            info.importInfo().content().setTargetPath(null);
             
-            DockContent content = info.importInfo.content;
-            info.importInfo.source.removeContent(content);
+            DockContent content = info.importInfo().content();
+            info.importInfo().source().removeContent(content);
             addContent(content);
         }
         else {
@@ -319,7 +307,7 @@ public class DockTabsContainer extends JPanel implements DockChild {
     @Override
     public List<DockContent> getContents() {
         if (singleContent != null) {
-            return Arrays.asList(new DockContent[]{singleContent});
+            return List.of(singleContent);
         }
         return tabs.getContents();
     }

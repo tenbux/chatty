@@ -30,9 +30,7 @@ public class RepeatMsgHelper {
         this.settings = settings;
         settings.addSettingChangeListener((setting, type, value) -> {
             if (setting.startsWith("repeatMsg")) {
-                GuiUtil.edt(() -> {
-                    loadSettings();
-                });
+                GuiUtil.edt(this::loadSettings);
             }
         });
     }

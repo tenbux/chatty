@@ -2,14 +2,11 @@
 package chatty.util;
 
 import chatty.Chatty;
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+
+import java.io.*;
 import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.Charset;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,7 +23,7 @@ public class UrlRequest {
     
     private static final Logger LOGGER = Logger.getLogger(UrlRequest.class.getName());
     
-    private static final Charset CHARSET = Charset.forName("UTF-8");
+    private static final java.nio.charset.Charset CHARSET = StandardCharsets.UTF_8;
     
     private static final String VERSION = "Chatty "+Chatty.VERSION;
     
@@ -85,22 +82,26 @@ public class UrlRequest {
     }
 
     public void async(ResultListener listener) {
-        new Thread(() -> {
+        Thread t = new Thread(() -> {
             FullResult result = new FullResult();
             performRequest(result);
             if (Debugging.isEnabled("requestresponse") && result.result != null) {
                 LOGGER.info(result.result);
             }
             listener.result(result.getResult(), result.getResponseCode());
-        }).start();
+        }, "UrlRequest-async");
+        t.setDaemon(true);
+        t.start();
     }
     
     public void asyncLines(ResultLinesListener listener) {
-        new Thread(() -> {
+        Thread t = new Thread(() -> {
             LinesResult result = new LinesResult();
             performRequest(result);
             listener.result(result.getResult(), result.getResponseCode());
-        }).start();
+        }, "UrlRequest-asyncLines");
+        t.setDaemon(true);
+        t.start();
     }
     
     public FullResult sync() {
@@ -126,7 +127,7 @@ public class UrlRequest {
         LOGGER.info("<"+label+" "+url+(properties != null ? " "+properties.keySet() : ""));
         HttpURLConnection connection = null;
         try {
-            connection = (HttpURLConnection) new URL(url).openConnection();
+            connection = (HttpURLConnection) URI.create(url).toURL().openConnection();
             if (properties != null) {
                 for (Map.Entry<String, String> header : properties.entrySet()) {
                     connection.setRequestProperty(header.getKey(), header.getValue());
@@ -172,11 +173,11 @@ public class UrlRequest {
     
     
     public interface ResultListener {
-        public void result(String result, int responseCode);
+        void result(String result, int responseCode);
     }
     
     public interface ResultLinesListener {
-        public void result(List<String> lines, int responseCode);
+        void result(List<String> lines, int responseCode);
     }
     
     

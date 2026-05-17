@@ -1,18 +1,13 @@
 
 package chatty.gui.components.settings;
 
-import static chatty.gui.components.settings.HighlightSettings.getMatchingHelp;
 import chatty.lang.Language;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.List;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import static javax.swing.WindowConstants.HIDE_ON_CLOSE;
+
+import static chatty.gui.components.settings.HighlightSettings.getMatchingHelp;
 
 /**
  *
@@ -46,15 +41,15 @@ public class HighlightBlacklist extends LazyDialog {
 
             GridBagConstraints gbc;
 
-            gbc = d.makeGbc(0, 0, 1, 1);
+            gbc = SettingsDialog.makeGbc(0, 0, 1, 1);
             add(new JLabel("<html><body style='width:340px;padding:4px;'>" + SettingsUtil.getInfo("info-blacklist.html", null)), gbc);
 
-            gbc = d.makeGbc(0, 1, 1, 1);
+            gbc = SettingsDialog.makeGbc(0, 1, 1, 1);
             gbc.fill = GridBagConstraints.BOTH;
             gbc.weightx = 1;
             gbc.weighty = 1;
             setting.setInfo(getMatchingHelp("highlightBlacklist"));
-            setting.setDataFormatter(input -> input.trim());
+            setting.setDataFormatter(String::trim);
             setting.setInfoLinkLabelListener(d.getLinkLabelListener());
             setting.setEditor(() -> {
                 HighlighterTester tester = new HighlighterTester(d, true, type);
@@ -66,14 +61,8 @@ public class HighlightBlacklist extends LazyDialog {
             add(setting, gbc);
 
             JButton closeButton = new JButton(Language.getString("dialog.button.close"));
-            closeButton.addActionListener(new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    setVisible(false);
-                }
-            });
-            gbc = d.makeGbc(0, 5, 2, 1);
+            closeButton.addActionListener(e -> setVisible(false));
+            gbc = SettingsDialog.makeGbc(0, 5, 2, 1);
             gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.weightx = 1;
             gbc.insets = new Insets(5, 5, 5, 5);

@@ -68,10 +68,7 @@ class Join implements Item {
         if (!Objects.equals(this.identifier, other.identifier)) {
             return false;
         }
-        if (!Objects.equals(this.separator, other.separator)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.separator, other.separator);
     }
 
     @Override

@@ -3,6 +3,7 @@ package chatty.lang;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Locale;
@@ -55,10 +56,10 @@ public class Language {
             locale = Locale.getDefault();
         }
         else if (split.length == 2) {
-            locale = new Locale(split[0], split[1]);
+            locale = Locale.of(split[0], split[1]);
         }
         else {
-            locale = new Locale(language);
+            locale = Locale.of(language);
         }
         return locale;
     }
@@ -218,16 +219,15 @@ public class Language {
                                 String format,
                                 ClassLoader loader,
                                 boolean reload)
-                         throws IllegalAccessException,
-                                InstantiationException,
-                                IOException
+                         throws
+                IOException
         {
             //System.out.println(baseName+" "+locale+" "+format+" "+reload);
             String bundleName = toBundleName(baseName, locale);
             String resourceName = toResourceName(bundleName, "properties");
-            ResourceBundle bundle = null;
+            ResourceBundle bundle;
             try (InputStreamReader stream = new InputStreamReader(
-                    loader.getResourceAsStream(resourceName), "UTF-8")) {
+                    loader.getResourceAsStream(resourceName), StandardCharsets.UTF_8)) {
                 // Load properties files as UTF-8
                 bundle = new PropertyResourceBundle(stream);
             }

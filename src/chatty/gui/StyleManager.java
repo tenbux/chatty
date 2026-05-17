@@ -1,23 +1,21 @@
 
 package chatty.gui;
 
-import chatty.util.colors.HtmlColors;
 import chatty.gui.components.textpane.ChannelTextPane.Attribute;
 import chatty.gui.components.textpane.ChannelTextPane.Setting;
 import chatty.gui.components.textpane.MyStyleConstants;
 import chatty.util.Timestamp;
 import chatty.util.colors.ColorCorrector;
+import chatty.util.colors.HtmlColors;
 import chatty.util.settings.Settings;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Font;
-import java.text.SimpleDateFormat;
+
+import javax.swing.*;
+import javax.swing.text.*;
+import java.awt.*;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
-import javax.swing.JDialog;
-import javax.swing.text.*;
 
 /**
  * Provides style information to other objects based on the settings.
@@ -268,59 +266,40 @@ public class StyleManager implements StyleServer {
     @Override
     public MutableAttributeSet getStyle(String type) {
 //        System.out.println(timestampStyle);
-        switch (type) {
-            case "special":
-                return new SimpleAttributeSet(specialStyle);
-            case "standard":
-                return new SimpleAttributeSet(standardStyle);
-            case "timestamp":
-                return new SimpleAttributeSet(timestampStyle);
-            case "info":
-                return new SimpleAttributeSet(infoStyle);
-            case "highlight":
-                return new SimpleAttributeSet(highlightStyle);
-            case "paragraph":
-                return new SimpleAttributeSet(paragraphStyle);
-            case "settings":
-                return new SimpleAttributeSet(other);
-        }
-        return new SimpleAttributeSet(baseStyle);
+        return switch (type) {
+            case "special" -> new SimpleAttributeSet(specialStyle);
+            case "standard" -> new SimpleAttributeSet(standardStyle);
+            case "timestamp" -> new SimpleAttributeSet(timestampStyle);
+            case "info" -> new SimpleAttributeSet(infoStyle);
+            case "highlight" -> new SimpleAttributeSet(highlightStyle);
+            case "paragraph" -> new SimpleAttributeSet(paragraphStyle);
+            case "settings" -> new SimpleAttributeSet(other);
+            default -> new SimpleAttributeSet(baseStyle);
+        };
     }
 
     @Override
     public Font getFont(String type) {
-        switch (type) {
-            case "input":
-                return inputFont;
-            case "userlist":
-                return userlistFont;
-        }
-        return null;
+        return switch (type) {
+            case "input" -> inputFont;
+            case "userlist" -> userlistFont;
+            default -> null;
+        };
     }
 
     @Override
     public Color getColor(String type) {
-        switch (type) {
-            case "foreground":
-                return foregroundColor;
-            case "background":
-                return backgroundColor;
-            case "inputBackground":
-                return inputBackgroundColor;
-            case "inputForeground":
-                return inputForegroundColor;
-            case "searchResult":
-                return searchResultColor;
-            case "searchResult2":
-                return searchResultColor2;
-            case "info":
-                return infoColor;
-            case "highlight":
-                return highlightColor;
-            case "highlightBackground":
-                return highlightBackgroundColor;
-        }
-        return foregroundColor;
+        return switch (type) {
+            case "background" -> backgroundColor;
+            case "inputBackground" -> inputBackgroundColor;
+            case "inputForeground" -> inputForegroundColor;
+            case "searchResult" -> searchResultColor;
+            case "searchResult2" -> searchResultColor2;
+            case "info" -> infoColor;
+            case "highlight" -> highlightColor;
+            case "highlightBackground" -> highlightBackgroundColor;
+            default -> foregroundColor;
+        };
     }
     
     @Override

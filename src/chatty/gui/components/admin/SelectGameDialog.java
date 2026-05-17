@@ -8,30 +8,18 @@ import chatty.util.StringUtil;
 import chatty.util.api.ResultManager;
 import chatty.util.api.StreamCategory;
 import chatty.util.api.TwitchApi;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Logger;
+
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Select a game by manually entering it, searching for it on Twitch or
@@ -193,42 +181,40 @@ public class SelectGameDialog extends JDialog {
         
         setMinimumSize(getSize());
         
-        api.subscribe(ResultManager.Type.CATEGORY_RESULT, (ResultManager.CategoryResult) categories -> {
-            SwingUtilities.invokeLater(() -> {
-                // Load favorites first, since this may be triggered while the
-                // dialog has not been opened yet
-                loadFavorites();
-                // Needs to save old an new, in case what equals() matches is different
-                Map<StreamCategory, StreamCategory> replace = new HashMap<>();
-                for (StreamCategory currentCategory : favorites) {
-                    for (StreamCategory updatedCategory : categories) {
-                        if (!currentCategory.hasId()) {
-                            if (currentCategory.nameMatches(updatedCategory)) {
-                                // Has no id yet, but same name -> add id
-                                replace.put(currentCategory, updatedCategory);
-                            }
+        api.subscribe(ResultManager.Type.CATEGORY_RESULT, (ResultManager.CategoryResult) categories -> SwingUtilities.invokeLater(() -> {
+            // Load favorites first, since this may be triggered while the
+            // dialog has not been opened yet
+            loadFavorites();
+            // Needs to save old an new, in case what equals() matches is different
+            Map<StreamCategory, StreamCategory> replace = new HashMap<>();
+            for (StreamCategory currentCategory : favorites) {
+                for (StreamCategory updatedCategory : categories) {
+                    if (!currentCategory.hasId()) {
+                        if (currentCategory.nameMatches(updatedCategory)) {
+                            // Has no id yet, but same name -> add id
+                            replace.put(currentCategory, updatedCategory);
                         }
-                        else if (currentCategory.id.equals(updatedCategory.id)) {
-                            if (!currentCategory.name.equals(updatedCategory.name)) {
-                                // Has id, but different name -> update name
-                                replace.put(currentCategory, updatedCategory);
-                            }
+                    }
+                    else if (currentCategory.id().equals(updatedCategory.id())) {
+                        if (!currentCategory.name().equals(updatedCategory.name())) {
+                            // Has id, but different name -> update name
+                            replace.put(currentCategory, updatedCategory);
                         }
                     }
                 }
-                for (Map.Entry<StreamCategory, StreamCategory> category : replace.entrySet()) {
-                    LOGGER.info(String.format("Game favorites: Updating %s to %s",
-                            category.getKey().toStringVerbose(),
-                            category.getValue().toStringVerbose()));
-                    favorites.remove(category.getKey());
-                    favorites.add(category.getValue());
-                }
-                if (!replace.isEmpty()) {
-                    saveFavorites();
-                    update();
-                }
-            });
-        });
+            }
+            for (Map.Entry<StreamCategory, StreamCategory> category : replace.entrySet()) {
+                LOGGER.info(String.format("Game favorites: Updating %s to %s",
+                        category.getKey().toStringVerbose(),
+                        category.getValue().toStringVerbose()));
+                favorites.remove(category.getKey());
+                favorites.add(category.getValue());
+            }
+            if (!replace.isEmpty()) {
+                saveFavorites();
+                update();
+            }
+        }));
     }
     
     /**
@@ -267,7 +253,7 @@ public class SelectGameDialog extends JDialog {
      */
     private void update() {
         listData.clear();
-        if (presetCategory != null && !presetCategory.isEmpty() && !favorites.contains(presetCategory)) {
+        if (presetCategory != null && presetCategory.isEmpty() && !favorites.contains(presetCategory)) {
             searchResult.add(presetCategory);
         }
         for (StreamCategory game : searchResult) {
@@ -289,13 +275,11 @@ public class SelectGameDialog extends JDialog {
         if (searchString.isEmpty()) {
             return;
         }
-        api.performGameSearch(searchString, r -> {
-            SwingUtilities.invokeLater(() -> {
-                searchResult.clear();
-                searchResult.addAll(r);
-                update();
-            });
-        });
+        api.performGameSearch(searchString, r -> SwingUtilities.invokeLater(() -> {
+            searchResult.clear();
+            searchResult.addAll(r);
+            update();
+        }));
         searchResultInfo.setText(s("searching"));
     }
     
@@ -342,10 +326,10 @@ public class SelectGameDialog extends JDialog {
     public static Collection<List> favoritesToSettings(Collection<StreamCategory> favorites) {
         List<List> result = new ArrayList<>();
         for (StreamCategory category : favorites) {
-            if (!StringUtil.isNullOrEmpty(category.name)) {
+            if (!StringUtil.isNullOrEmpty(category.name())) {
                 List item = new ArrayList<>();
-                item.add(category.id);
-                item.add(category.name);
+                item.add(category.id());
+                item.add(category.name());
                 result.add(item);
             }
         }
@@ -355,8 +339,8 @@ public class SelectGameDialog extends JDialog {
     public static Collection<String> favoritesToSettingsOld(Collection<StreamCategory> favorites) {
         List<String> result = new ArrayList<>();
         for (StreamCategory category : favorites) {
-            if (!StringUtil.isNullOrEmpty(category.name)) {
-                result.add(category.name);
+            if (!StringUtil.isNullOrEmpty(category.name())) {
+                result.add(category.name());
             }
         }
         return result;

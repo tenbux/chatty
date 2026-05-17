@@ -149,7 +149,7 @@ public class ChannelStateManager {
         }
     }
     
-    public static interface ChannelStateListener {
+    public interface ChannelStateListener {
         void channelStateUpdated(ChannelState state);
     }
     

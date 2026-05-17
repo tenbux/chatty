@@ -7,6 +7,6 @@ package chatty.gui.components.settings;
  * @author tduva
  */
 public interface BooleanSetting {
-    public Boolean getSettingValue();
-    public void setSettingValue(Boolean value);
+    Boolean getSettingValue();
+    void setSettingValue(Boolean value);
 }

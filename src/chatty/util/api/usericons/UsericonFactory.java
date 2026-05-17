@@ -7,21 +7,17 @@ import chatty.Helper;
 import chatty.util.ImageCache;
 import chatty.util.ImageCache.ImageResult;
 import chatty.util.colors.HtmlColors;
-import static chatty.util.api.usericons.Usericon.SOURCE_CUSTOM;
-import static chatty.util.api.usericons.Usericon.SOURCE_FALLBACK;
-import static chatty.util.api.usericons.Usericon.SOURCE_OTHER;
-import static chatty.util.api.usericons.Usericon.SOURCE_TWITCH;
-import static chatty.util.api.usericons.Usericon.SOURCE_TWITCH2;
-import static chatty.util.api.usericons.Usericon.getColorFromType;
-import java.awt.Color;
-import java.awt.Dimension;
+
+import java.awt.*;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
 import java.util.logging.Logger;
+
+import static chatty.util.api.usericons.Usericon.*;
 
 /**
  *
@@ -67,7 +63,7 @@ public class UsericonFactory {
             String urlString, String url2String, int source, Color color,
             String title) {
         try {
-            URL url = new URL(Helper.checkHttpUrl(urlString));
+            URL url = URI.create(Helper.checkHttpUrl(urlString)).toURL();
             URL url2 = Helper.createUrlNoError(Helper.checkHttpUrl(url2String));
             Usericon.Builder b = new Usericon.Builder(type, source);
             b.setChannel(channel);
@@ -76,7 +72,7 @@ public class UsericonFactory {
             b.setColor(color);
             b.setMetaTitle(title);
             return b.build();
-        } catch (MalformedURLException ex) {
+        } catch (MalformedURLException | IllegalArgumentException ex) {
             LOGGER.warning("Invalid icon url: " + urlString);
         }
         return null;
@@ -86,7 +82,7 @@ public class UsericonFactory {
             String urlString, String url2String, String channel, String title,
             String description, String clickUrl) {
         try {
-            URL url = new URL(Helper.checkHttpUrl(urlString));
+            URL url = URI.create(Helper.checkHttpUrl(urlString)).toURL();
             URL url2 = Helper.createUrlNoError(Helper.checkHttpUrl(url2String));
             Usericon.Builder b = new Usericon.Builder(Usericon.Type.TWITCH, SOURCE_TWITCH2);
             b.setChannel(channel);
@@ -97,7 +93,7 @@ public class UsericonFactory {
             b.setMetaDescription(description);
             b.setMetaUrl(clickUrl);
             return b.build();
-        } catch (MalformedURLException ex) {
+        } catch (MalformedURLException | IllegalArgumentException ex) {
             LOGGER.warning("Invalid icon url: " + urlString);
         }
         return null;
@@ -107,7 +103,7 @@ public class UsericonFactory {
             String urlString, String url2String, String title, String clickUrl, String color,
             Set<String> usernames, Set<String> userids, String position) {
         try {
-            URL url = new URL(Helper.checkHttpUrl(urlString));
+            URL url = URI.create(Helper.checkHttpUrl(urlString)).toURL();
             URL url2 = Helper.createUrlNoError(Helper.checkHttpUrl(url2String));
             Usericon.Builder b = new Usericon.Builder(Usericon.Type.OTHER, SOURCE_OTHER);
             b.setBadgeType(id, version);
@@ -132,11 +128,11 @@ public class UsericonFactory {
         try {
             Usericon.Builder b = new Usericon.Builder(Usericon.Type.CHANNEL_LOGO, Usericon.SOURCE_OTHER);
             b.setChannel(channel);
-            b.setUrl(new URL(url));
+            b.setUrl(URI.create(url).toURL());
             b.setTargetImageSize(size, size);
             return b.build();
         }
-        catch (MalformedURLException ex) {
+        catch (MalformedURLException | IllegalArgumentException ex) {
             LOGGER.warning("Invalid icon url: " + url);
         }
         return null;
@@ -160,7 +156,7 @@ public class UsericonFactory {
             URL url = null;
             if (fileName != null) {
                 if (fileName.startsWith("http")) {
-                    url = new URL(fileName);
+                    url = URI.create(fileName).toURL();
                 } else if (!fileName.trim().isEmpty()) {
                     Path path = Chatty.getPathCreate(PathType.IMAGE).resolve(Paths.get(fileName));
                     url = path.toUri().toURL();
@@ -190,7 +186,7 @@ public class UsericonFactory {
                 b.setBaseImageSize(size.width, size.height);
             }
             return b.build();
-        } catch (MalformedURLException | InvalidPathException ex) {
+        } catch (MalformedURLException | IllegalArgumentException ex) {
             LOGGER.warning("Invalid icon file: " + fileName);
         }
         return null;
@@ -237,7 +233,7 @@ public class UsericonFactory {
     private static Dimension getSize(URL url) {
         ImageResult result = ImageCache.getImage(new ImageCache.ImageRequest(url), "usericon", Usericon.CACHE_TIME);
         if (result != null && result.isValidImage()) {
-            return result.actualBaseSize;
+            return result.actualBaseSize();
         }
         return null;
     }

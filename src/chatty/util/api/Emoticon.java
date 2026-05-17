@@ -7,24 +7,16 @@ import chatty.util.BTTVEmotes;
 import chatty.util.ImageCache.ImageResult;
 import chatty.util.ImageUrl;
 import chatty.util.StringUtil;
+import chatty.util.api.CachedImage.CachedImageUser;
 import chatty.util.api.CachedImage.ImageType;
-import java.awt.Dimension;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
+import chatty.util.seventv.WebPUtil;
+
+import java.awt.*;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import chatty.util.api.CachedImage.CachedImageUser;
-import chatty.util.seventv.WebPUtil;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 /**
  * A single emoticon, that contains a pattern, an URL to the image and
@@ -54,7 +46,7 @@ public class Emoticon {
     /**
      * Note that the declaration order is relevant for sorting by Type.
      */
-    public static enum Type {
+    public enum Type {
         TWITCH("twitch", "Twitch", TypeCategory.OFFICIAL),
         CUSTOM2("chattylocal", "Custom2", TypeCategory.OFFICIAL),
         FFZ("ffz", "FFZ", TypeCategory.THIRD_PARTY),
@@ -65,10 +57,10 @@ public class Emoticon {
         NOT_FOUND_FAVORITE("fav", "NotFoundFavorite", TypeCategory.OTHER);
         
         // Must not be changed
-        public String id;
+        public final String id;
         // For display
-        public String label;
-        public TypeCategory category;
+        public final String label;
+        public final TypeCategory category;
         
         Type(String id, String label, TypeCategory category) {
             this.id = id;
@@ -87,11 +79,11 @@ public class Emoticon {
         
     }
     
-    public static enum TypeCategory {
+    public enum TypeCategory {
         OFFICIAL, THIRD_PARTY, OTHER
     }
     
-    public static enum SubType {
+    public enum SubType {
         REGULAR, FEATURE_FRIDAY, EVENT, CHEER, FOLLOWER
     }
     
@@ -292,15 +284,15 @@ public class Emoticon {
     }
     
     public static String getTwitchEmoteUrlById(String id, int factor, ImageType imageType) {
-        switch (imageType) {
-            case STATIC:
-                return String.format(Locale.ROOT, "https://static-cdn.jtvnw.net/emoticons/v2/%s/static/dark/%d.0", id, factor);
-            case ANIMATED_DARK:
-                return String.format(Locale.ROOT, "https://static-cdn.jtvnw.net/emoticons/v2/%s/default/dark/%d.0", id, factor);
-            case ANIMATED_LIGHT:
-                return String.format(Locale.ROOT, "https://static-cdn.jtvnw.net/emoticons/v2/%s/default/light/%d.0", id, factor);
-        }
-        return null;
+        return switch (imageType) {
+            case STATIC ->
+                    String.format(Locale.ROOT, "https://static-cdn.jtvnw.net/emoticons/v2/%s/static/dark/%d.0", id, factor);
+            case ANIMATED_DARK ->
+                    String.format(Locale.ROOT, "https://static-cdn.jtvnw.net/emoticons/v2/%s/default/dark/%d.0", id, factor);
+            case ANIMATED_LIGHT ->
+                    String.format(Locale.ROOT, "https://static-cdn.jtvnw.net/emoticons/v2/%s/default/light/%d.0", id, factor);
+            default -> null;
+        };
     }
     
     public String getBttvEmoteUrl(String id, int factor) {
@@ -427,9 +419,7 @@ public class Emoticon {
      * 
      * This serves as a backup in case some aren't turned back into regex.
      */
-    private static final Set<String> LITERAL = new HashSet<>(Arrays.asList(new String[]{
-        "8-)", ":|", ";)", ">(", ":\\", ":)", ":-)", "R)", ":(", ":-(", "B)", "B-)"
-    }));
+    private static final Set<String> LITERAL = new HashSet<>(Arrays.asList("8-)", ":|", ";)", ">(", ":\\", ":)", ":-)", "R)", ":(", ":-(", "B)", "B-)"));
     
     private void createMatcher() {
         if (matcher == null) {
@@ -441,13 +431,13 @@ public class Emoticon {
                 /**
                  * Match variation selectors for text and emoji style, if
                  * present, so it's included in the Emoji image and not visible.
-                 * If \uFE0E (text style) is at the end of the match, it should
+                 * If ︎ (text style) is at the end of the match, it should
                  * not be turned into an image (although not sure how often that
                  * actually occurs).
                  * 
                  * http://mts.io/2015/04/21/unicode-symbol-render-text-emoji/
                  */
-                search = Pattern.quote(search)+"[\uFE0E\uFE0F]?";
+                search = Pattern.quote(search)+"[︎️]?";
             } else {
                 if (search.length() < 4) {
                     // Turn some of the "smiley" emotes back into regex (they
@@ -544,7 +534,7 @@ public class Emoticon {
         if (infos == null) {
             return new TreeSet<>();
         }
-        return new TreeSet<String>(infos);
+        return new TreeSet<>(infos);
     }
     
     public synchronized boolean isAnimated() {
@@ -634,8 +624,8 @@ public class Emoticon {
                 @Override
                 public void imageLoaded(ImageResult result) {
                     if (width == -1 || height == -1) {
-                        width = result.actualBaseSize.width;
-                        height = result.actualBaseSize.height;
+                        width = result.actualBaseSize().width;
+                        height = result.actualBaseSize().height;
                         if (width != DEFAULT_WIDTH || height != DEFAULT_HEIGHT) {
                             // setCachedSize checks for type
                             setCachedSize(width, height);
@@ -748,11 +738,7 @@ public class Emoticon {
     private Dimension getDefaultSize() {
         if (this.width == -1 || this.height == -1) {
             Dimension d = getCachedSize();
-            if (d != null) {
-                return d;
-            } else {
-                return new Dimension(DEFAULT_WIDTH, DEFAULT_HEIGHT);
-            }
+            return Objects.requireNonNullElseGet(d, () -> new Dimension(DEFAULT_WIDTH, DEFAULT_HEIGHT));
         }
         return new Dimension(width, height);
     }
@@ -772,17 +758,14 @@ public class Emoticon {
     
     public boolean matchesUser(User user, Set<String> accessToSets) {
         if (user == null) {
-            return true;
+            return false;
         }
         if (!hasGlobalEmoteset()
                 && (accessToSets == null || !accessToSets.contains(emoteset))) {
-            return false;
+            return true;
         }
-        if (hasStreamRestrictions()
-                && !streamRestrictionContains(user.getStream())) {
-            return false;
-        }
-        return true;
+        return hasStreamRestrictions()
+                && !streamRestrictionContains(user.getStream());
     }
     
     public boolean allowedForStream(String stream) {
@@ -810,10 +793,7 @@ public class Emoticon {
         if (!Objects.equals(this.emoteset, other.emoteset)) {
             return false;
         }
-        if (!Objects.equals(this.streamRestrictions, other.streamRestrictions)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.streamRestrictions, other.streamRestrictions);
     }
 
     @Override

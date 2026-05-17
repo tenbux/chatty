@@ -1,15 +1,11 @@
 
 package chatty.util;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import org.junit.Test;
+
+import java.util.*;
+
+import static org.junit.Assert.*;
 
 /**
  *
@@ -20,9 +16,9 @@ public class SpecialMapTest {
     @Test
     public void testSet() {
         Map<String, Set<String>> regularMap = new HashMap<>();
-        SpecialMap<String, Set<String>> map = new SpecialMap<>(regularMap, () -> new HashSet<>());
+        SpecialMap<String, Set<String>> map = new SpecialMap<>(regularMap, HashSet::new);
         map.getPut("a").add("1");
-        assertEquals(new HashSet<>(Arrays.asList("1")), regularMap.get("a"));
+        assertEquals(new HashSet<>(List.of("1")), regularMap.get("a"));
         assertEquals(1, map.subSize());
         map.getPut("a").add("2");
         assertEquals(new HashSet<>(Arrays.asList("1", "2")), regularMap.get("a"));
@@ -38,7 +34,7 @@ public class SpecialMapTest {
         assertEquals(3, map.subSize());
         map.getPut("c").add("4");
         assertEquals(new HashSet<>(Arrays.asList("1", "2", "3")), regularMap.get("a"));
-        assertEquals(new HashSet<>(Arrays.asList("4")), regularMap.get("c"));
+        assertEquals(new HashSet<>(List.of("4")), regularMap.get("c"));
         assertEquals(4, map.subSize());
         
         assertEquals(new HashSet<>(Arrays.asList("a", "c")), map.keySet());
@@ -52,14 +48,14 @@ public class SpecialMapTest {
         
         map.subRemoveValue("3");
         assertEquals(new HashSet<>(Arrays.asList("1", "2")), regularMap.get("a"));
-        assertEquals(new HashSet<>(Arrays.asList("4")), regularMap.get("c"));
+        assertEquals(new HashSet<>(List.of("4")), regularMap.get("c"));
         assertEquals(3, map.subSize());
     }
     
     @Test
     public void testMap() {
         Map<String, Map<Integer, String>> regularMap = new HashMap<>();
-        SpecialMap<String, Map<Integer, String>> map = new SpecialMap<>(regularMap, () -> new HashMap<>());
+        SpecialMap<String, Map<Integer, String>> map = new SpecialMap<>(regularMap, HashMap::new);
         
         map.getPut("a").put(1, "1");
         assertEquals("1", regularMap.get("a").get(1));
@@ -72,9 +68,9 @@ public class SpecialMapTest {
         assertEquals("2", map.getOptional("a").get(2));
         map.subRemoveValue("2");
         assertEquals("1", map.getOptional("a").get(1));
-        assertEquals(null, map.getOptional("a").get(2));
+        assertNull(map.getOptional("a").get(2));
         assertEquals("1", regularMap.get("a").get(1));
-        assertEquals(null, regularMap.get("a").get(2));
+        assertNull(regularMap.get("a").get(2));
         assertEquals(1, map.subSize());
         regularMap.put("c", new HashMap<>());
         assertEquals(1, map.subSize());

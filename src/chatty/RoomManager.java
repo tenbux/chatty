@@ -91,8 +91,8 @@ public class RoomManager {
         return roomsByChannel.get(channel);
     }
     
-    public static interface RoomUpdatedListener {
-        public void roomUpdated(Room room);
+    public interface RoomUpdatedListener {
+        void roomUpdated(Room room);
     }
     
 }

@@ -2,10 +2,7 @@
 package chatty.gui.components.textpane;
 
 import chatty.util.Debugging;
-import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Rectangle;
-import java.awt.Shape;
+
 import javax.swing.text.BoxView;
 import javax.swing.text.Element;
 
@@ -60,10 +57,10 @@ class ChatBoxView extends BoxView {
         super.layoutMajorAxis(targetSpan,axis,offsets,spans);
         if (enabled) {
             int textBlockHeight = 0;
-            int offset = 0;
+            int offset;
 
-            for (int i = 0; i < spans.length; i++) {
-                textBlockHeight += spans[i];
+            for (int span : spans) {
+                textBlockHeight += span;
             }
             offset = (targetSpan - textBlockHeight);
             if (offset > 0) {

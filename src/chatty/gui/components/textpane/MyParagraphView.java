@@ -2,20 +2,10 @@
 package chatty.gui.components.textpane;
 
 import chatty.gui.components.textpane.ChannelTextPane.Attribute;
-import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Rectangle;
-import java.awt.Shape;
-import java.util.Enumeration;
-import javax.swing.JComponent;
+
 import javax.swing.event.DocumentEvent;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.Element;
-import javax.swing.text.FlowView;
-import javax.swing.text.ParagraphView;
-import static javax.swing.text.StyleConstants.LineSpacing;
-import javax.swing.text.View;
-import javax.swing.text.ViewFactory;
+import javax.swing.text.*;
+import java.awt.*;
 
 /**
  * Changes the FlowStrategy to increase performance when i18n is enabled in the
@@ -31,7 +21,7 @@ import javax.swing.text.ViewFactory;
  */
 class MyParagraphView extends ParagraphView {
 
-    public static int MAX_VIEW_SIZE = 50;
+    public static final int MAX_VIEW_SIZE = 50;
     
     public MyParagraphView(Element elem) {
         super(elem);

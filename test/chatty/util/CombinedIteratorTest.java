@@ -1,14 +1,12 @@
 
 package chatty.util;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import org.junit.Test;
+
+import java.util.*;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import org.junit.Test;
 
 /**
  *
@@ -29,7 +27,7 @@ public class CombinedIteratorTest {
         testExpected(new CombinedIterator<>(a, b), "a1", "a2", "a3", "b1", "b2");
         a.clear();
         testExpected(new CombinedIterator<>(a, b), "b1", "b2");
-        b = Arrays.asList();
+        b = List.of();
         testExpected(new CombinedIterator<>(a, b));
         a.add("a1");
         testExpected(new CombinedIterator<>(a, b), "a1");
@@ -57,7 +55,7 @@ public class CombinedIteratorTest {
         
         testExpectedWithRemove(new CombinedIterator<>(a, b), "a2", "a1", "a2", "b1", "b2");
         
-        assertEquals(Arrays.asList("a1"), a);
+        assertEquals(List.of("a1"), a);
         assertEquals(Arrays.asList("b1", "b2"), b);
         
         testExpectedWithRemove(new CombinedIterator<>(a, b), ".*", "a1", "b1", "b2");

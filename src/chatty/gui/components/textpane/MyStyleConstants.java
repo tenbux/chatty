@@ -1,9 +1,11 @@
 
 package chatty.gui.components.textpane;
 
-import java.awt.Color;
+import chatty.util.dnd.DockSetting;
+
 import javax.swing.text.AttributeSet;
 import javax.swing.text.MutableAttributeSet;
+import java.awt.*;
 
 /**
  *
@@ -70,25 +72,16 @@ public class MyStyleConstants {
     
     private static Color getColor(AttributeSet attr, Attribute key) {
         Object value = attr.getAttribute(key);
-        if (value instanceof Color) {
-            return (Color)value;
-        }
-        return null;
+        return DockSetting.getColor(value);
     }
     
     private static int getInteger(AttributeSet attr, Attribute key) {
         Object value = attr.getAttribute(key);
-        if (value instanceof Integer) {
-            return (Integer)value;
-        }
-        return -1;
+        return DockSetting.getInteger(value);
     }
     
     private static boolean getBoolean(AttributeSet attr, Attribute key) {
         Object value = attr.getAttribute(key);
-        if (value instanceof Boolean) {
-            return (Boolean)value;
-        }
-        return false;
+        return DockSetting.getBoolean(value);
     }
 }

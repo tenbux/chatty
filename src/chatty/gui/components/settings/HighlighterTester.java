@@ -1,7 +1,6 @@
 
 package chatty.gui.components.settings;
 
-import chatty.Helper;
 import chatty.gui.GuiUtil;
 import chatty.gui.Highlighter;
 import chatty.gui.Highlighter.HighlightItem;
@@ -15,55 +14,19 @@ import chatty.util.Replacer2;
 import chatty.util.StringUtil;
 import chatty.util.commands.CustomCommand;
 import chatty.util.irc.MsgTags;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Image;
-import java.awt.Insets;
-import java.awt.KeyboardFocusManager;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.function.Consumer;
-import javax.swing.BorderFactory;
-import javax.swing.Icon;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSeparator;
-import javax.swing.JTabbedPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.JTextPane;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
+
+import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultStyledDocument;
-import javax.swing.text.DocumentFilter;
-import javax.swing.text.JTextComponent;
-import javax.swing.text.MutableAttributeSet;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
+import javax.swing.text.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.util.*;
+import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Dialog to check if the entered pattern matches the test text. This can be
@@ -83,7 +46,6 @@ public class HighlighterTester extends JDialog implements StringEditor {
     private final static String TEST_PRESET_EXAMPLE = TEST_PRESET+" Example: ";
     
     private final JButton okButton = new JButton(Language.getString("dialog.button.save"));
-    private final JButton cancelButton = new JButton(Language.getString("dialog.button.cancel"));
     private final JButton addToBlacklistButton = new JButton("Add to Blacklist");
     private final JTextField itemValue = new JTextField(40);
     private final JTextField blacklistValue = new JTextField(40);
@@ -245,6 +207,7 @@ public class HighlighterTester extends JDialog implements StringEditor {
         // Main buttons
         //--------------------------
         okButton.setMnemonic(KeyEvent.VK_S);
+        JButton cancelButton = new JButton(Language.getString("dialog.button.cancel"));
         cancelButton.setMnemonic(KeyEvent.VK_C);
         gbc = GuiUtil.makeGbc(0, 21, 1, 1, GridBagConstraints.EAST);
         gbc.weightx = 1;
@@ -266,7 +229,7 @@ public class HighlighterTester extends JDialog implements StringEditor {
                 BorderLayout.NORTH);
         parseResultPanel.add(new JScrollPane(parseResult),
                 BorderLayout.CENTER);
-        parseResult.setFont(new Font(Font.MONOSPACED, 0, parseResult.getFont().getSize()));
+        parseResult.setFont(new Font(Font.MONOSPACED, Font.PLAIN, parseResult.getFont().getSize()));
         parseResult.setEditable(false);
         parseResult.setLineWrap(true);
         parseResult.setWrapStyleWord(true);
@@ -333,13 +296,9 @@ public class HighlighterTester extends JDialog implements StringEditor {
             
         });
         
-        addDocumentListener(itemValue, e -> {
-            updateItem();
-        });
+        addDocumentListener(itemValue, e -> updateItem());
         
-        addDocumentListener(blacklistValue, e -> {
-            updateBlacklistItem();
-        });
+        addDocumentListener(blacklistValue, e -> updateBlacklistItem());
         
         updateEditIndicator();
         updateSaveButton();
@@ -470,7 +429,7 @@ public class HighlighterTester extends JDialog implements StringEditor {
             // Match ANY type, same as the other matching in this (ignoring
             // non-text prefixes)
             blacklist = new Highlighter.Blacklist(HighlightItem.Type.ANY, getTestText(), -2, -2, null,
-                    null, null, null, MsgTags.EMPTY, Arrays.asList(new HighlightItem[]{blacklistItem}));
+                    null, null, null, MsgTags.EMPTY, Collections.singletonList(blacklistItem));
         }
         if (highlightItem == null) {
             testResult.setText("Empty item.");
@@ -507,9 +466,9 @@ public class HighlighterTester extends JDialog implements StringEditor {
                     for (int i = 0; i < matches.size(); i++) {
                         Match m = matches.get(i);
                         if (i % 2 == 0) {
-                            doc.setCharacterAttributes(m.start, m.end - m.start, matchAttr1, false);
+                            doc.setCharacterAttributes(m.start(), m.end() - m.start(), matchAttr1, false);
                         } else {
-                            doc.setCharacterAttributes(m.start, m.end - m.start, matchAttr2, false);
+                            doc.setCharacterAttributes(m.start(), m.end() - m.start(), matchAttr2, false);
                         }
                     }
                 }
@@ -519,9 +478,8 @@ public class HighlighterTester extends JDialog implements StringEditor {
             if (blacklistItem != null) {
                 List<Match> blacklistMatches = blacklistItem.getTextMatches(getTestText(), -2, -2, substitutionResult);
                 if (blacklistMatches != null) {
-                    for (int i = 0; i < blacklistMatches.size(); i++) {
-                        Match m = blacklistMatches.get(i);
-                        doc.setCharacterAttributes(m.start, m.end - m.start, blacklistAttr, false);
+                    for (Match m : blacklistMatches) {
+                        doc.setCharacterAttributes(m.start(), m.end() - m.start(), blacklistAttr, false);
                     }
                 } else if (blacklistItem.matchesTextOnly(getTestText(), null)) {
                     doc.setCharacterAttributes(0, doc.getLength(), blacklistAttr, false);
@@ -740,13 +698,9 @@ public class HighlighterTester extends JDialog implements StringEditor {
                 }
             });
             
-            addDocumentListener(metaPrefixes, e -> {
-                constructValue();
-            });
+            addDocumentListener(metaPrefixes, e -> constructValue());
 
-            addDocumentListener(mainText, e -> {
-                constructValue();
-            });
+            addDocumentListener(mainText, e -> constructValue());
         }
         
         private void constructValue() {
@@ -842,14 +796,9 @@ public class HighlighterTester extends JDialog implements StringEditor {
         }
         
         private static final int OTHER = 0b10000;
-        
-        private final JCheckBox regex = new JCheckBox("Regex");
-        private final JCheckBox caseSensitive = new JCheckBox("Case-sensitive");
-        private final JCheckBox word = new JCheckBox("Word");
-        private final JCheckBox start = new JCheckBox("Start");
+
         private final JCheckBox inverted = new JCheckBox("Inverted");
-        private final JCheckBox other = new JCheckBox("Other");
-        
+
         private final List<JCheckBox> checkboxes = new ArrayList<>();
         
         private Consumer<String> listener;
@@ -868,17 +817,22 @@ public class HighlighterTester extends JDialog implements StringEditor {
         
         MatchOptions() {
             setLayout(new FlowLayout(FlowLayout.LEADING, 5, 0));
-            
+
+            JCheckBox regex = new JCheckBox("Regex");
             regex.setToolTipText(SettingsUtil.addTooltipLinebreaks(
                     "Use Regular Expressions"));
+            JCheckBox caseSensitive = new JCheckBox("Case-sensitive");
             caseSensitive.setToolTipText(SettingsUtil.addTooltipLinebreaks(
                     "Case-sentitive text matching (e.g. 'Test' would not be the same as 'TEST')"));
+            JCheckBox word = new JCheckBox("Word");
             word.setToolTipText(SettingsUtil.addTooltipLinebreaks(
                     "The beginning and end must be at a word boundary (e.g. 'w:test' would match 'This is a test!' but not 'This is testing!')"));
+            JCheckBox start = new JCheckBox("Start");
             start.setToolTipText(SettingsUtil.addTooltipLinebreaks(
                     "The text must be at the beginning of the message (e.g. 'start:!quote' would match when '!quote' is at the beginning of the message)"));
             inverted.setToolTipText(SettingsUtil.addTooltipLinebreaks(
                     "The match is inverted (e.g. '!start:quote' would match when there is no '!quote' at the beginning of the message)"));
+            JCheckBox other = new JCheckBox("Other");
             other.setToolTipText(SettingsUtil.addTooltipLinebreaks(
                     "This is checked when prefixes that can't be selected here are used (unchecking switches the prefix and allows you to use the other checkboxes again)"));
             
@@ -900,9 +854,7 @@ public class HighlighterTester extends JDialog implements StringEditor {
             checkboxes.add(other);
             
             for (JCheckBox check : checkboxes) {
-                check.addItemListener(e -> {
-                    updateSelected();
-                });
+                check.addItemListener(e -> updateSelected());
             }
             inverted.addItemListener(e -> updateSelected());
         }
@@ -1049,13 +1001,9 @@ public class HighlighterTester extends JDialog implements StringEditor {
     
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            HighlighterTester.testPresets = Highlighter.HighlightItem.makePresets(Arrays.asList(new String[]{
-                "_test $replace($1-,$\"\\\\!\",$\"[\\W_]*?\",reg)"
-            }));
+            HighlighterTester.testPresets = Highlighter.HighlightItem.makePresets(List.of("_test $replace($1-,$\"\\\\!\",$\"[\\W_]*?\",reg)"));
             HighlighterTester tester = new HighlighterTester(null, true, "highlight");
-            tester.setAddToBlacklistListener(e -> {
-                System.out.println(e);
-            });
+            tester.setAddToBlacklistListener(System.out::println);
             //tester.setDefaultCloseOperation(EXIT_ON_CLOSE);
             //tester.setEditingBlacklistItem(true);
             tester.setEditingBlacklistItem(false);

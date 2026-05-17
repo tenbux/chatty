@@ -2,13 +2,10 @@
 package chatty.gui.components;
 
 import chatty.util.CombinedIterator;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
+
+import javax.swing.*;
+import java.util.*;
 import java.util.function.Predicate;
-import javax.swing.AbstractListModel;
 
 /**
  * A List Model that sorts the entries either by a Comparator that can be set
@@ -53,7 +50,7 @@ public class SortedListModel<E> extends AbstractListModel<E> implements Iterable
      */
     public void updateFiltering() {
         if (filter == null) {
-            removedByFilter.forEach(item -> addInternal(item));
+            removedByFilter.forEach(this::addInternal);
             removedByFilter.clear();
         }
         else {
@@ -83,7 +80,7 @@ public class SortedListModel<E> extends AbstractListModel<E> implements Iterable
     
     public void resort() {
         if (comparator != null) {
-            Collections.sort(data, comparator);
+            data.sort(comparator);
             super.fireContentsChanged(this, 0, data.size());
         }
     }

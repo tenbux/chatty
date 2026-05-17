@@ -1,15 +1,12 @@
 
 package chatty.gui.components.settings;
 
-import chatty.gui.GuiUtil;
 import chatty.lang.Language;
-import java.awt.KeyboardFocusManager;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import javax.swing.BorderFactory;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.KeyStroke;
 
 /**
  *
@@ -38,11 +35,11 @@ public class HotkeyDialog {
 
             @Override
             public void keyReleased(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ESCAPE && e.getModifiers() == 0) {
+                if (e.getKeyCode() == KeyEvent.VK_ESCAPE && e.getModifiersEx() == 0) {
                     dialog.setVisible(false);
                     return;
                 }
-                hotkey = KeyStroke.getKeyStroke(e.getKeyCode(), e.getModifiers());
+                hotkey = KeyStroke.getKeyStroke(e.getKeyCode(), e.getModifiersEx());
                 dialog.setVisible(false);
                 e.consume();
             }

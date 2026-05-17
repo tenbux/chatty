@@ -28,7 +28,7 @@ public class Replacer {
      */
     public Replacer(Map<String, String> replacements) {
         this.replacementValues = new String[replacements.size()];
-        StringBuilder sb = new StringBuilder("");
+        StringBuilder sb = new StringBuilder();
         int i = 0;
         for (String item : replacements.keySet()) {
             try {
@@ -36,7 +36,7 @@ public class Replacer {
             } catch (PatternSyntaxException ex) {
                 throw new IllegalArgumentException("Invalid replacement pattern.", ex);
             }
-            if (sb.length() != 0) {
+            if (!sb.isEmpty()) {
                 sb.append("|");
             }
             sb.append("(").append(item).append(")");

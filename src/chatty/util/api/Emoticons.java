@@ -4,40 +4,24 @@ package chatty.util.api;
 import chatty.Chatty;
 import chatty.Helper;
 import chatty.gui.emoji.EmojiUtil;
-import chatty.util.CombinedEmoticon;
-import chatty.util.CombinedIterator;
-import chatty.util.LogUtil;
-import chatty.util.MiscUtil;
-import chatty.util.StringUtil;
+import chatty.util.*;
 import chatty.util.TwitchEmotesApi.EmotesetInfo;
 import chatty.util.settings.Settings;
-import java.awt.Color;
-import java.awt.Dimension;
+
+import javax.swing.Timer;
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.*;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.swing.Timer;
 
 /**
  * Add emoticons and get a list of them matching a certain emoteset.
@@ -83,7 +67,6 @@ public class Emoticons {
         EMOTICONS_MAP.put("#-?[\\\\/]", "#/");
         EMOTICONS_MAP.put("<\\]", "<]");
         EMOTICONS_MAP.put("\\:-?[\\\\/]", ":\\");
-        EMOTICONS_MAP.put("\\:-?\\)", ":)");
     }
     
     /**
@@ -105,13 +88,10 @@ public class Emoticons {
      * Emoji should be sorted by length, so that longer Emoji (which can be
      * combinations of several short Emoji characters) are checked first.
      */
-    private final Set<Emoticon> emoji = new TreeSet<>(new Comparator<Emoticon>() {
-            @Override
-            public int compare(Emoticon s1, Emoticon s2) {
-                int cmp = Integer.compare(s2.code.length(), s1.code.length());
-                return cmp != 0 ? cmp : s1.code.compareTo(s2.code);
-            }
-        });
+    private final Set<Emoticon> emoji = new TreeSet<>((s1, s2) -> {
+        int cmp = Integer.compare(s2.code.length(), s1.code.length());
+        return cmp != 0 ? cmp : s1.code.compareTo(s2.code);
+    });
     
     /**
      * Only global Twitch emotes.
@@ -197,10 +177,10 @@ public class Emoticons {
     private EmotesetManager localEmotesetManager;
     
     private static final int DEFAULT_IMAGE_EXPIRE_MINUTES = 4*60;
-    private static final int FASTER_IMAGE_EXPIRE_MINUTES = 1*60;
+    private static final int FASTER_IMAGE_EXPIRE_MINUTES = 60;
     
     public Emoticons() {
-        Timer timer = new Timer(1*60*60*1000, e -> {
+        Timer timer = new Timer(60 * 60 * 1000, e -> {
             int imageExpireMinutes = DEFAULT_IMAGE_EXPIRE_MINUTES;
             if (LogUtil.getMemoryPercentageOfMax() > 80) {
                 imageExpireMinutes = FASTER_IMAGE_EXPIRE_MINUTES;
@@ -249,7 +229,7 @@ public class Emoticons {
         }
         if (update.setInfos != null) {
             for (EmotesetInfo info : update.setInfos) {
-                infoBySet.put(info.emoteset_id, info);
+                infoBySet.put(info.emoteset_id(), info);
             }
         }
     }
@@ -298,7 +278,7 @@ public class Emoticons {
                 Set<Emoticon> removed = emoticonsByEmoteset.remove(set);
                 if (removed != null) {
                     removedCount += removed.size();
-                    removed.forEach(e -> usableGlobalEmotes.remove(e));
+                    removed.forEach(usableGlobalEmotes::remove);
                 }
                 followerEmotes.remove(set);
             }
@@ -348,7 +328,7 @@ public class Emoticons {
                 for (String channel : channelRestrictions) {
                     // Create channel set if necessary
                     if (!streamEmoticons.containsKey(channel)) {
-                        streamEmoticons.put(channel, new HashSet<Emoticon>());
+                        streamEmoticons.put(channel, new HashSet<>());
                     }
                     addEmote(streamEmoticons.get(channel), emote);
                 }
@@ -660,13 +640,7 @@ public class Emoticons {
             for (Map.Entry<String, Set<Emoticon>> entry : usableStreamEmotes.entrySet()) {
                 // For each stream in usable emotes
                 // Remove any non-accessible
-                Iterator<Emoticon> itStream = entry.getValue().iterator();
-                while (itStream.hasNext()) {
-                    Emoticon emote = itStream.next();
-                    if (!emote.hasGlobalEmoteset() && !localEmotesets.contains(emote.emoteset)) {
-                        itStream.remove();
-                    }
-                }
+                entry.getValue().removeIf(emote -> !emote.hasGlobalEmoteset() && !localEmotesets.contains(emote.emoteset));
             }
             for (Map.Entry<String, Set<Emoticon>> entry : streamEmoticons.entrySet()) {
                 // For each stream in all per-stream emotes
@@ -707,8 +681,7 @@ public class Emoticons {
         return localEmotesets;
     }
     
-    private static final List<String> TURBO_EMOTESETS = Arrays.asList(new String[]{
-        "33", "42", "457", "793", "19194"});
+    private static final List<String> TURBO_EMOTESETS = Arrays.asList("33", "42", "457", "793", "19194");
     
     /**
      * Checks whether the given emoteset is a turbo emoteset. This may be
@@ -839,16 +812,12 @@ public class Emoticons {
         String sep = "";
         for (Emoticon emote : found) {
             Set<String> streams = emote.getStreamRestrictions();
-            b.append(sep+"'"+emote.code+"'"
-                +" / Type: "+emote.type+" / "
-                +(emote.hasGlobalEmoteset()
+            b.append(sep).append("'").append(emote.code).append("'").append(" / Type: ").append(emote.type).append(" / ").append(emote.hasGlobalEmoteset()
                     ? "Usable by everyone"
-                    : ("Emoteset: "+emote.emoteset
-                      +" ("+getLabelByEmoteset(emote.emoteset)+")"))
-                
-                +(streams == null
+                    : ("Emoteset: " + emote.emoteset
+                       + " (" + getLabelByEmoteset(emote.emoteset) + ")")).append(streams == null
                     ? " / Usable in all channels"
-                    : " / Only usable in: "+streams));
+                    : " / Only usable in: " + streams);
             sep = " ### ";
         }
         
@@ -896,8 +865,8 @@ public class Emoticons {
      * @param type The emote type to allow through the filter
      * @return A new Set containing the emotes of the given type
      */
-    public static final Set<Emoticon> filterByType(Set<Emoticon> emotes,
-            Emoticon.Type type) {
+    public static Set<Emoticon> filterByType(Set<Emoticon> emotes,
+                                             Emoticon.Type type) {
         Set<Emoticon> filtered = new HashSet<>();
         for (Emoticon emote : emotes) {
             if (emote.type == type) {
@@ -913,7 +882,7 @@ public class Emoticons {
         return equalsByCode(a, b);
     }
     
-    public static final boolean equalsByCode(Collection<Emoticon> a, Collection<Emoticon> b) {
+    public static boolean equalsByCode(Collection<Emoticon> a, Collection<Emoticon> b) {
         if (a == null || b == null) {
             return false;
         }
@@ -925,6 +894,7 @@ public class Emoticons {
             for (Emoticon emoteB : b) {
                 if (emoteA.code.equals(emoteB.code)) {
                     found = true;
+                    break;
                 }
             }
             if (!found) {
@@ -934,7 +904,7 @@ public class Emoticons {
         return true;
     }
     
-    public static final String toWriteable(String emoteCode) {
+    public static String toWriteable(String emoteCode) {
         String writeable = EMOTICONS_MAP.get(emoteCode);
         if (writeable == null) {
             return emoteCode;
@@ -942,7 +912,7 @@ public class Emoticons {
         return writeable;
     }
     
-    public static final String toRegex(String emoteCode) {
+    public static String toRegex(String emoteCode) {
         for (Map.Entry<String, String> entry : EMOTICONS_MAP.entrySet()) {
             if (entry.getValue().equals(emoteCode) || emoteCode.matches(entry.getKey())) {
                 return entry.getKey();
@@ -1012,7 +982,7 @@ public class Emoticons {
         customEmotesById.clear();
         
         Path file = Chatty.getPath(Chatty.PathType.SETTINGS).resolve("emotes.txt");
-        try (BufferedReader r = Files.newBufferedReader(file, Charset.forName("UTF-8"))) {
+        try (BufferedReader r = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
             int countLoaded = 0;
             String line;
             boolean firstLine = true;
@@ -1063,9 +1033,7 @@ public class Emoticons {
         String streamRestriction = null;
         
         String[] split = line.trim().split("\\s+");
-        for (int i=0;i<split.length;i++) {
-            String item = split[i];
-            
+        for (String item : split) {
             if (item.startsWith("re:") && item.length() > "re:".length()) {
                 literal = false;
                 code = item.substring("re:".length());
@@ -1149,8 +1117,8 @@ public class Emoticons {
             if (emote.stringId != null) {
                 info.add("id:"+emote.stringId);
             }
-            b.append("\""+emote.code+"\" ");
-            if (info.size() > 0) {
+            b.append("\"").append(emote.code).append("\" ");
+            if (!info.isEmpty()) {
                 b.append(info);
             }
             b.append("\n   ");
@@ -1222,72 +1190,49 @@ public class Emoticons {
        Emoticon.Builder b = new Emoticon.Builder(Emoticon.Type.TWITCH, code);
        return b.build();
     }
-    
+
     /**
-     * Wrapping class for the Map of emote ids and their ranges.
-     */
-    public static class TagEmotes {
-        public final Map<Integer, TagEmote> emotes;
-        
-        public TagEmotes(Map<Integer, TagEmote> emotes) {
-            this.emotes = emotes;
-        }
-        
-        @Override
-        public String toString() {
-            return emotes.toString();
-        }
+         * Wrapping class for the Map of emote ids and their ranges.
+         */
+        public record TagEmotes(Map<Integer, TagEmote> emotes) {
 
         @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
+            public String toString() {
+                return emotes.toString();
             }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final TagEmotes other = (TagEmotes) obj;
-            if (!Objects.equals(this.emotes, other.emotes)) {
-                return false;
-            }
-            return true;
-        }
 
-        @Override
-        public int hashCode() {
-            int hash = 3;
-            hash = 37 * hash + Objects.hashCode(this.emotes);
-            return hash;
-        }
-        
+            @Override
+            public boolean equals(Object obj) {
+                if (obj == null) {
+                    return false;
+                }
+                if (getClass() != obj.getClass()) {
+                    return false;
+                }
+                final TagEmotes other = (TagEmotes) obj;
+                return Objects.equals(this.emotes, other.emotes);
+            }
+
         public int getLargestIndex() {
-            if (emotes == null || emotes.isEmpty()) {
-                return -1;
+                if (emotes == null || emotes.isEmpty()) {
+                    return -1;
+                }
+                return Collections.max(emotes.keySet());
             }
-            return Collections.max(emotes.keySet());
-        }
-        
+
     }
-    
+
     /**
-     * Tag Emote with an id and a range end (the start should be the key
-     * referring to this object.
-     */
-    public static class TagEmote {
-        
-        public final String id;
-        public final int end;
-        
-        public TagEmote(String id, int end) {
-            this.id = id;
-            this.end = end;
-        }
-        
+         * Tag Emote with an id and a range end (the start should be the key
+         * referring to this object.
+         */
+        public record TagEmote(String id, int end) {
+
         @Override
-        public String toString() {
-            return ">"+id+":"+end;
+            public String toString() {
+                return ">" + id + ":" + end;
+            }
         }
-    }
     
     private volatile Map<Pattern, String> emojiReplacement;
     

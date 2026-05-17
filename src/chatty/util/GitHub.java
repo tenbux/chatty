@@ -33,7 +33,7 @@ public class GitHub {
         return null;
     }
     
-    private static final List<Release> parseReleases(String data) throws Exception {
+    private static List<Release> parseReleases(String data) throws Exception {
         JSONArray array = (JSONArray)new JSONParser().parse(data);
         List<Release> result = new ArrayList<>();
         for (Object obj : array) {
@@ -42,7 +42,7 @@ public class GitHub {
         return result;
     }
     
-    private static final Release parseRelease(JSONObject data) {
+    private static Release parseRelease(JSONObject data) {
         String tag = (String)data.get("tag_name");
         String name = (String)data.get("name");
         String description = (String)data.get("body");

@@ -2,24 +2,18 @@
 package chatty.splash;
 
 import chatty.Chatty;
-import static chatty.Chatty.VERSION;
 import chatty.Helper;
 import chatty.Helper.IntegerPair;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
-import java.awt.SplashScreen;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
-import javax.swing.JComponent;
-import javax.swing.SwingUtilities;
+
+import static chatty.Chatty.VERSION;
 
 /**
  *
@@ -97,9 +91,7 @@ public class Splash {
         if (SwingUtilities.isEventDispatchThread()) {
             drawOnSplashscreen(location);
         } else {
-            SwingUtilities.invokeLater(() -> {
-                drawOnSplashscreen(location);
-            });
+            SwingUtilities.invokeLater(() -> drawOnSplashscreen(location));
         }
     }
     
@@ -107,9 +99,7 @@ public class Splash {
         if (SwingUtilities.isEventDispatchThread()) {
             SplashWindow.closeSplashWindow();
         } else {
-            SwingUtilities.invokeLater(() -> {
-                SplashWindow.closeSplashWindow();
-            });
+            SwingUtilities.invokeLater(SplashWindow::closeSplashWindow);
         }
     }
     
@@ -169,7 +159,7 @@ public class Splash {
         }
         IntegerPair coords = Helper.getNumbersFromString(split[0]);
         IntegerPair size = Helper.getNumbersFromString(split[1]);
-        Rectangle r = new Rectangle(coords.a, coords.b, size.a, size.b);
+        Rectangle r = new Rectangle(coords.a(), coords.b(), size.a(), size.b());
         return new Point((int)r.getCenterX() - SPLASH_WIDTH/2, (int)r.getCenterY() - SPLASH_HEIGHT/2);
     }
     

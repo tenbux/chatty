@@ -3,17 +3,13 @@ package chatty.gui.components.settings;
 
 import chatty.gui.GuiUtil;
 import chatty.util.hotkeys.Hotkey;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.Insets;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import javax.swing.JButton;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.KeyStroke;
 
 /**
  * 
@@ -35,7 +31,7 @@ public class HotkeySettings extends SettingsPanel {
         
         GridBagConstraints gbc;
         
-        gbc = d.makeGbc(0, 1, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 1, 1, 1);
         gbc.anchor = GridBagConstraints.WEST;
         main.add(d.addSimpleBooleanSetting("globalHotkeysEnabled",
                 "Enable global hotkeys",
@@ -47,7 +43,7 @@ public class HotkeySettings extends SettingsPanel {
                 Hotkey.keyStrokeToText(KeyStroke.getKeyStroke("ctrl 9"))));
         addTabSwitchKeys.setToolTipText("Add hotkeys to directly switch to a tab index in the active tab pane");
         GuiUtil.smallButtonInsets(addTabSwitchKeys);
-        gbc = d.makeGbc(1, 1, 1, 1);
+        gbc = SettingsDialog.makeGbc(1, 1, 1, 1);
         gbc.insets = new Insets(5, 5, 5, 30);
         gbc.anchor = GridBagConstraints.EAST;
         main.add(addTabSwitchKeys, gbc);
@@ -57,7 +53,7 @@ public class HotkeySettings extends SettingsPanel {
                     && !d.getBooleanSettingValue("globalHotkeysEnabled")) {
                 JOptionPane.showMessageDialog(d, "You have added a global hotkey, but global hotkeys are currently disabled (see setting at bottom).");
             }
-        }, new TableEditor.TableEditorListener<Hotkey>() {
+        }, new TableEditor.TableEditorListener<>() {
             @Override
             public void itemAdded(Hotkey item) {
                 updateHotkeyPanel(null, item);
@@ -80,16 +76,16 @@ public class HotkeySettings extends SettingsPanel {
 
             @Override
             public void itemsSet() {
-                
+
             }
 
             @Override
             public void refreshData() {
-                
+
             }
         });
         data.setPreferredSize(new Dimension(1,270));
-        gbc = d.makeGbc(0, 0, 2, 1);
+        gbc = SettingsDialog.makeGbc(0, 0, 2, 1);
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weightx = 1;
         gbc.weighty = 1;
@@ -103,6 +99,7 @@ public class HotkeySettings extends SettingsPanel {
                 for (Hotkey existingHotkey : hotkeys) {
                     if (existingHotkey.actionId.equals(hotkey.actionId) && existingHotkey.custom.equals(hotkey.custom)) {
                         actionAlreadyExists = true;
+                        break;
                     }
                 }
                 if (!actionAlreadyExists) {
@@ -137,7 +134,7 @@ public class HotkeySettings extends SettingsPanel {
     
     public HotkeyPanel createHotkeyPanel(String actionId, Hotkey.Type type) {
         HotkeyPanel panel = new HotkeyPanel(d, actionId, type,
-                                            k -> data.getExistingHotkey(k),
+                data::getExistingHotkey,
                                             new HotkeyPanel.HotkeyHelperListener() {
                                         @Override
                                         public void changeHotkey(Hotkey current, Hotkey changed) {

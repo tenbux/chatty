@@ -3,7 +3,6 @@ package chatty.gui.components.textpane;
 
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.text.Document;
 import javax.swing.text.JTextComponent;
 
 /**
@@ -74,10 +73,7 @@ public class FixSelection implements DocumentListener {
         if (pos < 0) {
             return 0;
         }
-        if (pos > length) {
-            return length;
-        }
-        return pos;
+        return Math.min(pos, length);
     }
     
 }

@@ -4,8 +4,10 @@ package chatty.util.commands;
 import chatty.Helper;
 import chatty.Room;
 import chatty.User;
-import java.util.Arrays;
 import org.junit.Test;
+
+import java.util.Arrays;
+
 import static org.junit.Assert.*;
 
 /**
@@ -323,10 +325,10 @@ public class CustomCommandTest {
         
         CustomCommand command = CustomCommand.parse("$(msg-id)");
         CustomCommand command2 = CustomCommand.parse("$$(msg-id)");
-        assertEquals(command.replace(parameters), "123456");
-        assertEquals(command.replace(parameters2), "");
-        assertEquals(command2.replace(parameters), "123456");
-        assertEquals(command2.replace(parameters2), null);
+        assertEquals("123456", command.replace(parameters));
+        assertEquals("", command.replace(parameters2));
+        assertEquals("123456", command2.replace(parameters));
+        assertNull(command2.replace(parameters2));
     }
     
     @Test
@@ -405,30 +407,31 @@ public class CustomCommandTest {
         Parameters parameters = Parameters.create("");
         
         assertFalse(parameters.notEmpty("custom-nick", "full-nick2"));
-        assertEquals(parameters.get("display-nick"), null);
+        assertNull(parameters.get("display-nick"));
         
         Helper.addUserParameters(user, null, null, parameters);
         
         assertTrue(parameters.notEmpty("custom-nick", "full-nick2"));
-        assertEquals(parameters.get("display-nick"), "User Name");
+        assertEquals("User Name", parameters.get("display-nick"));
     }
     
     @Test
     public void testJson() {
-        String json = "{\n"
-                + "        \"books\":[\n"
-                + "            {\"title\":\"book1\", \"author\":\"author1\", \"tags\":[\"tag1\",\"tag2\"]},\n"
-                + "            {\"title\":\"book2\", \"author\":\"author2\", \"tags\":[\"tag1\"]},\n"
-                + "            {\"title\":\"book3\", \"author\":\"author2\", \"tags\":[\"tag1\", \"tag3\"]},\n"
-                + "            {\"title\":\"book4\", \"author\":\"author2\"}\n"
-                + "        ],\n"
-                + "        \"authors\":{\n"
-                + "            \"author1\":{\"name\":\"name1\", \"age\":24},\n"
-                + "            \"author2\":{\"name\":\"name2\", \"age\":62}\n"
-                + "        },\n"
-                + "        \"numBooks\": 4,\n"
-                + "        \"numAuthors\": 2\n"
-                + "    }";
+        String json = """
+                {
+                        "books":[
+                            {"title":"book1", "author":"author1", "tags":["tag1","tag2"]},
+                            {"title":"book2", "author":"author2", "tags":["tag1"]},
+                            {"title":"book3", "author":"author2", "tags":["tag1", "tag3"]},
+                            {"title":"book4", "author":"author2"}
+                        ],
+                        "authors":{
+                            "author1":{"name":"name1", "age":24},
+                            "author2":{"name":"name2", "age":62}
+                        },
+                        "numBooks": 4,
+                        "numAuthors": 2
+                    }""";
         
         testJson(json,
                 "$json($(j),$j(numBooks))", "4",

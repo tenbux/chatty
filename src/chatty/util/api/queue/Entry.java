@@ -47,10 +47,7 @@ public class Entry implements Comparable<Entry> {
         if (this.priority != other.priority) {
             return false;
         }
-        if (!Objects.equals(this.request, other.request)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.request, other.request);
     }
 
     @Override

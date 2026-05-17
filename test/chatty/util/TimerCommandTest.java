@@ -5,17 +5,15 @@ import chatty.Room;
 import chatty.util.TimerCommand.TimerEntry;
 import chatty.util.commands.Parameters;
 import chatty.util.settings.Settings;
+import org.junit.Test;
+
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Set;
-import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
+
+import static java.util.concurrent.TimeUnit.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import org.junit.Test;
 
 /**
  * These don't test all the features and date/time formats, but better than
@@ -100,7 +98,7 @@ public class TimerCommandTest {
     }
     
     private void check(TimerCommand timerCommand, String input, long targetTime, String id, String command) {
-        TimerEntry entry = timerCommand.command(input, Room.EMPTY, Parameters.create("")).entry;
+        TimerEntry entry = timerCommand.command(input, Room.EMPTY, Parameters.create("")).entry();
         if (entry != null) {
             checkTargetTime(targetTime, entry.targetTime);
             if (id != null) {
@@ -116,7 +114,7 @@ public class TimerCommandTest {
     }
     
     private void checkDatetime(TimerCommand timerCommand, String input, int year, int month, int day, int hour, int minute, int second, int milliseconds) {
-        TimerEntry entry = timerCommand.command(input, Room.EMPTY, Parameters.create("")).entry;
+        TimerEntry entry = timerCommand.command(input, Room.EMPTY, Parameters.create("")).entry();
         long expected = ZonedDateTime.of(
                 year, month, day, hour, minute, second,
                 (int) MILLISECONDS.toNanos(milliseconds),

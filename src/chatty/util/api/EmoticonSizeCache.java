@@ -3,11 +3,12 @@ package chatty.util.api;
 
 import chatty.Chatty;
 import chatty.Chatty.PathType;
-import java.awt.Dimension;
+
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -25,7 +26,7 @@ public class EmoticonSizeCache {
     private static final Path FILE = Chatty.getPathCreate(PathType.CACHE).resolve("emoticon_sizes");
     
     private static final Map<String, Dimension> data = new HashMap<>();
-    private static final Charset CHARSET = Charset.forName("UTF-8");
+    private static final java.nio.charset.Charset CHARSET = StandardCharsets.UTF_8;
     
     public synchronized static void setSize(String id, int width, int height) {
         data.put(id, new Dimension(width, height));

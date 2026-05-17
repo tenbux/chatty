@@ -6,33 +6,18 @@ import chatty.gui.UrlOpener;
 import chatty.util.UrlRequest;
 import chatty.util.WrapHistory;
 import chatty.util.api.CachedManager;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Insets;
-import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.io.IOException;
-import java.util.logging.Logger;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.JScrollBar;
-import javax.swing.JScrollPane;
-import javax.swing.JTextField;
-import javax.swing.JTextPane;
-import javax.swing.JToolBar;
+
+import javax.swing.*;
 import javax.swing.event.HyperlinkEvent;
-import javax.swing.event.HyperlinkListener;
 import javax.swing.text.DefaultCaret;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
 import javax.swing.text.html.HTMLDocument;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Simple Frame that shows a HTML page as About/Help.
@@ -70,36 +55,26 @@ public class About extends JFrame implements ActionListener {
         textPane.setBackground(Color.WHITE);
         // Prevent scrolling when changing HTML
         ((DefaultCaret)textPane.getCaret()).setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
-        textPane.addHyperlinkListener(new HyperlinkListener() {
-
-            @Override
-            public void hyperlinkUpdate(HyperlinkEvent e) {
-                if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                    // Jump to another place in the document
-                    String url = e.getURL().toString();
-                    String protocol = e.getURL().getProtocol();
-                    if (protocol.equals("http") || protocol.equals("https")
-                            || protocol.equals("mailto")) {
-                        UrlOpener.openUrlPrompt(About.this, url, true);
-                    } else if (protocol.equals("file") || protocol.equals("jar")) {
-                        String path = e.getURL().getFile();
-                        String file = path.substring(path.lastIndexOf("/")+1);
-                        open(file, e.getURL().getRef());
-                    } else {
-                        jumpTo(e.getURL().getRef());
-                    }
+        textPane.addHyperlinkListener(e -> {
+            if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                // Jump to another place in the document
+                String url = e.getURL().toString();
+                String protocol = e.getURL().getProtocol();
+                if (protocol.equals("http") || protocol.equals("https")
+                        || protocol.equals("mailto")) {
+                    UrlOpener.openUrlPrompt(About.this, url, true);
+                } else if (protocol.equals("file") || protocol.equals("jar")) {
+                    String path = e.getURL().getFile();
+                    String file = path.substring(path.lastIndexOf("/")+1);
+                    open(file, e.getURL().getRef());
+                } else {
+                    jumpTo(e.getURL().getRef());
                 }
             }
         });
         
         // Listener to do stuff when the page loaded
-        textPane.addPropertyChangeListener("page", new PropertyChangeListener() {
-
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                pageLoaded();
-            }
-        });
+        textPane.addPropertyChangeListener("page", evt -> pageLoaded());
 
         // ActionListener for all the navigation buttons
         ActionListener buttonAction = new ActionListener() {
@@ -108,17 +83,15 @@ public class About extends JFrame implements ActionListener {
             public void actionPerformed(ActionEvent e) {
                 HistoryItem cameFrom = history.current();
                 HistoryItem item = null;
-                if (e.getActionCommand().equals("historyBack")) {
-                    item = history.backward();
-                } else if (e.getActionCommand().equals("historyForward")) {
-                    item = history.forward();
-                } else if (e.getActionCommand().equals("home")) {
-                    open(null, null);
-                } else if (e.getActionCommand().equals("up")) {
-                    open(currentPage, "");
-                } else if (e.getActionCommand().equals("web")) {
-                    String url = BASE_HELP_URL+currentLocation.getText();
-                    UrlOpener.openUrlPrompt(About.this, url, true);
+                switch (e.getActionCommand()) {
+                    case "historyBack" -> item = history.backward();
+                    case "historyForward" -> item = history.forward();
+                    case "home" -> open(null, null);
+                    case "up" -> open(currentPage, "");
+                    case "web" -> {
+                        String url = BASE_HELP_URL + currentLocation.getText();
+                        UrlOpener.openUrlPrompt(About.this, url, true);
+                    }
                 }
                 
                 // Change to valid history item
@@ -166,15 +139,11 @@ public class About extends JFrame implements ActionListener {
         
         // Close button
         JButton button = new JButton("Close");
-        button.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (Chatty.DEBUG) {
-                    reload();
-                } else {
-                    setVisible(false);
-                }
+        button.addActionListener(e -> {
+            if (Chatty.DEBUG) {
+                reload();
+            } else {
+                setVisible(false);
             }
         });
         add(button,BorderLayout.SOUTH);
@@ -192,7 +161,7 @@ public class About extends JFrame implements ActionListener {
                 return false;
             }
         };
-        if (!m.load()) {
+        if (m.load()) {
             UrlRequest request = new UrlRequest("https://tduva.com/res/patrons");
             request.async((result, responseCode) -> {
                 if (responseCode == 200 && result != null) {
@@ -378,8 +347,7 @@ public class About extends JFrame implements ActionListener {
         
         @Override
         public boolean equals(Object obj) {
-            if (obj != null && obj instanceof HistoryItem) {
-                HistoryItem obj2 = (HistoryItem)obj;
+            if (obj instanceof HistoryItem obj2) {
                 return page.equals(obj2.page) && ref.equals(obj2.ref);
             }
             return false;

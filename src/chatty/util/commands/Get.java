@@ -91,10 +91,7 @@ class Get implements Item {
         if (!Objects.equals(this.sub, other.sub)) {
             return false;
         }
-        if (this.isRequired != other.isRequired) {
-            return false;
-        }
-        return true;
+        return this.isRequired == other.isRequired;
     }
 
     @Override

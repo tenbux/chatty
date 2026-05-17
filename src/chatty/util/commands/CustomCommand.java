@@ -125,7 +125,7 @@ public class CustomCommand {
         if (items != null && !items.isEmpty()) {
             Item firstToken = items.getItem(0);
             if (firstToken instanceof Literal) {
-                String text = ((Literal)firstToken).getLiteral();
+                String text = ((Literal)firstToken).literal();
                 if (text.startsWith("/")) {
                     if (text.contains(" ")) {
                         return text.substring(1, text.indexOf(" "));
@@ -245,10 +245,7 @@ public class CustomCommand {
         if (!Objects.equals(this.items, other.items)) {
             return false;
         }
-        if (!Objects.equals(this.error, other.error)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.error, other.error);
     }
 
     @Override

@@ -1,7 +1,6 @@
 
 package chatty.gui.components.srl;
 
-import chatty.util.colors.HtmlColors;
 import chatty.gui.TwitchUrl;
 import chatty.gui.UrlOpener;
 import chatty.gui.components.menus.ContextMenu;
@@ -10,21 +9,19 @@ import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.menus.RaceContextMenu;
 import chatty.gui.components.settings.ListTableModel;
 import chatty.util.DateTime;
+import chatty.util.colors.HtmlColors;
 import chatty.util.srl.Race;
-import java.awt.Color;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableRowSorter;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Collection;
 import java.util.List;
-import javax.swing.JTable;
-import javax.swing.ListSelectionModel;
-import javax.swing.RowSorter;
-import javax.swing.SortOrder;
-import javax.swing.Timer;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.TableRowSorter;
 
 /**
  * Table to display a list of SRL Races. When a race is supposed to be opened
@@ -136,14 +133,14 @@ public class RacesTable extends JTable {
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
             Race r = get(rowIndex);
-            switch (columnIndex) {
-                case 0: return r.game;
-                case 2: return r.statetext;
-                case 1: return r.goal;
-                case 4: return r.getEntrants().size();
-                case 3: return formatTime(r.time);
-            }
-            return null;
+            return switch (columnIndex) {
+                case 0 -> r.game;
+                case 2 -> r.statetext;
+                case 1 -> r.goal;
+                case 4 -> r.getEntrants().size();
+                case 3 -> formatTime(r.time);
+                default -> null;
+            };
         }
         
         @Override
@@ -183,8 +180,8 @@ public class RacesTable extends JTable {
         @Override
         public void toggleSortOrder(int column) {
             List<? extends RowSorter.SortKey> sortKeys = getSortKeys();
-            if (sortKeys.size() > 0) {
-                if (sortKeys.get(0).getSortOrder() == SortOrder.DESCENDING) {
+            if (!sortKeys.isEmpty()) {
+                if (sortKeys.getFirst().getSortOrder() == SortOrder.DESCENDING) {
                     setSortKeys(null);
                     return;
                 }
@@ -205,14 +202,11 @@ public class RacesTable extends JTable {
                 return;
             }
             String state = (String)value;
-            if (state.equals("Entry Open")) {
-                setForeground(OPEN);
-            } else if (state.equals("Race ended")) {
-                setForeground(ENDED);
-            } else if (state.equals("Complete") || state.equals("Race Over")) {
-                setForeground(COMPLETE);
-            } else {
-                setForeground(Color.BLACK);
+            switch (state) {
+                case "Entry Open" -> setForeground(OPEN);
+                case "Race ended" -> setForeground(ENDED);
+                case "Complete", "Race Over" -> setForeground(COMPLETE);
+                default -> setForeground(Color.BLACK);
             }
             setText(state);
         }
@@ -227,22 +221,25 @@ public class RacesTable extends JTable {
             if (selectedRace == null) {
                 return;
             }
-            if (e.getActionCommand().equals("raceInfo")) {
-                listener.openRace(selectedRace);
-            } else if (e.getActionCommand().equals("srlRacePage")) {
-                String url = TwitchUrl.makeSrlRaceLink(selectedRace.id);
-                UrlOpener.openUrlPrompt(RacesTable.this, url, true);
-            } else if (e.getActionCommand().equals("speedruntv")) {
-                String url = TwitchUrl.makeSrtRaceLink(selectedRace.id);
-                UrlOpener.openUrlPrompt(RacesTable.this, url, true);
-            } else if (e.getActionCommand().equals("joinSrlChannel")) {
-                String url = TwitchUrl.makeSrlIrcLink(selectedRace.id);
-                UrlOpener.openUrlPrompt(RacesTable.this, url, true);
+            switch (e.getActionCommand()) {
+                case "raceInfo" -> listener.openRace(selectedRace);
+                case "srlRacePage" -> {
+                    String url = TwitchUrl.makeSrlRaceLink(selectedRace.id);
+                    UrlOpener.openUrlPrompt(RacesTable.this, url, true);
+                }
+                case "speedruntv" -> {
+                    String url = TwitchUrl.makeSrtRaceLink(selectedRace.id);
+                    UrlOpener.openUrlPrompt(RacesTable.this, url, true);
+                }
+                case "joinSrlChannel" -> {
+                    String url = TwitchUrl.makeSrlIrcLink(selectedRace.id);
+                    UrlOpener.openUrlPrompt(RacesTable.this, url, true);
+                }
             }
         }
     }
     
-    public static interface RacesTableListener {
+    public interface RacesTableListener {
         void openRace(Race race);
     }
     

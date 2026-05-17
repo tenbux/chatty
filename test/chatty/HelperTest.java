@@ -2,14 +2,11 @@
 package chatty;
 
 import chatty.util.StringUtil;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.regex.Matcher;
 import org.junit.Test;
+
+import java.util.*;
+import java.util.regex.Matcher;
+
 import static org.junit.Assert.*;
 
 /**
@@ -49,66 +46,66 @@ public class HelperTest {
         assertFalse(Helper.isValidStream(""));
         assertFalse(Helper.isValidStream(" "));
         
-        assertEquals(Helper.toStream("#channel"), "channel");
-        assertEquals(Helper.toStream(""), "");
-        assertEquals(Helper.toStream("#chatrooms:1234:abc-def"), "chatrooms:1234:abc-def");
+        assertEquals("channel", Helper.toStream("#channel"));
+        assertEquals("", Helper.toStream(""));
+        assertEquals("chatrooms:1234:abc-def", Helper.toStream("#chatrooms:1234:abc-def"));
         
-        assertEquals(Helper.toValidStream("#channel"), "channel");
-        assertEquals(Helper.toValidStream(""), null);
-        assertEquals(Helper.toValidStream("#chatrooms:1234:abc-def"), null);
+        assertEquals("channel", Helper.toValidStream("#channel"));
+        assertNull(Helper.toValidStream(""));
+        assertNull(Helper.toValidStream("#chatrooms:1234:abc-def"));
         
-        assertEquals(Helper.toValidChannel("#channel"), "#channel");
-        assertEquals(Helper.toValidChannel("channel"), "#channel");
-        assertEquals(Helper.toValidChannel("$channel"), null);
-        assertEquals(Helper.toValidChannel("chatrooms:1234:abc-def"), "#chatrooms:1234:abc-def");
-        assertEquals(Helper.toValidChannel("abc"), "#abc");
+        assertEquals("#channel", Helper.toValidChannel("#channel"));
+        assertEquals("#channel", Helper.toValidChannel("channel"));
+        assertNull(Helper.toValidChannel("$channel"));
+        assertEquals("#chatrooms:1234:abc-def", Helper.toValidChannel("chatrooms:1234:abc-def"));
+        assertEquals("#abc", Helper.toValidChannel("abc"));
         assertNull(Helper.toValidChannel(""));
         assertNull(Helper.toValidChannel("#"));
         assertNull(Helper.toValidChannel(" 1"));
-        assertEquals(Helper.toValidChannel("#abc"), "#abc");
+        assertEquals("#abc", Helper.toValidChannel("#abc"));
     }
     
     @Test
     public void removeDuplicateWhitespaceTest() {
-        assertEquals(StringUtil.removeDuplicateWhitespace(" ")," ");
-        assertEquals(StringUtil.removeDuplicateWhitespace(""), "");
-        assertEquals(StringUtil.removeDuplicateWhitespace("abc"),"abc");
-        assertEquals(StringUtil.removeDuplicateWhitespace("a  b"), "a b");
-        assertEquals(StringUtil.removeDuplicateWhitespace("       "), " ");
-        assertEquals(StringUtil.removeDuplicateWhitespace(" a  b  "), " a b ");
+        assertEquals(" ", StringUtil.removeDuplicateWhitespace(" "));
+        assertEquals("", StringUtil.removeDuplicateWhitespace(""));
+        assertEquals("abc", StringUtil.removeDuplicateWhitespace("abc"));
+        assertEquals("a b", StringUtil.removeDuplicateWhitespace("a  b"));
+        assertEquals(" ", StringUtil.removeDuplicateWhitespace("       "));
+        assertEquals(" a b ", StringUtil.removeDuplicateWhitespace(" a  b  "));
     }
     
     @Test
     public void htmlspecialchars_encodeTest() {
-        assertEquals(Helper.htmlspecialchars_encode("&"), "&amp;");
-        assertEquals(Helper.htmlspecialchars_encode("&amp;"), "&amp;amp;");
-        assertEquals(Helper.htmlspecialchars_encode("hello john & everyone else"), "hello john &amp; everyone else");
-        assertEquals(Helper.htmlspecialchars_encode("<"), "&lt;");
-        assertEquals(Helper.htmlspecialchars_encode(">"), "&gt;");
-        assertEquals(Helper.htmlspecialchars_encode("\""), "&quot;");
-        assertEquals(Helper.htmlspecialchars_encode("& >"), "&amp; &gt;");
+        assertEquals("&amp;", Helper.htmlspecialchars_encode("&"));
+        assertEquals("&amp;amp;", Helper.htmlspecialchars_encode("&amp;"));
+        assertEquals("hello john &amp; everyone else", Helper.htmlspecialchars_encode("hello john & everyone else"));
+        assertEquals("&lt;", Helper.htmlspecialchars_encode("<"));
+        assertEquals("&gt;", Helper.htmlspecialchars_encode(">"));
+        assertEquals("&quot;", Helper.htmlspecialchars_encode("\""));
+        assertEquals("&amp; &gt;", Helper.htmlspecialchars_encode("& >"));
     }
     
     @Test
     public void htmlspecialchars_decodeTest() {
-        assertEquals(Helper.htmlspecialchars_decode("&amp;"), "&");
-        assertEquals(Helper.htmlspecialchars_decode("&quot;"), "\"");
-        assertEquals(Helper.htmlspecialchars_decode("&lt;"), "<");
-        assertEquals(Helper.htmlspecialchars_decode("&gt;"), ">");
-        assertEquals(Helper.htmlspecialchars_decode("abc &amp; test"), "abc & test");
+        assertEquals("&", Helper.htmlspecialchars_decode("&amp;"));
+        assertEquals("\"", Helper.htmlspecialchars_decode("&quot;"));
+        assertEquals("<", Helper.htmlspecialchars_decode("&lt;"));
+        assertEquals(">", Helper.htmlspecialchars_decode("&gt;"));
+        assertEquals("abc & test", Helper.htmlspecialchars_decode("abc &amp; test"));
     }
     
     @Test
     public void tagsvalue_decodeTest() {
-        assertEquals(Helper.tagsvalue_decode("\\s"), " ");
-        assertEquals(Helper.tagsvalue_decode("\\:"), ";");
-        assertEquals(Helper.tagsvalue_decode("\\n"), "\n");
-        assertEquals(Helper.tagsvalue_decode("\\\\s"), "\\s");
-        assertEquals(Helper.tagsvalue_decode("abc\\stest"), "abc test");
-        assertEquals(Helper.tagsvalue_decode(""), "");
-        assertEquals(Helper.tagsvalue_decode(null), null);
-        assertEquals(Helper.tagsvalue_decode(" "), " ");
-        assertEquals(Helper.tagsvalue_decode("\\\\s\\s\\:"), "\\s ;");
+        assertEquals(" ", Helper.tagsvalue_decode("\\s"));
+        assertEquals(";", Helper.tagsvalue_decode("\\:"));
+        assertEquals("\n", Helper.tagsvalue_decode("\\n"));
+        assertEquals("\\s", Helper.tagsvalue_decode("\\\\s"));
+        assertEquals("abc test", Helper.tagsvalue_decode("abc\\stest"));
+        assertEquals("", Helper.tagsvalue_decode(""));
+        assertNull(Helper.tagsvalue_decode(null));
+        assertEquals(" ", Helper.tagsvalue_decode(" "));
+        assertEquals("\\s ;", Helper.tagsvalue_decode("\\\\s\\s\\:"));
     }
     
     @Test
@@ -189,20 +186,19 @@ public class HelperTest {
         while (m.find()) {
             String found = m.group();
             String target = findTarget[i];
-            assertTrue("Should have found: "+target+" found: "+found,
-                    found.equals(target));
+            assertEquals("Should have found: " + target + " found: " + found, found, target);
             i++;
         }
     }
     
     @Test
     public void removeEmojiVariationSelectorTest() {
-        assertEquals(Helper.removeEmojiVariationSelector(null), null);
-        assertEquals(Helper.removeEmojiVariationSelector("❤︎"), "❤");
-        assertEquals(Helper.removeEmojiVariationSelector("❤︎︎"), "❤");
-        assertEquals(Helper.removeEmojiVariationSelector("\uFE0F❤︎︎"), "❤");
-        assertEquals(Helper.removeEmojiVariationSelector("\uFE0F\uFE0E"), "");
-        assertEquals(Helper.removeEmojiVariationSelector("❤️ 	❤ 	❤︎"), "❤ 	❤ 	❤");
+        assertNull(Helper.removeEmojiVariationSelector(null));
+        assertEquals("❤", Helper.removeEmojiVariationSelector("❤︎"));
+        assertEquals("❤", Helper.removeEmojiVariationSelector("❤︎︎"));
+        assertEquals("❤", Helper.removeEmojiVariationSelector("️❤︎︎"));
+        assertEquals("", Helper.removeEmojiVariationSelector("️︎"));
+        assertEquals("❤ 	❤ 	❤", Helper.removeEmojiVariationSelector("❤️ 	❤ 	❤︎"));
     }
     
     @Test
@@ -279,7 +275,7 @@ public class HelperTest {
         Helper.parseChannelHelper = new Helper.ParseChannelHelper() {
             @Override
             public Collection<String> getFavorites() {
-                return Arrays.asList(new String[]{"#favChan1", "#favChan2", "#favChan3"});
+                return Arrays.asList("#favChan1", "#favChan2", "#favChan3");
             }
 
             @Override

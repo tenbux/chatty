@@ -32,8 +32,9 @@ public abstract class AdvancedSetting<T> {
         loadSettingsIfNecessary();
     }
     
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private void loadSettingsIfNecessary() {
-        Collection<Object> settingsList = settings.getList(settingName);
+        List<Object> settingsList = settings.getList(settingName);
         synchronized (LOCK) {
             if (cache.isEmpty()) {
                 for (Object item : settingsList) {

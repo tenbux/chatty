@@ -18,10 +18,10 @@ public interface FrankerFaceZListener {
      * 
      * @param emotes 
      */
-    public void channelEmoticonsReceived(EmoticonUpdate emotes);
-    public void usericonsReceived(List<Usericon> icons);
-    public void botNamesReceived(String stream, Set<String> botNames);
-    public void wsInfo(String info);
-    public void authorizeUser(String code);
-    public void wsUserInfo(String info);
+    void channelEmoticonsReceived(EmoticonUpdate emotes);
+    void usericonsReceived(List<Usericon> icons);
+    void botNamesReceived(String stream, Set<String> botNames);
+    void wsInfo(String info);
+    void authorizeUser(String code);
+    void wsUserInfo(String info);
 }

@@ -1,13 +1,11 @@
 
 package chatty.util.chatlog;
 
+import chatty.util.DateTime;
+
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Logger;
 
@@ -138,18 +136,22 @@ public class LogWriter implements Runnable {
     private String getDatePrefix() {
         Calendar date = Calendar.getInstance();
 
-        if (splitLogs.equals("daily")) {
-            date.set(Calendar.HOUR_OF_DAY, 0);
-            date.clear(Calendar.MINUTE);
-            date.clear(Calendar.SECOND);
-            date.clear(Calendar.MILLISECOND);
-            return new SimpleDateFormat("yyyy-MM-dd").format(date.getTime());
-        } else if (splitLogs.equals("weekly")) {
-            date.set(Calendar.DAY_OF_WEEK, date.getFirstDayOfWeek());
-            return new SimpleDateFormat("yyyy-MM-dd").format(date.getTime());
-        } else if (splitLogs.equals("monthly")) {
-            date.set(Calendar.DAY_OF_MONTH, 1);
-            return new SimpleDateFormat("yyyy-MM-dd").format(date.getTime());
+        switch (splitLogs) {
+            case "daily" -> {
+                date.set(Calendar.HOUR_OF_DAY, 0);
+                date.clear(Calendar.MINUTE);
+                date.clear(Calendar.SECOND);
+                date.clear(Calendar.MILLISECOND);
+                return new SimpleDateFormat("yyyy-MM-dd").format(date.getTime());
+            }
+            case "weekly" -> {
+                date.set(Calendar.DAY_OF_WEEK, date.getFirstDayOfWeek());
+                return new SimpleDateFormat("yyyy-MM-dd").format(date.getTime());
+            }
+            case "monthly" -> {
+                date.set(Calendar.DAY_OF_MONTH, 1);
+                return new SimpleDateFormat("yyyy-MM-dd").format(date.getTime());
+            }
         }
 
         return "";
@@ -164,23 +166,13 @@ public class LogWriter implements Runnable {
     private boolean shouldSplitLog(Calendar fileDate) {
         Calendar date = Calendar.getInstance();
 
-        if (splitLogs.equals("daily")) {
-            if (fileDate.get(Calendar.DAY_OF_YEAR) != date.get(Calendar.DAY_OF_YEAR)) {
-                return true;
-            }
-        }
-        else if (splitLogs.equals("weekly")) {
-            if (fileDate.get(Calendar.WEEK_OF_YEAR) != date.get(Calendar.WEEK_OF_YEAR)) {
-                return true;
-            }
-        }
-        else if (splitLogs.equals("monthly")) {
-            if (fileDate.get(Calendar.MONTH) != date.get(Calendar.MONTH)) {
-                return true;
-            }
-        }
-        
-        return false;
+        return switch (splitLogs) {
+            case "daily" -> fileDate.get(Calendar.DAY_OF_YEAR) != date.get(Calendar.DAY_OF_YEAR);
+            case "weekly" -> fileDate.get(Calendar.WEEK_OF_YEAR) != date.get(Calendar.WEEK_OF_YEAR);
+            case "monthly" -> fileDate.get(Calendar.MONTH) != date.get(Calendar.MONTH);
+            default -> false;
+        };
+
     }
 
     private LogFile addFile(String channel, String datePrefix) {
@@ -228,8 +220,7 @@ public class LogWriter implements Runnable {
     }
 
     private String getDateTime() {
-        Calendar cal = Calendar.getInstance();
-        return dateTimeFormat.format(cal.getTime());
+        return DateTime.currentTime(dateTimeFormat);
     }
 
     private void stats(int size) {
@@ -256,15 +247,8 @@ public class LogWriter implements Runnable {
         lastStatsTime = System.currentTimeMillis();
     }
 
-    public static class LogItem {
+    public record LogItem(String channel, String message) {
 
-        public final String channel;
-        public final String message;
-
-        public LogItem(String channel, String message) {
-            this.channel = channel;
-            this.message = message;
-        }
     }
 
 }

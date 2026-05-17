@@ -2,38 +2,22 @@
 package chatty.gui.components.routing;
 
 import chatty.User;
-import chatty.gui.Channels;
-import chatty.gui.DockStyledTabContainer;
-import chatty.gui.MainGui;
-import chatty.gui.StyleManager;
-import chatty.gui.StyleServer;
+import chatty.gui.*;
 import chatty.gui.components.Channel;
-import chatty.gui.components.menus.ContextMenuAdapter;
-import chatty.gui.components.menus.ContextMenuHelper;
-import chatty.gui.components.menus.ContextMenuListener;
-import chatty.gui.components.menus.RoutingTargetContextMenu;
-import chatty.gui.components.menus.TabContextMenu;
+import chatty.gui.components.menus.*;
 import chatty.gui.components.textpane.ChannelTextPane;
 import chatty.gui.components.textpane.InfoMessage;
 import chatty.gui.components.textpane.Message;
 import chatty.util.Timestamp;
 import chatty.util.colors.ColorCorrector;
-import java.awt.CardLayout;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.event.ActionEvent;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Consumer;
-import javax.swing.JComponent;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
+
+import javax.swing.*;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * The tab/text pane that messages get added to.
@@ -139,8 +123,8 @@ public class RoutingTarget {
         base = new JPanel(cardLayout);
         
         String contentId = "'"+id+"'";
-        this.content = new DockStyledTabContainer<JComponent>(base, contentId, channels.getDock()) {
-            
+        this.content = new DockStyledTabContainer<>(base, contentId, channels.getDock()) {
+
             @Override
             public JPopupMenu getContextMenu() {
                 return new TabContextMenu(contextMenuListener,
@@ -148,7 +132,7 @@ public class RoutingTarget {
                         Channels.getCloseTabs(channels, this, main.getSettings().getBoolean("closeTabsSameType")),
                         main.getSettings());
             }
-            
+
         };
         this.content.setId(contentId);
         this.content.setTitle(title);

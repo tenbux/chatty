@@ -5,17 +5,13 @@ import chatty.gui.GuiUtil;
 import chatty.gui.components.LinkLabelListener;
 import chatty.lang.Language;
 import chatty.util.SyntaxHighlighter;
-import java.awt.BorderLayout;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.Objects;
-import java.util.function.Supplier;
-import javax.swing.JButton;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
+
+import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import java.awt.*;
+import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  *
@@ -62,22 +58,18 @@ public class EditorStringSetting extends JPanel implements StringSetting {
         editButton = new JButton(Language.getString("dialog.button.edit"));
         GuiUtil.smallButtonInsets(editButton);
         editButton.setToolTipText(title);
-        editButton.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (editor == null) {
-                    editor = editorCreator.get();
-                    setLinkLabelListener(linkLabelListener);
-                    setShowInfoByDefault(showInfoByDefault);
-                    if (editor instanceof Editor) {
-                        ((Editor) editor).setSyntaxHighlighter(syntaxHighlighter);
-                    }
+        editButton.addActionListener(e -> {
+            if (editor == null) {
+                editor = editorCreator.get();
+                setLinkLabelListener(linkLabelListener);
+                setShowInfoByDefault(showInfoByDefault);
+                if (editor instanceof Editor) {
+                    ((Editor) editor).setSyntaxHighlighter(syntaxHighlighter);
                 }
-                String result = editor.showDialog(title, value, info);
-                if (result != null) {
-                    setSettingValue(result);
-                }
+            }
+            String result = editor.showDialog(title, value, info);
+            if (result != null) {
+                setSettingValue(result);
             }
         });
         

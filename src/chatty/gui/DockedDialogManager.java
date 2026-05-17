@@ -9,11 +9,10 @@ import chatty.util.dnd.DockContent;
 import chatty.util.dnd.DockContentContainer;
 import chatty.util.dnd.DockManager;
 import chatty.util.settings.Settings;
+
+import javax.swing.*;
 import java.util.HashMap;
 import java.util.Map;
-import javax.swing.JComponent;
-import javax.swing.JPopupMenu;
-import javax.swing.SwingUtilities;
 
 /**
  * Info Panels that can be docked are registered in this, so settings can be
@@ -36,7 +35,7 @@ public class DockedDialogManager {
         this.settings = settings;
         settings.addSettingChangeListener((setting, type, value) -> {
             if (setting.equals("tabsMessage")) {
-                SwingUtilities.invokeLater(() -> loadTabSettings());
+                SwingUtilities.invokeLater(this::loadTabSettings);
             }
         });
     }
@@ -46,26 +45,26 @@ public class DockedDialogManager {
     }
     
     public DockContent createContent(JComponent component, String title, String id) {
-        DockContent content = new DockContentContainer(title, component, channels.getDock()) {
-            
+        DockContent content = new DockContentContainer<>(title, component, channels.getDock()) {
+
             @Override
             public JPopupMenu getContextMenu() {
                 return getPopupMenu(this);
             }
-            
+
         };
         content.setId(id);
         return content;
     }
     
     public DockStyledTabContainer<JComponent> createStyledContent(JComponent component, String title, String id) {
-        DockStyledTabContainer<JComponent> content = new DockStyledTabContainer<JComponent>(component, title, getDockManager()) {
-            
+        DockStyledTabContainer<JComponent> content = new DockStyledTabContainer<>(component, title, getDockManager()) {
+
             @Override
             public JPopupMenu getContextMenu() {
                 return getPopupMenu(this);
             }
-            
+
         };
         content.setId(id);
         return content;
@@ -122,8 +121,7 @@ public class DockedDialogManager {
     
     public void activeContentChanged() {
         DockContent content = channels.getActiveContent();
-        if (content.getComponent() instanceof Channel) {
-            Channel chan = (Channel) content.getComponent();
+        if (content.getComponent() instanceof Channel chan) {
             if (chan.getType() == Channel.Type.CHANNEL) {
                 String channel = chan.getChannel();
                 Debugging.println("changechan", "Set channel to %s", channel);
@@ -149,9 +147,7 @@ public class DockedDialogManager {
              * Admin Panel. This still doesn't help in every case, but at least
              * in some.
              */
-            BatchAction.queue(channelChangedUnique, 300, true, true, () -> {
-                Debugging.println("changechan", "Prevented channel change");
-            });
+            BatchAction.queue(channelChangedUnique, 300, true, true, () -> Debugging.println("changechan", "Prevented channel change"));
         }
     }
     

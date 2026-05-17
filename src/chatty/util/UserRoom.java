@@ -7,25 +7,12 @@ import java.util.Objects;
 
 /**
  * A room, with an optional user attached.
- * 
+ *
+ * @param room The room, required.
+ * @param user May be null, only if user already exists.
  * @author tduva
  */
-public class UserRoom implements Comparable<UserRoom> {
-
-    /**
-     * The room, required.
-     */
-    public final Room room;
-    
-    /**
-     * May be null, only if user already exists.
-     */
-    public final User user;
-
-    public UserRoom(Room room, User user) {
-        this.room = room;
-        this.user = user;
-    }
+public record UserRoom(Room room, User user) implements Comparable<UserRoom> {
 
     @Override
     public int compareTo(UserRoom o) {
@@ -37,5 +24,5 @@ public class UserRoom implements Comparable<UserRoom> {
         }
         return -o.room.getChannel().compareTo(this.room.getChannel());
     }
-        
+
 }

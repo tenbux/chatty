@@ -4,38 +4,22 @@ package chatty.gui.components;
 import chatty.Helper;
 import chatty.gui.GuiUtil;
 import chatty.gui.components.settings.EditorStringSetting;
-import chatty.util.Debugging;
 import chatty.util.Livestreamer;
 import chatty.util.Livestreamer.LivestreamerListener;
-import static chatty.util.Livestreamer.filterToken;
 import chatty.util.StringUtil;
 import chatty.util.settings.Settings;
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Window;
+
+import javax.swing.*;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Document;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTabbedPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Document;
+
+import static chatty.util.Livestreamer.filterToken;
 
 /**
  * Contains settings and information about Livestreamer and the tabs that are
@@ -162,26 +146,22 @@ public class LivestreamerDialog extends JDialog {
         
         tabs.add("Main", infoPanel);
         
-        ActionListener buttonAction = new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (e.getSource() == closeButton) {
-                    close();
-                } else if (e.getSource() == openStreamButton
-                        || e.getSource() == streamInput) {
-                    String stream = streamInput.getText();
-                    if (!stream.isEmpty()) {
-                        open(stream, null);
-                    }
-                } else if (e.getSource() == enableContextMenu) {
-                    // Only save setting, loading is done from the MainGui
-                    settings.setBoolean("livestreamer", enableContextMenu.isSelected());
-                } else if (e.getSource() == openDialog) {
-                    settings.setBoolean("livestreamerShowDialog", openDialog.isSelected());
-                } else if (e.getSource() == autoCloseDialog) {
-                    settings.setBoolean("livestreamerAutoCloseDialog", autoCloseDialog.isSelected());
+        ActionListener buttonAction = e -> {
+            if (e.getSource() == closeButton) {
+                close();
+            } else if (e.getSource() == openStreamButton
+                    || e.getSource() == streamInput) {
+                String stream = streamInput.getText();
+                if (!stream.isEmpty()) {
+                    open(stream, null);
                 }
+            } else if (e.getSource() == enableContextMenu) {
+                // Only save setting, loading is done from the MainGui
+                settings.setBoolean("livestreamer", enableContextMenu.isSelected());
+            } else if (e.getSource() == openDialog) {
+                settings.setBoolean("livestreamerShowDialog", openDialog.isSelected());
+            } else if (e.getSource() == autoCloseDialog) {
+                settings.setBoolean("livestreamerAutoCloseDialog", autoCloseDialog.isSelected());
             }
         };
         
@@ -192,13 +172,7 @@ public class LivestreamerDialog extends JDialog {
         openDialog.addActionListener(buttonAction);
         autoCloseDialog.addActionListener(buttonAction);
         
-        commandDef.setChangeListener(new ChangeListener() {
-
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                settings.setString("livestreamerCommand", commandDef.getSettingValue());
-            }
-        });
+        commandDef.setChangeListener(e -> settings.setString("livestreamerCommand", commandDef.getSettingValue()));
         
         pack();
         
@@ -258,8 +232,7 @@ public class LivestreamerDialog extends JDialog {
      */
     private Item getExisitingItem(String url, String quality) {
         for (Object o : tabs.getComponents()) {
-            if (o instanceof Item) {
-                Item item = (Item)o;
+            if (o instanceof Item item) {
                 if (!item.running && item.quality != null
                         && item.quality.equals(quality) && item.url.equals(url)) {
                     return item;
@@ -477,36 +450,22 @@ public class LivestreamerDialog extends JDialog {
 
         @Override
         public void processStarted(final String command) {
-            SwingUtilities.invokeLater(new Runnable() {
-
-                @Override
-                public void run() {
-                    addMessage("COMMAND: "+command);
-                    setRunning(true);
-                }
+            SwingUtilities.invokeLater(() -> {
+                addMessage("COMMAND: "+command);
+                setRunning(true);
             });
         }
 
         @Override
         public void message(final String message) {
-            SwingUtilities.invokeLater(new Runnable() {
-
-                @Override
-                public void run() {
-                    addMessage(message.replace("[cli][info] ", ""));
-                }
-            });
+            SwingUtilities.invokeLater(() -> addMessage(message.replace("[cli][info] ", "")));
         }
 
         @Override
         public void processFinished(final int exitValue) {
-            SwingUtilities.invokeLater(new Runnable() {
-
-                @Override
-                public void run() {
-                    addMessage("PROCESS ENDED.");
-                    setRunning(false);
-                }
+            SwingUtilities.invokeLater(() -> {
+                addMessage("PROCESS ENDED.");
+                setRunning(false);
             });
         }
         

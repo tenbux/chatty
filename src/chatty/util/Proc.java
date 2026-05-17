@@ -104,13 +104,13 @@ public class Proc extends Thread {
         return String.format("[%s] %s (%s)", label, command, DateTime.agoSingleVerbose(created));
     }
 
-    public static interface ProcListener {
+    public interface ProcListener {
 
-        public void processStarted(Proc process);
+        void processStarted(Proc process);
 
-        public void message(Proc process, String message);
+        void message(Proc process, String message);
 
-        public void processFinished(Proc process, int exitValue);
+        void processFinished(Proc process, int exitValue);
     }
 
     /**
@@ -162,7 +162,7 @@ public class Proc extends Thread {
                 result.add(m.group(2).replace("\\\"", "\""));
             }
         }
-        return result.toArray(new String[result.size()]);
+        return result.toArray(new String[0]);
     }
     
     public static void main(String[] args) {

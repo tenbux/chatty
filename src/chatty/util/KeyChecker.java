@@ -1,8 +1,7 @@
 
 package chatty.util;
 
-import java.awt.KeyEventDispatcher;
-import java.awt.KeyboardFocusManager;
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,23 +48,19 @@ public class KeyChecker {
     private static void init() {
         if (watching == null) {
             watching = new HashMap<>();
-            KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new KeyEventDispatcher() {
-
-                @Override
-                public boolean dispatchKeyEvent(KeyEvent e) {
-                    synchronized (LOCK) {
-                        if (watching.containsKey(e.getKeyCode())) {
-                            switch (e.getID()) {
-                                case KeyEvent.KEY_PRESSED:
-                                    watching.put(e.getKeyCode(), true);
-                                    break;
-                                case KeyEvent.KEY_RELEASED:
-                                    watching.put(e.getKeyCode(), false);
-                                    break;
-                            }
+            KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(e -> {
+                synchronized (LOCK) {
+                    if (watching.containsKey(e.getKeyCode())) {
+                        switch (e.getID()) {
+                            case KeyEvent.KEY_PRESSED:
+                                watching.put(e.getKeyCode(), true);
+                                break;
+                            case KeyEvent.KEY_RELEASED:
+                                watching.put(e.getKeyCode(), false);
+                                break;
                         }
-                        return false;
                     }
+                    return false;
                 }
             });
         }

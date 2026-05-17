@@ -1,17 +1,15 @@
 
 package chatty.gui.components;
 
-import chatty.util.colors.HtmlColors;
 import chatty.gui.laf.LaF;
-import java.awt.Color;
-import java.awt.Font;
+import chatty.util.colors.HtmlColors;
+
+import javax.swing.*;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.text.html.HTMLDocument;
+import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
-import javax.swing.JEditorPane;
-import javax.swing.JLabel;
-import javax.swing.event.HyperlinkEvent;
-import javax.swing.event.HyperlinkListener;
-import javax.swing.text.html.HTMLDocument;
 
 /**
  * A label that is implemented using a JEditorPane to allow for clickable links.
@@ -46,13 +44,9 @@ public class LinkLabel extends JEditorPane {
 //        putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.FALSE);
         
         // Link Listener
-        this.addHyperlinkListener(new HyperlinkListener() {
-
-            @Override
-            public void hyperlinkUpdate(HyperlinkEvent e) {
-                if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                    linkClicked(e.getDescription());
-                }
+        this.addHyperlinkListener(e -> {
+            if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                linkClicked(e.getDescription());
             }
         });
         setStyle();

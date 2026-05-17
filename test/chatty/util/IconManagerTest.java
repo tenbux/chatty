@@ -3,15 +3,13 @@ package chatty.util;
 
 import chatty.util.IconManager.CustomIcon;
 import chatty.util.IconManager.CustomIcon.Type;
-import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import javax.swing.ImageIcon;
 import org.junit.Test;
-import static org.junit.Assert.*;
+
+import javax.swing.*;
+import java.awt.image.BufferedImage;
+import java.util.*;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -27,11 +25,11 @@ public class IconManagerTest {
         CustomIcon img128x64 = createTestImageIcon(Type.ALL, 128, 64);
         CustomIcon img18tray = createTestImageIcon(Type.TRAY, 18, 18);
         
-        List<CustomIcon> test1 = Arrays.asList(new CustomIcon[]{img18, img64, img128});
-        List<CustomIcon> test2 = Arrays.asList(new CustomIcon[]{img18});
-        List<CustomIcon> test3 = Arrays.asList(new CustomIcon[]{img64, img18});
-        List<CustomIcon> test4 = Arrays.asList(new CustomIcon[]{img128x64, img64, img18});
-        List<CustomIcon> test5 = Arrays.asList(new CustomIcon[]{img18tray});
+        List<CustomIcon> test1 = Arrays.asList(img18, img64, img128);
+        List<CustomIcon> test2 = List.of(img18);
+        List<CustomIcon> test3 = Arrays.asList(img64, img18);
+        List<CustomIcon> test4 = Arrays.asList(img128x64, img64, img18);
+        List<CustomIcon> test5 = List.of(img18tray);
         System.out.println(IconManager.getBestFit(test1, Type.ALL, 32, 32).getIconHeight());
         testBestFit(test1, Type.ALL, 32, 32, img64);
         testBestFit(test1, Type.ALL, 16, 16, img18);
@@ -54,12 +52,12 @@ public class IconManagerTest {
     }
     
     private void testBestFit(Collection<CustomIcon> imgs, Type type, int width, int height, CustomIcon expected) {
-        assertEquals(expected != null ? expected.icon : null, IconManager.getBestFit(imgs, type, width, height));
+        assertEquals(expected != null ? expected.icon() : null, IconManager.getBestFit(imgs, type, width, height));
         List<CustomIcon> shuffled = new ArrayList<>(imgs);
         Collections.shuffle(shuffled);
-        assertEquals(expected != null ? expected.icon : null, IconManager.getBestFit(imgs, type, width, height));
+        assertEquals(expected != null ? expected.icon() : null, IconManager.getBestFit(imgs, type, width, height));
         Collections.shuffle(shuffled);
-        assertEquals(expected != null ? expected.icon : null, IconManager.getBestFit(imgs, type, width, height));
+        assertEquals(expected != null ? expected.icon() : null, IconManager.getBestFit(imgs, type, width, height));
     }
     
     private static CustomIcon createTestImageIcon(Type type, int width, int height) {

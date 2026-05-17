@@ -1,17 +1,8 @@
 
 package chatty.util.dnd;
 
-import java.awt.AlphaComposite;
-import java.awt.Color;
-import java.awt.Composite;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.Rectangle;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
-import javax.swing.TransferHandler;
+import javax.swing.*;
+import java.awt.*;
 
 /**
  * Each base has it's own overlay, which handles updating various things when a
@@ -81,7 +72,7 @@ public class DockOverlay extends JPanel {
                     base.requestStopDrag(dtf);
 //                    System.out.println("IMPORT!" + dtf.content);
                     try {
-                        dropInfo.dropComponent.drop(new DockTransferInfo(dropInfo, dtf));
+                        dropInfo.dropComponent().drop(new DockTransferInfo(dropInfo, dtf));
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
@@ -126,8 +117,8 @@ public class DockOverlay extends JPanel {
         
         // Update some stuff based on the info received
         if (dropInfoUpdated != null) {
-            Rectangle rect = dropInfoUpdated.rect;
-            paintRect = SwingUtilities.convertRectangle(dropInfoUpdated.dropComponent.getComponent(), rect, DockOverlay.this);
+            Rectangle rect = dropInfoUpdated.rect();
+            paintRect = SwingUtilities.convertRectangle(dropInfoUpdated.dropComponent().getComponent(), rect, DockOverlay.this);
         }
         else {
             paintRect = null;
@@ -172,13 +163,13 @@ public class DockOverlay extends JPanel {
 //            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 //            g.drawString(title, x, y + (int)(height / 1.5));
             
-            if (importInfo.tf.image != null && getMousePosition() != null) {
-                Point p = importInfo.info.getDropLocation().getDropPoint();
+            if (importInfo.tf().image() != null && getMousePosition() != null) {
+                Point p = importInfo.info().getDropLocation().getDropPoint();
 //                int imgWidth = importInfo.tf.image.getWidth(null);
-                int imgHeight = importInfo.tf.image.getHeight(null);
+                int imgHeight = importInfo.tf().image().getHeight(null);
                 Composite origComp = g2d.getComposite();
                 g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
-                g.drawImage(importInfo.tf.image, p.x + 14, p.y - imgHeight / 3, this);
+                g.drawImage(importInfo.tf().image(), p.x + 14, p.y - imgHeight / 3, this);
                 g2d.setComposite(origComp);
             }
         }

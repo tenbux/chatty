@@ -6,13 +6,11 @@ import chatty.gui.components.LinkLabel;
 import chatty.lang.Language;
 import chatty.util.StringUtil;
 import chatty.util.colors.HtmlColors;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.JCheckBox;
-import javax.swing.JPanel;
 
 /**
  *
@@ -35,19 +33,13 @@ public class MsgColorSettings extends SettingsPanel {
         GridBagConstraints gbc;
         
         JCheckBox msgColorsEnabled = d.addSimpleBooleanSetting("msgColorsEnabled");
-        gbc = d.makeGbc(0, 0, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 0, 1, 1);
         gbc.anchor = GridBagConstraints.WEST;
         main.add(msgColorsEnabled, gbc);
         
         data = new ItemColorEditor<>(d,
-                (id,
-                        foreground, foregroundEnabled,
-                        background, backgroundEnabled) -> {
-                    return new MsgColorItem(id,
-                            foreground, foregroundEnabled,
-                            background, backgroundEnabled);
-                }, true, new LinkLabel(HighlightSettings.getMatchingHelp("msgColors"), d.getLinkLabelListener()));
-        data.setTableEditorEditAllHandler(new TableEditor.TableEditorEditAllHandler<MsgColorItem>() {
+                MsgColorItem::new, true, new LinkLabel(HighlightSettings.getMatchingHelp("msgColors"), d.getLinkLabelListener()));
+        data.setTableEditorEditAllHandler(new TableEditor.TableEditorEditAllHandler<>() {
             @Override
             public String toString(List<MsgColorItem> data) {
                 StringBuilder b = new StringBuilder();
@@ -96,7 +88,7 @@ public class MsgColorSettings extends SettingsPanel {
             }
         });
         data.setPreferredSize(new Dimension(1,150));
-        gbc = d.makeGbc(0, 1, 1, 1);
+        gbc = SettingsDialog.makeGbc(0, 1, 1, 1);
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weightx = 1;
         gbc.weighty = 1;
@@ -105,16 +97,16 @@ public class MsgColorSettings extends SettingsPanel {
         SettingsUtil.addSubsettings(msgColorsEnabled, data);
         
         LinkLabel info = new LinkLabel(INFO_TEXT, d.getSettingsHelpLinkLabelListener());
-        main.add(info, d.makeGbc(0, 2, 1, 1));
+        main.add(info, SettingsDialog.makeGbc(0, 2, 1, 1));
         
         other.add(d.addSimpleBooleanSetting("msgColorsPrefer"),
-                d.makeGbc(0, 0, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 0, 1, 1, GridBagConstraints.WEST));
         
         other.add(d.addSimpleBooleanSetting("msgColorsLinks"),
-                d.makeGbc(0, 1, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 1, 1, 1, GridBagConstraints.WEST));
         
         other.add(d.addSimpleBooleanSetting("actionColored"),
-                d.makeGbc(0, 2, 1, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 2, 1, 1, GridBagConstraints.WEST));
         
     }
     

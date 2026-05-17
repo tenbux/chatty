@@ -10,19 +10,15 @@ import chatty.util.UrlRequest.FullResult;
 import chatty.util.api.Emoticon;
 import chatty.util.api.EmoticonUpdate;
 import chatty.util.settings.Settings;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * FFZ Websocket Manager. Handling the more top-level stuff of parsing actual
@@ -36,15 +32,13 @@ public class WebsocketManager {
     
     private final static String VERSION = "chatty_"+Chatty.VERSION;
     
-    private final Set<String> rooms = Collections.synchronizedSet(new HashSet<String>());
+    private final Set<String> rooms = Collections.synchronizedSet(new HashSet<>());
     private final Map<String, Set<Integer>> prevEmotesets = new HashMap<>();
-    private volatile FFZWS c;
+    private FFZWS c;
     
     private final JSONParser parser = new JSONParser();
     private final FrankerFaceZListener listener;
-    
-    private long serverTimeOffset;
-    
+
     private final Settings settings;
     
     /**
@@ -118,7 +112,7 @@ public class WebsocketManager {
         return c != null && c.isOpen();
     }
     
-    public void connect() {
+    public synchronized void connect() {
         if (!settings.getBoolean("ffz") || !settings.getBoolean("ffzEvent")
                 || c != null) {
             return;
@@ -179,7 +173,7 @@ public class WebsocketManager {
         }
     }
     
-    public void disconnect() {
+    public synchronized void disconnect() {
         if (c != null) {
             c.disconnect();
         }
@@ -258,8 +252,8 @@ public class WebsocketManager {
             JSONArray data = (JSONArray) parser.parse(json);
             String clientId = (String)data.get(0);
             long serverTime = ((Number)data.get(1)).longValue();
-            serverTimeOffset = System.currentTimeMillis() - serverTime;
-            LOGGER.info("[FFZ-WS] Server Time Offset: "+serverTimeOffset);
+            long serverTimeOffset = System.currentTimeMillis() - serverTime;
+            LOGGER.info("[FFZ-WS] Server Time Offset: "+ serverTimeOffset);
         } catch (Exception ex) {
             LOGGER.warning(String.format("[FFZ-WS] Error parsing 'hello' response: %s [%s]", ex, json));
         }
@@ -369,9 +363,8 @@ public class WebsocketManager {
         UrlRequest r = new UrlRequest("https://api.frankerfacez.com/v1/set/"+emoteset);
         FullResult result = r.sync();
         if (result.getResult() != null) {
-            Set<Emoticon> emotes = FrankerFaceZParsing.parseSetEmotes(
+            return FrankerFaceZParsing.parseSetEmotes(
                     result.getResult(), Emoticon.SubType.EVENT, room);
-            return emotes;
         }
         return new HashSet<>();
     }

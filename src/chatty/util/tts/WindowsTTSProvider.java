@@ -28,16 +28,16 @@ public class WindowsTTSProvider implements TTSProvider {
     @Override
     public void speak(SpeakRequest request) throws Exception {
         // Convert parameters for SSML
-        int ssmlRate = (int) request.rate;
-        String ssmlPitch = String.format("%+d%%", request.pitch);
-        String voice = request.voice;
+        int ssmlRate = request.rate();
+        String ssmlPitch = String.format("%+d%%", request.pitch());
+        String voice = request.voice();
 
         if (voice == null || voice.isEmpty()) {
             voice = "default";
         }
         
         // Escape text for XML
-        String escapedText = escapeXml(request.text);
+        String escapedText = escapeXml(request.text());
 
         // Create SSML string
         String ssml = String.format(
@@ -48,7 +48,7 @@ public class WindowsTTSProvider implements TTSProvider {
                 + "</prosody>"
                 + "</voice>"
                 + "</speak>",
-                voice, ssmlRate, request.volume, ssmlPitch, escapedText);
+                voice, ssmlRate, request.volume(), ssmlPitch, escapedText);
         
         Debugging.println("tts", ssml);
 

@@ -4,7 +4,8 @@ package chatty.gui.colors;
 import chatty.Helper;
 import chatty.gui.Highlighter;
 import chatty.util.colors.HtmlColors;
-import java.awt.Color;
+
+import java.awt.*;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -80,7 +81,7 @@ public class UsercolorItem extends ColorItem {
             type = TYPE_NAME;
         } else if (id.equals("$all")) {
             type = TYPE_ALL;
-        } else if (id.toLowerCase().equals("$defaultcolor")) {
+        } else if (id.equalsIgnoreCase("$defaultcolor")) {
             type = TYPE_DEFAULT_COLOR;
         } else {
             type = TYPE_UNDEFINED;

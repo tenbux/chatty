@@ -7,14 +7,14 @@ import chatty.util.Sound;
 import chatty.util.irc.MsgTags;
 import chatty.util.settings.Setting;
 import chatty.util.settings.Settings;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Logger;
-import java.util.List;
+
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.concurrent.ExecutionException;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Logger;
 
 /**
  * Handles Native OS Text-to-Speech.
@@ -97,17 +97,16 @@ public class TextToSpeech {
     
     /**
      * Output the given text with the current settings.
-     * 
+     *
      * @param text
-     * @return 
      */
-    public boolean speak(String text) {
-        return speak(text,
-                     (String) settings.mapGet("ttsVoice", ttsProvider.getProviderId()),
-                     settings.getInt("ttsVolume"),
-                     settings.getInt("ttsRate"),
-                     settings.getInt("ttsPitch"),
-                     SpeakRequest.Mode.QUEUE);
+    public void speak(String text) {
+        speak(text,
+                (String) settings.mapGet("ttsVoice", ttsProvider.getProviderId()),
+                settings.getInt("ttsVolume"),
+                settings.getInt("ttsRate"),
+                settings.getInt("ttsPitch"),
+                SpeakRequest.Mode.QUEUE);
     }
     
     /**
@@ -132,15 +131,15 @@ public class TextToSpeech {
     }
     
     public boolean hasProvider() {
-        return !ttsProvider.getProviderId().isEmpty();
+        return ttsProvider.getProviderId().isEmpty();
     }
     
     public boolean checkProvider() {
-        if (!hasProvider()) {
+        if (hasProvider()) {
             playSound(SOUND_ERROR);
-            return false;
+            return true;
         }
-        return true;
+        return false;
     }
     
     /**
@@ -157,16 +156,14 @@ public class TextToSpeech {
     public boolean speak(String text, String voice, int volume, int rate, int pitch, SpeakRequest.Mode mode) {
         if (settings == null
                 || !settings.getBoolean("ttsEnabled")
-                || !hasProvider()
+                || hasProvider()
                 || text == null
                 || text.trim().isEmpty()) {
             return false;
         }
         
         if (thread == null) {
-            thread = new Thread(() -> {
-                readQueue();
-            });
+            thread = new Thread(this::readQueue);
             thread.setDaemon(true);
             thread.start();
         }
@@ -209,8 +206,6 @@ public class TextToSpeech {
 //            LOGGER.info("TTS spoke: " + textToSpeak.substring(0, Math.min(50, textToSpeak.length())) + "...");
         } catch (Exception e) {
             LOGGER.warning("TTS error: " + Debugging.getStacktrace(e));
-        } finally {
-            
         }
     }
     
@@ -258,7 +253,7 @@ public class TextToSpeech {
                         //--------------
                         lock.lock();
                         try {
-                            if (message.mode != SpeakRequest.Mode.STOP_SAY_DIRECTLY
+                            if (message.mode() != SpeakRequest.Mode.STOP_SAY_DIRECTLY
                                     && !queue.isEmpty()) {
                                 addDone(queue.removeFirst());
                                 Debugging.println("tts", "Moved to done queue");
@@ -291,12 +286,13 @@ public class TextToSpeech {
                 }
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
+                break;
             }
         }
     }
     
     public void start() {
-        if (!checkProvider()) {
+        if (checkProvider()) {
             return;
         }
         if (!settings.getBoolean("ttsEnabled")) {
@@ -318,7 +314,7 @@ public class TextToSpeech {
     }
     
     public void pause() {
-        if (!checkProvider()) {
+        if (checkProvider()) {
             return;
         }
         pauseInternal();
@@ -339,7 +335,7 @@ public class TextToSpeech {
     }
     
     public void enable() {
-        if (!checkProvider()) {
+        if (checkProvider()) {
             return;
         }
         playSound(SOUND_ON);
@@ -348,7 +344,7 @@ public class TextToSpeech {
     }
 
     public void disable() {
-        if (!checkProvider()) {
+        if (checkProvider()) {
             return;
         }
         playSound(SOUND_OFF);
@@ -358,7 +354,7 @@ public class TextToSpeech {
     }
     
     public void clearQueue() {
-        if (!checkProvider()) {
+        if (checkProvider()) {
             return;
         }
         playSound(SOUND_CLEARQUEUE);
@@ -378,7 +374,7 @@ public class TextToSpeech {
     }
     
     public void markQueueAsDone() {
-        if (!checkProvider()) {
+        if (checkProvider()) {
             return;
         }
         lock.lock();
@@ -415,7 +411,7 @@ public class TextToSpeech {
     }
     
     public void skipForwards() {
-        if (!checkProvider()) {
+        if (checkProvider()) {
             return;
         }
         if (getSize(queue) < (isPaused.get() ? 1 : 2)) {
@@ -430,7 +426,7 @@ public class TextToSpeech {
     }
     
     public void skipBackwards() {
-        if (!checkProvider()) {
+        if (checkProvider()) {
             return;
         }
         if (getSize(doneQueue) < 1) {
@@ -496,7 +492,7 @@ public class TextToSpeech {
 //                getCurrentVoice());
 //    }
     
-    public static void main(String[] args) throws ExecutionException {
+    public static void main(String[] args) {
         Settings settings = new Settings("", null);
         settings.addBoolean("ttsEnabled", true);
         settings.addLong("ttsMaxLength", 2000);

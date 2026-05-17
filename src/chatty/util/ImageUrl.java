@@ -69,15 +69,14 @@ public abstract class ImageUrl {
                 }
                 template = temp;
             }
-            ImageUrl result = cache(new TemplateImageUrl(template, urls.keySet()));
-//            System.out.println(result+" "+System.identityHashCode(result)+" "+urls);
+            //            System.out.println(result+" "+System.identityHashCode(result)+" "+urls);
 //            System.out.println(cacheSize());
-            return result;
+            return cache(new TemplateImageUrl(template, urls.keySet()));
         }
         
     }
     
-    public static final void main(String[] args) {
+    public static void main(String[] args) {
         ImageUrl url = ImageUrl.builder("382581").addUrl(1, "https://cdn.frankerfacez.com/emote/382581/1").addUrl(2, "https://cdn.frankerfacez.com/emote/382581/2").build();
         ImageUrl url2 = ImageUrl.builder("382582").addUrl(1, "https://cdn.frankerfacez.com/emote/382582/1").addUrl(2, "https://cdn.frankerfacez.com/emote/382582/2").build();
         System.out.println(url == url2);

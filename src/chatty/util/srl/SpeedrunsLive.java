@@ -2,13 +2,14 @@
 package chatty.util.srl;
 
 import chatty.util.UrlRequest;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Requests race data from the SRL API and sends the parsed result to the
@@ -30,9 +31,7 @@ public class SpeedrunsLive {
     public void requestRaces() {
         if (!requestPending) {
             requestPending = true;
-            new SpeedrunsLiveRequest().async((result, responseCode) -> {
-                result(result, responseCode);
-            });
+            new SpeedrunsLiveRequest().async(this::result);
         }
     }
     
@@ -157,7 +156,7 @@ public class SpeedrunsLive {
         }
     }
     
-    private class SpeedrunsLiveRequest extends UrlRequest {
+    private static class SpeedrunsLiveRequest extends UrlRequest {
 
         private final static String URL = "https://api.speedrunslive.com/races";
         //private final static String URL = "http://127.0.0.1/twitch/races";
@@ -173,7 +172,7 @@ public class SpeedrunsLive {
     }
     
     
-    public static final void main(String[] args) {
+    public static void main(String[] args) {
         SpeedrunsLive srl = new SpeedrunsLive();
         srl.requestRaces();
     }

@@ -7,31 +7,17 @@ import chatty.lang.Language;
 import chatty.util.StringUtil;
 import chatty.util.api.ChannelStatus.StreamTag;
 import chatty.util.api.TwitchApi;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Rectangle;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import static java.awt.event.InputEvent.ALT_DOWN_MASK;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
+import java.util.List;
+
+import static java.awt.event.InputEvent.ALT_DOWN_MASK;
 
 /**
  * Select a game by manually entering it, searching for it on Twitch or
@@ -222,24 +208,16 @@ public class SelectTagsDialog extends JDialog {
         addToFavoritesButton.addActionListener(actionListener);
         removeFromFavoritesButton.addActionListener(actionListener);
         
-        GuiUtil.addChangeListener(input.getDocument(), e -> {
-            updateList();
-        });
+        GuiUtil.addChangeListener(input.getDocument(), e -> updateList());
         
         // Button for currentPanel
         GuiUtil.smallButtonInsets(addButton);
-        addButton.addActionListener(e -> {
-            addSelected();
-        });
+        addButton.addActionListener(e -> addSelected());
         addButton.setIcon(ADD_ICON);
         addCurrent.setIcon(ADD_ICON);
         
-        input.addActionListener(e -> {
-            addFromInput();
-        });
-        addCurrent.addActionListener(e -> {
-            addFromInput();
-        });
+        input.addActionListener(e -> addFromInput());
+        addCurrent.addActionListener(e -> addFromInput());
         
         updateFavoriteButtons();
         
@@ -309,7 +287,7 @@ public class SelectTagsDialog extends JDialog {
             gbc.anchor = GridBagConstraints.CENTER;
             JLabel label = new JLabel(tag.toString().isEmpty() ? "empty" : tag.toString());
             label.setEnabled(tag.isValid());
-            if (hasSpecialCharacters(tag.getName())) {
+            if (hasSpecialCharacters(tag.name())) {
                 label.setIcon(WARNING_ICON);
                 label.setHorizontalTextPosition(SwingConstants.LEFT);
                 label.setToolTipText("Tag may not work since it appears to contain special characters.");
@@ -366,9 +344,7 @@ public class SelectTagsDialog extends JDialog {
     private JButton createMoveButton(StreamTag tag) {
         JButton button = new JButton();
         configureButton(button, SORT_ICON);
-        button.addActionListener(e -> {
-            showMoveMenu(tag, button);
-        });
+        button.addActionListener(e -> showMoveMenu(tag, button));
         button.setToolTipText(Language.getString("admin.tags.button.move.tip", tag.toString()));
         button.setEnabled(tag.isValid());
         return button;
@@ -429,7 +405,7 @@ public class SelectTagsDialog extends JDialog {
         dialog.setResizable(false);
         // Input
         JTextField input = new JTextField(25);
-        input.setText(tag.getName());
+        input.setText(tag.name());
         GuiUtil.installLengthLimitDocumentFilter(input, MAX_TAG_LENGTH, false);
         dialog.add(input, GuiUtil.makeGbc(0, 0, 2, 1));
         dialog.add(GuiUtil.createInputLenghtLabel(input, 25), GuiUtil.makeGbc(2, 0, 1, 1));
@@ -486,7 +462,7 @@ public class SelectTagsDialog extends JDialog {
     private StreamTag getCurrent(String name) {
         name = StringUtil.toLowerCase(name);
         for (StreamTag t : current) {
-            if (StringUtil.toLowerCase(t.getName()).equals(name)) {
+            if (StringUtil.toLowerCase(t.name()).equals(name)) {
                 return t;
             }
         }
@@ -545,11 +521,7 @@ public class SelectTagsDialog extends JDialog {
      * @param c 
      */
     private void setSelected(StreamTag c) {
-        if (c == null) {
-            selected = null;
-        } else {
-            selected = c;
-        }
+        selected = c;
         updateAddButton();
     }
     
@@ -582,7 +554,7 @@ public class SelectTagsDialog extends JDialog {
                 listData.addElement(c);
                 addedCount++;
             }
-            if (c.getName().toLowerCase().equals(search)) {
+            if (c.name().toLowerCase().equals(search)) {
                 inputTag = c;
             }
         }
@@ -659,7 +631,7 @@ public class SelectTagsDialog extends JDialog {
         Map<String, String> favs = new HashMap<>();
         for (StreamTag c : favorites) {
             // Previously id=name, now with freeform tags just the name=""
-            favs.put(c.getName(), "");
+            favs.put(c.name(), "");
         }
         main.setStreamTagFavorites(favs);
     }

@@ -17,9 +17,7 @@ public class WhisperManager {
     public static final int DISPLAY_IN_CHAT = 0;
     public static final int DISPLAY_ONE_WINDOW = 1;
     public static final int DISPLAY_PER_USER = 2;
-    
-    private final String AUTO_RESPOND_MESSAGE = "[Auto-Message] This user has "
-            + "not allowed to receive whispers from you.";
+
     private final Set<String> autoRespondedTo = new HashSet<>();
     
     //-----------
@@ -155,10 +153,7 @@ public class WhisperManager {
         if (user.hasCategory("blockwhisper")) {
             return false;
         }
-        if (settings.getBoolean("whisperWhitelist") && !user.hasCategory("whisper")) {
-            return false;
-        }
-        return true;
+        return !settings.getBoolean("whisperWhitelist") || user.hasCategory("whisper");
     }
 
     private boolean isUserIgnored(User user) {
@@ -177,7 +172,8 @@ public class WhisperManager {
         }
         if (isUserIgnored(user) && settings.getBoolean("whisperAutoRespond")) {
             if (!autoRespondedTo.contains(user.getName())) {
-                String msg = AUTO_RESPOND_MESSAGE;
+                String msg = "[Auto-Message] This user has "
+                        + "not allowed to receive whispers from you.";
                 String customMsg = settings.getString("whisperAutoRespondCustom");
                 if (!StringUtil.isNullOrEmpty(customMsg)) {
                     msg = String.format("%s (%s)", msg, customMsg);
@@ -204,10 +200,10 @@ public class WhisperManager {
 
     public interface WhisperListener {
 
-        public void whisperReceived(User user, String message, String emotes);
+        void whisperReceived(User user, String message, String emotes);
 
-        public void whisperSent(User to, String message);
+        void whisperSent(User to, String message);
 
-        public void info(String message);
+        void info(String message);
     }  
 }
