@@ -1,6 +1,7 @@
 
 package chatty.util.api.eventsub;
 
+import chatty.util.Debugging;
 import chatty.util.JSONUtil;
 import java.util.Map;
 import java.util.Objects;
@@ -38,7 +39,7 @@ public class Message {
         this.timestamp = timestamp;
     }
     
-    public static Message fromJson(String json, Map<String, String> userIds) {
+    public static Message fromJson(String json) {
         try {
             JSONParser parser = new JSONParser();
             JSONObject root = (JSONObject)parser.parse(json);
@@ -52,10 +53,11 @@ public class Message {
             String subType = JSONUtil.getString(metadata, "subscription_type");
             String subVersion = JSONUtil.getString(metadata, "subscription_version");
             
-            Payload data = Payload.decode(payload, userIds, type, subType);
+            Payload data = Payload.decode(payload, type, subType);
             return new Message(type, id, subType, subVersion, timestamp, data);
         } catch (Exception ex) {
-            LOGGER.warning("Error parsing EventSub message: "+ex);
+            LOGGER.warning(String.format("[EventSub] Error parsing message: %s %s",
+                                         Debugging.getStacktraceFilteredFlat(ex), json));
             return null;
         }
     }

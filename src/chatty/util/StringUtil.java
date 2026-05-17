@@ -821,6 +821,22 @@ public class StringUtil {
         return input;
     }
     
+    public static String replaceLast(String string, String toReplace, String replacement) {
+        int pos = string.lastIndexOf(toReplace);
+        if (pos > -1) {
+            return string.substring(0, pos)
+                    + replacement
+                    + string.substring(pos + toReplace.length());
+        }
+        return string;
+    }
+    
+    public static String codePointSubstring(String input, int start, int end) {
+        int correctedStart = input.offsetByCodePoints(0, start);
+        int correctedEnd = input.offsetByCodePoints(correctedStart, end - start);
+        return input.substring(correctedStart, correctedEnd);
+    }
+    
     public static final void main(String[] args) {
         System.out.println(shortenTo("abcdefghi", 8, 5));
         System.out.println(concats("a", null, "b", null));

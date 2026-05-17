@@ -4,10 +4,10 @@ package chatty.gui.components.textpane;
 import chatty.Chatty;
 import chatty.gui.components.ChannelEditBox;
 import chatty.Helper;
+import chatty.Room;
 import chatty.SettingsManager;
 import chatty.gui.MouseClickedListener;
 import chatty.gui.UserListener;
-import chatty.util.api.pubsub.LowTrustUserMessageData;
 import chatty.util.colors.HtmlColors;
 import chatty.gui.LinkListener;
 import chatty.gui.StyleServer;
@@ -16,6 +16,7 @@ import chatty.gui.MainGui;
 import chatty.User;
 import chatty.gui.Highlighter.Match;
 import chatty.gui.components.Channel;
+import chatty.gui.components.SimplePopup;
 import chatty.util.api.usericons.Usericon;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.userinfo.UserNotes;
@@ -37,7 +38,6 @@ import chatty.util.api.Emoticons;
 import chatty.util.api.Emoticons.TagEmotes;
 import chatty.util.api.CachedImage;
 import chatty.util.api.CachedImage.ImageType;
-import chatty.util.api.pubsub.ModeratorActionData;
 import chatty.util.colors.ColorCorrectionNew;
 import chatty.util.colors.ColorCorrector;
 import chatty.util.irc.MsgTags;
@@ -76,7 +76,11 @@ import chatty.util.api.usericons.UsericonFactory;
 import chatty.util.api.usericons.UsericonManager;
 import java.util.function.Function;
 import chatty.gui.transparency.TransparencyComponent;
+import chatty.util.api.eventsub.payloads.ModActionPayload;
+import chatty.util.api.eventsub.payloads.SuspiciousMessagePayload;
+import chatty.util.irc.IrcBadges;
 import chatty.util.irc.MsgTags.Link;
+import chatty.util.irc.UserTagsUtil;
 import java.util.function.Consumer;
 
 
@@ -148,9 +152,11 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         
         IS_BAN_MESSAGE, BAN_MESSAGE_COUNT, TIMESTAMP, USER, IS_USER_MESSAGE,
         URL_DELETED, DELETED_LINE, EMOTICON, IS_APPENDED_INFO, INFO_TEXT, BANS,
-        BAN_MESSAGE, ID, ID_AUTOMOD, AUTOMOD_ACTION, USERICON, IMAGE_ID, ANIMATED,
-        APPENDED_INFO_UPDATED, MENTION, USERICON_INFO, GENERAL_LINK,
-        REPEAT_MESSAGE_COUNT, LOW_TRUST_INFO, IS_RESTRICTED,
+        BAN_MESSAGE, MSG_ID, ID_AUTOMOD, AUTOMOD_ACTION, USERICON, IMAGE_ID, ANIMATED,
+        APPENDED_INFO_UPDATED, MENTION, USERICON_INFO, USERICON_SHARED_INFO, GENERAL_LINK,
+        REPEAT_MESSAGE_COUNT, LOW_TRUST_INFO, IS_RESTRICTED, POWER_UP_INFO,
+        
+        LINE_ID, LOCAL_USER,
         
         HIGHLIGHT_WORD, HIGHLIGHT_LINE, HIGHLIGHT_SOURCE, EVEN, PARAGRAPH_SPACING,
         CUSTOM_BACKGROUND, CUSTOM_BACKGROUND_ORIG, CUSTOM_FOREGROUND,
@@ -179,7 +185,9 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         
         ACTION_COLORED, LINKS_CUSTOM_COLOR, BUFFER_SIZE, AUTO_SCROLL_TIME,
         EMOTICON_MAX_HEIGHT, EMOTICON_SCALE_FACTOR, USERICON_SCALE_FACTOR,
+        EMOTICON_SCALE_FACTOR_GIGANTIFIED,
         CUSTOM_USERICON_SCALE_MODE, BOT_BADGE_ENABLED, CHANNEL_LOGO_SIZE,
+        SHOW_CHANNEL_NAME,
         FILTER_COMBINING_CHARACTERS, PAUSE_ON_MOUSEMOVE,
         PAUSE_ON_MOUSEMOVE_CTRL_REQUIRED,
         EMOTICONS_ANIMATED,
@@ -187,7 +195,8 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         
         DISPLAY_NAMES_MODE,
         MENTIONS, MENTIONS_INFO, MENTION_MESSAGES,
-        HIGHLIGHT_HOVERED_USER, HIGHLIGHT_MATCHES_ALL, USERCOLOR_BACKGROUND
+        HIGHLIGHT_HOVERED_USER, HIGHLIGHT_MATCHES_ALL, USERCOLOR_BACKGROUND,
+        SHARED_BADGES, SHARED_LOGO_SIZE, SHARED_LOGO_ALWAYS
     }
     
     private static final long DELETED_MESSAGES_KEEP = 0;
@@ -201,6 +210,8 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
     
     private final MyEditorKit kit;
     
+    private final boolean insertTop;
+    
     private final javax.swing.Timer updateTimer;
     
     public enum Type {
@@ -209,17 +220,9 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
     
     public final Type type;
     
-    private final Map<User, LowTrustUserMessageData> pendingLowTrustInfoCache = new HashMap<>();
+    private final Map<User, SuspiciousMessagePayload> pendingLowTrustInfoCache = new HashMap<>();
 
-    public ChannelTextPane(MainGui main, StyleServer styleServer) {
-        this(main, styleServer, Type.REGULAR, true);
-    }
-    
-    public ChannelTextPane(MainGui main, StyleServer styleServer, Type type) {
-        this(main, styleServer, type, true);
-    }
-
-    public ChannelTextPane(MainGui main, StyleServer styleServer, Type type, boolean startAtBottom) {
+    public ChannelTextPane(MainGui main, StyleServer styleServer, Type type, boolean startAtBottom, boolean insertTop) {
         getAccessibleContext().setAccessibleName("Chat Output");
         getAccessibleContext().setAccessibleDescription("");
         lineSelection = new LineSelection(main.getUserListener());
@@ -234,10 +237,12 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         linkController.addUserListener(lineSelection);
         linkController.setUserHoverListener(user -> setHoveredUser(user));
         linkController.setLinkListener(this);
+        linkController.setMainGui(main);
         scrollManager = new ScrollManager();
         this.addMouseListener(scrollManager);
         this.addMouseMotionListener(scrollManager);
-        kit = new MyEditorKit(startAtBottom);
+        kit = new MyEditorKit(startAtBottom && !insertTop);
+        this.insertTop = insertTop;
         setEditorKit(kit);
         this.setDocument(new MyDocument());
         doc = (DefaultStyledDocument)getStyledDocument();
@@ -550,6 +555,8 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         closeCompactMode();
         printTimestamp(style);
         printChannelIcon(null, message.localUser);
+        // Also outputs badges
+        printSharedInfo(message.user, message.localUser, message.tags);
         
         MutableAttributeSet userStyle;
         if (message.user.getName().isEmpty()) {
@@ -655,7 +662,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             print(" "+hypeChatText+" ", styles.hypeChat(style, message.tags));
             print(" ", style);
         }
-        printUser(user, message.localUser, action, message.whisper, message.id, background, message.tags);
+        printUser(user, message.localUser, action, message.whisper, message.msgId, background, message.tags);
         
         // Change style for text if /me and no highlight (if enabled)
         if (!highlighted && color == null && action && styles.isEnabled(Setting.ACTION_COLORED)) {
@@ -667,14 +674,22 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
                 message.replaceMatches, message.replacement, message.tags);
         
         if (message.highlighted) {
-            setLineHighlighted(doc.getLength(), message.highlightSource);
+            setLineHighlighted(getCurrentParagraphOffset(), message.highlightSource);
         }
-        setParagraphAttribute(doc.getLength(), Attribute.IGNORE_SOURCE, message.ignoreSource);
-        setParagraphAttribute(doc.getLength(), Attribute.ROUTING_SOURCE, message.routingSource);
+        setParagraphAttribute(getCurrentParagraphOffset(), Attribute.IGNORE_SOURCE, message.ignoreSource);
+        setParagraphAttribute(getCurrentParagraphOffset(), Attribute.ROUTING_SOURCE, message.routingSource);
         if (message.backgroundColor != null || message.color != null) {
-            setCustomColor(doc.getLength(), message.backgroundColor, message.colorSource);
+            setCustomColor(getCurrentParagraphOffset(), message.backgroundColor, message.colorSource);
         }
+        setParagraphAttribute(getCurrentParagraphOffset(), Attribute.LINE_ID, message.lineId);
         finishLine();
+        
+        String powerUpInfo = message.tags.getPowerUpInfo();
+        if (powerUpInfo != null) {
+            changeInfo(getLastLine(doc), (attributes) -> {
+                attributes.addAttribute(Attribute.POWER_UP_INFO, powerUpInfo);
+            });
+        }
         
         int repeatMsg = RepeatMsgHelper.getRepeatMsg(message.tags);
         if (repeatMsg > 1) {
@@ -683,7 +698,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             });
         }
         
-        LowTrustUserMessageData pendingLowTrust = pendingLowTrustInfoCache.remove(user);
+        SuspiciousMessagePayload pendingLowTrust = pendingLowTrustInfoCache.remove(user);
         if (pendingLowTrust != null) {
             printLowTrustInfo(user, pendingLowTrust);
         }
@@ -725,6 +740,10 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             }
         } else if (message instanceof UserNotice) {
             printUsernotice((UserNotice) message, style);
+            // For Points messages
+            if (message.objectId != null) {
+                setObjectId(getCurrentParagraphOffset(), message.objectId);
+            }
         } else if (message instanceof AutoModMessage) {
             printAutoModMessage((AutoModMessage)message, style);
         } else {
@@ -735,10 +754,10 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             
             String command = message.makeCommand();
             if (command != null) {
-                setLineCommand(doc.getLength(), command);
+                setLineCommand(getCurrentParagraphOffset(), command);
             }
             if (message.objectId != null) {
-                setObjectId(doc.getLength(), message.objectId);
+                setObjectId(getCurrentParagraphOffset(), message.objectId);
             }
             
             replayModLogInfo();
@@ -748,12 +767,16 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         //-----------------
         if (!message.isHidden()) {
             if (message.highlighted) {
-                setLineHighlighted(doc.getLength(), message.highlightSource);
+                setLineHighlighted(getCurrentParagraphOffset(), message.highlightSource);
             }
-            setParagraphAttribute(doc.getLength(), Attribute.IGNORE_SOURCE, message.ignoreSource);
-            setParagraphAttribute(doc.getLength(), Attribute.ROUTING_SOURCE, message.routingSource);
+            setParagraphAttribute(getCurrentParagraphOffset(), Attribute.IGNORE_SOURCE, message.ignoreSource);
+            setParagraphAttribute(getCurrentParagraphOffset(), Attribute.ROUTING_SOURCE, message.routingSource);
             if (message.bgColor != null || message.color != null) {
-                setCustomColor(doc.getLength(), message.bgColor, message.colorSource);
+                setCustomColor(getCurrentParagraphOffset(), message.bgColor, message.colorSource);
+            }
+            setParagraphAttribute(getCurrentParagraphOffset(), Attribute.LINE_ID, message.lineId);
+            if (message.localUser != null) {
+                setParagraphAttribute(getCurrentParagraphOffset(), Attribute.LOCAL_USER, message.localUser);
             }
         }
     }
@@ -832,18 +855,25 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
                 }
             }
         }
-        // Don't output while in loop
-        for (ModLogInfo info : print) {
-            main.printAbandonedModLogInfo(info);
+        /**
+         * Only regular channels (not Custom Tabs) should send it back to the
+         * start, to prevent duplicating the message when it can't find a
+         * message to append the info. For modlog messages that are usually
+         * hidden, depending on setting (e.g. timeout) it would output the
+         * message as a regular info message another time for each Custom Tab.
+         */
+        if (channel != null && Helper.isRegularChannelStrict(channel.getChannel())) {
+            // Don't output while in loop
+            for (ModLogInfo info : print) {
+                main.printAbandonedModLogInfo(info);
+            }
         }
     }
     
     private boolean printModLogInfo(ModLogInfo info) {
-        Element root = doc.getDefaultRootElement();
         String command = info.makeCommand().trim();
         Debugging.println("modlog", "ModLog Command: %s", command);
-        for (int i=root.getElementCount()-1;i>=0;i--) {
-            Element line = root.getElement(i);
+        for (Element line : iterateLines()) {
             if (info.isBanCommand()) {
                 /**
                  * Bans (and related) can be newly applied to otherwise old
@@ -884,11 +914,12 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
                  */
                 Element userElement = getUserElementFromLine(line, false);
                 if (userElement != null) {
-                    if (userElement.getAttributes().containsAttribute(Attribute.ID_AUTOMOD, info.data.msgId)) {
+                    String msgId = ((ModActionPayload.AutoModMessageUpdate) info.data.action).getMsgId();
+                    if (userElement.getAttributes().containsAttribute(Attribute.ID_AUTOMOD, msgId)) {
                         changeInfo(line, attr -> {
                             String existing = (String) attr.getAttribute(Attribute.AUTOMOD_ACTION);
                             String action = "approved";
-                            if (info.data.type == ModeratorActionData.Type.AUTOMOD_DENIED) {
+                            if (info.data.type == ModActionPayload.Type.AUTOMOD_DENIED) {
                                 action = "denied";
                             }
                             /**
@@ -1037,6 +1068,12 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             // Make text based on current attributes
             //---------------------------------------
             String text = "";
+            
+            String powerUpInfo = (String)attributes.getAttribute(Attribute.POWER_UP_INFO);
+            if (!StringUtil.isNullOrEmpty(powerUpInfo)) {
+                text = StringUtil.append(text, " ", "["+powerUpInfo+"]");
+            }
+            
             Integer repeatMsgCount = (Integer)attributes.getAttribute(Attribute.REPEAT_MESSAGE_COUNT);
             if (repeatMsgCount != null && repeatMsgCount > 1) {
                 text += String.format("(x%d)", repeatMsgCount);
@@ -1068,7 +1105,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
                 text = StringUtil.append(text, " ", "(@"+StringUtil.join(actionBy, ", ")+")");
             }
 
-            LowTrustUserMessageData lowTrustData = (LowTrustUserMessageData) attributes.getAttribute(Attribute.LOW_TRUST_INFO);
+            SuspiciousMessagePayload lowTrustData = (SuspiciousMessagePayload) attributes.getAttribute(Attribute.LOW_TRUST_INFO);
             if (lowTrustData != null) {
                 text = StringUtil.append(text, " ", "(" + lowTrustData.makeInfo() + ")");
             }
@@ -1120,7 +1157,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         return "";
     }
 
-    public void printLowTrustInfo(User user, LowTrustUserMessageData data) {        
+    public void printLowTrustInfo(User user, SuspiciousMessagePayload data) {        
         for (Userline userLine : getUserLines(user)) {
             String elementId = getIdFromElement(userLine.userElement);
             if (elementId != null && elementId.equals(data.aboutMessageId)) {
@@ -1142,9 +1179,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
      * @return 
      */
     private Element findPreviousBanMessage(User user, String newMessage) {
-        Element root = doc.getDefaultRootElement();
-        for (int i=root.getElementCount()-1;i>=0;i--) {
-            Element line = root.getElement(i);
+        for (Element line : iterateLines()) {
             if (isLineFromUserAndId(line, user, null, true)) {
                 // Stop immediately a message from that user is found first
                 return null;
@@ -1287,12 +1322,10 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
     
     private java.util.List<Userline> getUserLines(User searchUser) {
         java.util.List<Userline> result = new ArrayList<>();
-        Element root = doc.getDefaultRootElement();
-        for (int i = root.getElementCount() - 1; i >= 0; i--) {
-            Element line = root.getElement(i);
+        for (Element line : iterateLines()) {
             Element userElement = getUserElementFromLine(line, false);
             if (userElement != null) {
-                User foundUser = (User)userElement.getAttributes().getAttribute(Attribute.USER);
+                User foundUser = (User) userElement.getAttributes().getAttribute(Attribute.USER);
                 if (searchUser == null || foundUser == searchUser) {
                     result.add(new Userline(searchUser, userElement, line));
                 }
@@ -1320,9 +1353,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
     }
     
     private Element findLineBy(Function<Element, Boolean> test) {
-        Element root = doc.getDefaultRootElement();
-        for (int i=root.getElementCount()-1;i>=0;i--) {
-            Element line = root.getElement(i);
+        for (Element line : iterateLines()) {
             if (test.apply(line)) {
                 return line;
             }
@@ -1331,21 +1362,45 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
     }
     
     private void applyToLines(Consumer<Element> worker) {
-        Element root = doc.getDefaultRootElement();
-        for (int i=root.getElementCount()-1;i>=0;i--) {
-            worker.accept(root.getElement(i));
+        for (Element line : iterateLines()) {
+            worker.accept(line);
         }
+    }
+    
+    /**
+     * Iterate over all lines, newest first.
+     * 
+     * @return A read-only Iterable
+     */
+    private Iterable<Element> iterateLines() {
+        Element root = doc.getDefaultRootElement();
+        return new AbstractList<Element>() {
+            
+            @Override
+            public Element get(int index) {
+                if (insertTop) {
+                    return root.getElement(index);
+                }
+                return root.getElement(size() - 1 - index);
+            }
+
+            @Override
+            public int size() {
+                return root.getElementCount();
+            }
+
+        };
     }
     
     private boolean isMessageLine(Element line) {
         return getUserFromLine(line) != null;
     }
     
-    private User getUserFromLine(Element line) {
+    public static User getUserFromLine(Element line) {
         return getUserFromElement(getUserElementFromLine(line, true), true);
     }
     
-    private Element getUserElementFromLine(Element line, boolean onlyUserMessage) {
+    public static Element getUserElementFromLine(Element line, boolean onlyUserMessage) {
         for (int i = 0; i < line.getElementCount(); i++) {
             Element element = line.getElement(i);
             User elementUser = getUserFromElement(element, onlyUserMessage);
@@ -1384,7 +1439,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
      * @param element
      * @return The User object or null if none was found
      */
-    private User getUserFromElement(Element element, boolean onlyUserMessage) {
+    private static User getUserFromElement(Element element, boolean onlyUserMessage) {
         if (element != null) {
             User elementUser = (User)element.getAttributes().getAttribute(Attribute.USER);
             Boolean isMessage = (Boolean)element.getAttributes().getAttribute(Attribute.IS_USER_MESSAGE);
@@ -1403,7 +1458,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
      */
     public static String getIdFromElement(Element element) {
         if (element != null) {
-            return (String)element.getAttributes().getAttribute(Attribute.ID);
+            return (String)element.getAttributes().getAttribute(Attribute.MSG_ID);
         }
         return null;
     }
@@ -1527,6 +1582,10 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             attr.addAttribute(attribute, source);
             doc.setParagraphAttributes(offset, 1, attr, false);
         }
+    }
+    
+    private int getCurrentParagraphOffset() {
+        return insertTop ? 0 : doc.getLength();
     }
     
     private void setCustomColor(int offset, Color backgroundColor, Object source) {
@@ -1966,7 +2025,6 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             return false;
         }
         clearSearchResult();
-        int count = doc.getDefaultRootElement().getElementCount();
         if (lastSearchPos != null && !doesLineExist(lastSearchPos)) {
             //System.out.println(lastSearchPos+"doesnt exist");
             lastSearchPos = null;
@@ -1975,16 +2033,12 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         boolean startSearch = lastSearchPos == null;
         searchText = StringUtil.toLowerCase(searchText);
         // Loop through all lines
-        for (int i=count-1;i>=0;i--) {
-            //System.out.println(i+"/"+count);
-            Element element = doc.getDefaultRootElement().getElement(i);
+        for (Element element : iterateLines()) {
             if (element == lastSearchPos) {
                 // If this lines contained the last result, start searching
                 // on next line
                 startSearch = true;
-                if (i == 0) {
-                    lastSearchPos = null;
-                }
+                lastSearchPos = null;
                 continue;
             }
             if (!startSearch) {
@@ -2154,7 +2208,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         userStyle.addAttribute(Attribute.IS_USER_MESSAGE, true);
         userStyle.addAttribute(Attribute.USER, user);
         if (id != null) {
-            userStyle.addAttribute(Attribute.ID, id);
+            userStyle.addAttribute(Attribute.MSG_ID, id);
         }
 
         int length = userName.length();
@@ -2201,12 +2255,45 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
      * @param user 
      */
     private void printUserIcons(User user, User localUser, MsgTags tags) {
+        if (tags != null && tags.isSharedChatActive()) {
+            // This outputs regular channel logo for Custom Tabs (shared one is done in printSharedInfo())
+            printChannelIcon(user, localUser);
+            printSharedInfo(user, localUser, tags);
+        }
+        else {
+            // CHANNEL_LOGO_SIZE is used on Custom Tabs, Stream Chat and Highlights/Ignore Dialogs
+            printUsericonsDefault(user, localUser, tags, styles.getInt(Setting.CHANNEL_LOGO_SIZE));
+        }
+    }
+    
+    private void printUsericonsDefault(User user, User localUser, MsgTags tags, int channelLogoSize) {
+        if (user == null) {
+            return;
+        }
         boolean botBadgeEnabled = styles.isEnabled(Setting.BOT_BADGE_ENABLED);
-        java.util.List<Usericon> badges = user.getBadges(botBadgeEnabled, tags, localUser, styles.getInt(Setting.CHANNEL_LOGO_SIZE));
+        
+        java.util.List<Usericon> badges = user.getBadges(botBadgeEnabled, tags, localUser, channelLogoSize);
+        
+        /**
+         * If present, channel logo should always be first badge. Shared chat
+         * channel logo is output in printSharedInfo(), so it shouldn't
+         * interfere here.
+         */
+        if (badges == null
+                || channelLogoSize < 1
+                || badges.isEmpty()
+                || badges.iterator().next().type != Usericon.Type.CHANNEL_LOGO) {
+            boolean channelIconFailed = channelLogoSize > 0;
+            printChannelName(user, channelIconFailed);
+        }
+        
         if (badges != null) {
             for (Usericon badge : badges) {
                 if (!badge.removeBadge) {
-                    print(badge.getSymbol(), styles.makeIconStyle(badge, user));
+                    print(badge.getSymbol(), styles.makeIconStyle(badge, user, null, false));
+                    if (badge.type == Usericon.Type.CHANNEL_LOGO && channelLogoSize > 0) {
+                        printChannelName(user, false);
+                    }
                 }
             }
         }
@@ -2217,10 +2304,147 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             user = localUser;
         }
         if (user != null && user.getUsericonManager() != null) {
-            Usericon icon = user.getUsericonManager().getChannelIcon(user, styles.getInt(Setting.CHANNEL_LOGO_SIZE));
+            Usericon icon = user.getUsericonManager().getChannelIcon(user.getChannel(), styles.getInt(Setting.CHANNEL_LOGO_SIZE));
             if (icon != null) {
-                print(icon.getSymbol(), styles.makeIconStyle(icon, user));
+                print(icon.getSymbol(), styles.makeIconStyle(icon, user, null, false));
             }
+            boolean channelIconFailed = styles.getInt(Setting.CHANNEL_LOGO_SIZE) > 0 && icon == null;
+            printChannelName(user, channelIconFailed);
+        }
+    }
+    
+    /**
+     * Output the channel name of the given User as a source for Custom Tabs.
+     * The SHOW_CHANNEL_NAME setting is only enabled on Custom Tabs and similar.
+     * 
+     * @param user 
+     */
+    private void printChannelName(User user, boolean forced) {
+        int settingValue = styles.getInt(Setting.SHOW_CHANNEL_NAME);
+        if (user != null && (settingValue > 0 || forced)) {
+            if (forced && settingValue == 0) {
+                settingValue = 30;
+            }
+            print(String.format("[%s] ", StringUtil.shortenTo(user.getChannel(), settingValue)), styles.standard());
+        }
+    }
+    
+    private void printSharedInfo(User user, User localUser, MsgTags tags) {
+        if (tags != null && tags.isSharedChatActive()) {
+            
+            //--------------
+            // Channel Logo
+            //--------------
+            
+            String logoChannel = null;
+            if (tags.isSharedMessage()) {
+                logoChannel = tags.getSourceChannel();
+            }
+            else if (styles.isEnabled(Setting.SHARED_LOGO_ALWAYS)) {
+                logoChannel = user.getChannel();
+            }
+            
+            if (logoChannel != null
+                    && styles.getInt(Setting.SHARED_LOGO_SIZE) > 0) {
+                Usericon icon = user.getUsericonManager().getSourceChannelIcon(logoChannel, tags.getId(), styles.getInt(Setting.SHARED_LOGO_SIZE));
+                if (icon != null) {
+                    print(icon.getSymbol(), styles.makeIconStyle(icon, null, Arrays.asList(new String[]{logoChannel}), false));
+                }
+            }
+            
+        }
+        
+        if (tags != null && tags.isSharedMessage()) {
+            
+            //--------
+            // Badges
+            //--------
+            int settingValue = styles.getInt(Setting.SHARED_BADGES);
+            
+            java.util.List<Usericon> sharedBadges = new ArrayList<>();
+            User sourceUser = null;
+            
+            // Determine badges from other channel first
+            if (settingValue > 0) {
+                // Create new user with the other channel, so sub badges are correct (could cause issues)
+                IrcBadges sourceBadges = IrcBadges.parse(tags.get("source-badges"));
+                // Source channel could be null if channel name could not be resolved (still output "something" though)
+                sourceUser = new User(user.getName(), Room.createRegular(tags.getSourceChannel() != null ? tags.getSourceChannel() : user.getChannel()));
+                sourceUser.setTwitchBadges(sourceBadges);
+                UserTagsUtil.updateUserBadgeInfo(sourceUser, tags, true);
+                java.util.List<Usericon> badges = user.getUsericonManager().getBadges(sourceBadges, sourceUser, localUser, false, tags, 0);
+                if (badges != null) {
+                    for (Usericon badge : badges) {
+                        boolean selectBadges = settingValue == 1 || settingValue >= 10
+                                ? Arrays.asList(new String[]{"moderator", "lead_moderator", "broadcaster", "staff", "subscriber", "vip"}).contains(badge.badgeType.id)
+                                : true;
+                        if (!badge.removeBadge && selectBadges) {
+                            if (styles.getInt(Setting.SHARED_BADGES) >= 10) {
+                                sharedBadges.add(badge);
+                            }
+                            else {
+                                print(badge.getSymbol(), styles.makeIconStyle(badge, sourceUser, null, false));
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Separator
+            if (settingValue < 10 || tags.getSourceChannel() == null) {
+                print("|", styles.standard());
+            }
+            
+            boolean botBadgeEnabled = styles.isEnabled(Setting.BOT_BADGE_ENABLED);
+            java.util.List<Usericon> badges = user.getBadges(botBadgeEnabled, tags, localUser, 0);
+            if (badges != null) {
+                java.util.List<String> sharedOnlyStream = Arrays.asList(new String[]{tags.getSourceChannel()});
+                java.util.List<String> bothStreams = Arrays.asList(new String[]{user.getChannel(), tags.getSourceChannel()});
+                
+                Set<Usericon> hasSharedDuplicate = new HashSet<>();
+                
+                // Remove shared badges that are also in active channel
+                for (Usericon badge : badges) {
+                    boolean removed = sharedBadges.removeIf(b
+                            -> b.badgeType != null
+                            && b.badgeType.id.equals(badge.badgeType.id));
+                    if (removed) {
+                        hasSharedDuplicate.add(badge);
+                    }
+                }
+                
+                // Add shared-only badges to output
+                Set<Usericon> isSharedOnly = new HashSet<>();
+                for (Usericon sharedBadge : sharedBadges) {
+                    if (Arrays.asList(new String[]{"moderator", "lead_moderator", "broadcaster", "staff", "vip"}).contains(sharedBadge.badgeType.id)
+                            || badges.isEmpty()) {
+                        badges.add(0, sharedBadge);
+                    }
+                    else {
+                        badges.add(1, sharedBadge);
+                    }
+                    isSharedOnly.add(sharedBadge);
+                }
+                
+                // Output badges
+                for (Usericon badge : badges) {
+                    if (!badge.removeBadge) {
+                        java.util.List<String> sharedInfo = null;
+                        User badgeUser = user;
+                        if (isSharedOnly.contains(badge)) {
+                            sharedInfo = sharedOnlyStream;
+                            badgeUser = sourceUser;
+                        }
+                        else if (hasSharedDuplicate.contains(badge)) {
+                            sharedInfo = bothStreams;
+                        }
+                        print(badge.getSymbol(), styles.makeIconStyle(badge, badgeUser, sharedInfo, settingValue == 11 && isSharedOnly.contains(badge)));
+                    }
+                }
+            }
+        }
+        else {
+            printUsericonsDefault(user, localUser, tags, 0);
         }
     }
     
@@ -2260,28 +2484,31 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         if (doc.getDefaultRootElement().getElementCount() == 0) {
             return;
         }
-        Element firstToRemove = doc.getDefaultRootElement().getElement(0);
-        Element lastToRemove = doc.getDefaultRootElement().getElement(amount - 1);
-        // TODO: change to fix for amount, maybe change to removing elements
-        clearImages(firstToRemove);
-        clearImages(lastToRemove);
-        //System.out.println(firstToRemove+" "+lastToRemove);
-        int startOffset = firstToRemove.getStartOffset();
+        int firstElementIndex = insertTop ? doc.getDefaultRootElement().getElementCount() - amount : 0;
+        int lastElementIndex = insertTop ? doc.getDefaultRootElement().getElementCount() - 1 : amount - 1;
+        Element firstToRemove = doc.getDefaultRootElement().getElement(firstElementIndex);
+        Element lastToRemove = doc.getDefaultRootElement().getElement(lastElementIndex);
+        for (int i=firstElementIndex; i<=lastElementIndex; i++) {
+            clearImages(doc.getDefaultRootElement().getElement(i));
+        }
+        int startOffset = firstToRemove.getStartOffset() - 1;
+        if (startOffset < 0) {
+            startOffset = 0;
+        }
         int endOffset = lastToRemove.getEndOffset();
         if (endOffset > doc.getLength()) {
             endOffset = doc.getLength();
         }
-        //System.out.println(startOffset+" "+endOffset+" "+doc.getLength());
         try {
-            doc.remove(startOffset,endOffset);
+            doc.remove(startOffset,endOffset - startOffset);
         } catch (BadLocationException ex) {
-            //Logger.getLogger(ChannelTextPane.class.getName()).log(Level.SEVERE, ex.toString(), ex);
+//            Logger.getLogger(ChannelTextPane.class.getName()).log(Level.SEVERE, ex.toString(), ex);
         }
    }
     
     public void removeOldLines() {
         if (messageTimeout > 0) {
-            Element paragraph = doc.getDefaultRootElement().getElement(0);
+            Element paragraph = doc.getDefaultRootElement().getElement(insertTop ? doc.getDefaultRootElement().getElementCount() - 1 : 0);
             if (doc.getLength() > 1 && getTimeAgo(paragraph) > messageTimeout * 1000) {
 //                removeFirstLines(1);
                 
@@ -2290,7 +2517,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
                 // (visible if alternating backgrounds are showing)
                 if (doc.getDefaultRootElement().getElementCount() > 1) {
                     // Can't use this if it's the last element
-                    doc.removeElement(doc.getDefaultRootElement().getElement(0));
+                    doc.removeElement(paragraph);
                 } else {
                     clearAll();
                 }
@@ -2404,7 +2631,14 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         newlineRequired = true;
         lineSelection.onLineAdded(getLastLine(doc));
         even = !even;
-        setVariableLineAttributes(doc.getLength() - 1, even, true);
+        setVariableLineAttributes(insertTop ? 0 : doc.getLength() - 1, even, true);
+        
+        if (Debugging.isEnabled("insertTop")) {
+            Debugging.println("====");
+            for (Element line : iterateLines()) {
+                Debugging.println(Util.debugContents(line));
+            }
+        }
     }
     
     boolean even = false;
@@ -2479,7 +2713,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         }
         
         if (styles.isEnabled(Setting.EMOTICONS_ENABLED)) {
-            findEmoticons(text, user, ranges, rangesStyle, emotes);
+            findEmoticons(text, user, ranges, rangesStyle, emotes, tags != null && tags.hasGigantifiedEmote());
             if (containsBits) {
                 findBits(main.emoticons.getCheerEmotes(), text, ranges, rangesStyle, user);
             }
@@ -2761,7 +2995,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
     }
     
     private void findEmoticons(String text, User user, Map<Integer, Integer> ranges,
-            Map<Integer, MutableAttributeSet> rangesStyle, TagEmotes tagEmotes) {
+            Map<Integer, MutableAttributeSet> rangesStyle, TagEmotes tagEmotes, boolean gigantified) {
         
         Set<String> accessToSets = user.isLocalUser() ? main.emoticons.getLocalEmotesets() : null;
         findEmoticons(user, main.emoticons.getCustomEmotes(), text, ranges, rangesStyle, accessToSets);
@@ -2780,7 +3014,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         if (tagEmotes != null) {
             // Add emotes from tags
             Map<String, Emoticon> emoticonsById = main.emoticons.getEmoticonsById();
-            addTwitchTagsEmoticons(user, emoticonsById, text, ranges, rangesStyle, tagEmotes);
+            addTwitchTagsEmoticons(user, emoticonsById, text, ranges, rangesStyle, tagEmotes, gigantified);
         }
         
         // Sent messages
@@ -2847,7 +3081,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
                         // combined emote still needs to be created
                         if (emotes.size() > 1) {
                             Emoticon emote = main.emoticons.getCombinedEmote(emotes, styles.emoticonImageType());
-                            styleChanges.put(baseStart, styles.emoticon(emote));
+                            styleChanges.put(baseStart, styles.emoticon(emote, false));
                         }
                         // Always reset when it's not an overlay emote
                         emotes.clear();
@@ -2864,7 +3098,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             // Finish any remaining changes
             if (emotes.size() > 1) {
                 Emoticon emote = main.emoticons.getCombinedEmote(emotes, styles.emoticonImageType());
-                styleChanges.put(baseStart, styles.emoticon(emote));
+                styleChanges.put(baseStart, styles.emoticon(emote, false));
             }
             // Apply changes (except removing entries, which is already done)
             for (Entry<Integer, Integer> entry : changes.entrySet()) {
@@ -2887,11 +3121,12 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
      */
     private void addTwitchTagsEmoticons(User user, Map<String, Emoticon> emoticons, String text,
             Map<Integer, Integer> ranges, Map<Integer, MutableAttributeSet> rangesStyle,
-            TagEmotes emotesDef) {
+            TagEmotes emotesDef, boolean gigantified) {
         if (emotesDef == null) {
             return;
         }
         Map<Integer, Emoticons.TagEmote> def = emotesDef.emotes;
+        int lastIndex = emotesDef.getLargestIndex();
         
         /**
          * Iterate over each character of the message and check if an emote starts
@@ -2908,9 +3143,10 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         int offset = 0;
         for (int i=0;i<text.length();) {
             
-            if (def.containsKey(i-offset)) {
+            int currentIndex = i - offset;
+            if (def.containsKey(currentIndex)) {
                 // An emote starts at the current position, so add it.
-                Emoticons.TagEmote emoteData = def.get(i-offset);
+                Emoticons.TagEmote emoteData = def.get(currentIndex);
                 String id = emoteData.id;
                 int start = i;
                 int end = emoteData.end+offset;
@@ -2930,14 +3166,14 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
                          */
                         String code = text.substring(start, end+1);
                         Emoticon.Builder b = new Emoticon.Builder(
-                                Emoticon.Type.TWITCH, code, null);
+                                Emoticon.Type.TWITCH, code);
                         b.setStringId(id);
                         b.setEmoteset(Emoticon.SET_UNKNOWN);
                         emoticon = b.build();
                         main.emoticons.addTempEmoticon(emoticon);
                     }
                     if (!main.emoticons.isEmoteIgnored(emoticon, IgnoredEmotes.CHAT)) {
-                        addEmoticon(emoticon, start, end, ranges, rangesStyle);
+                        addEmoticon(emoticon, start, end, ranges, rangesStyle, gigantified && currentIndex == lastIndex);
                     }
                 }
             }
@@ -2983,7 +3219,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
                 // For Emoji, check for text style variation selector
                 boolean textEmoji = emoticon.type == Emoticon.Type.EMOJI && m.group().endsWith("\uFE0E");
                 if (!textEmoji) {
-                    addEmoticon(emoticon, start, end, ranges, rangesStyle);
+                    addEmoticon(emoticon, start, end, ranges, rangesStyle, false);
                 }
             }
         }
@@ -3010,7 +3246,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
                         continue;
                     }
                     boolean ignored = main.emoticons.isEmoteIgnored(emote, IgnoredEmotes.CHAT);
-                    if (!ignored && addEmoticon(emote, start, end - bitsLength, ranges, rangesStyle)) {
+                    if (!ignored && addEmoticon(emote, start, end - bitsLength, ranges, rangesStyle, false)) {
                         // Add emote
                         addFormattedText(emote.color, end - bitsLength + 1, end, ranges, rangesStyle);
                     } else {
@@ -3026,10 +3262,10 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
     
     private boolean addEmoticon(Emoticon emoticon, int start, int end,
             Map<Integer, Integer> ranges,
-            Map<Integer, MutableAttributeSet> rangesStyle) {
+            Map<Integer, MutableAttributeSet> rangesStyle, boolean gigantified) {
         if (!inRanges(start, ranges) && !inRanges(end, ranges)) {
             ranges.put(start, end);
-            MutableAttributeSet attr = styles.emoticon(emoticon);
+            MutableAttributeSet attr = styles.emoticon(emoticon, gigantified);
             // Add an extra attribute, making this Style unique
             // (else only one icon will be output if two of the same
             // follow in a row)
@@ -3086,8 +3322,8 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         return true;
     }
     
-    public static Element getLastLine(Document doc) {
-        return doc.getDefaultRootElement().getElement(doc.getDefaultRootElement().getElementCount() - 1);
+    private Element getLastLine(Document doc) {
+        return doc.getDefaultRootElement().getElement(insertTop ? 0 : doc.getDefaultRootElement().getElementCount() - 1);
     }
     
     /**
@@ -3114,11 +3350,16 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
     private void print(final String text, final AttributeSet style) {
         try {
             String newline = "";
+            int insertOffset;
             if (newlineRequired) {
                 lengthSinceNewline = 0;
                 newline = "\n";
                 newlineRequired = false;
                 clearSomeChat();
+                insertOffset = insertTop ? 0 : doc.getLength();
+            }
+            else {
+                insertOffset = insertTop ? doc.getParagraphElement(0).getEndOffset() - 1 : doc.getLength();
             }
             /**
              * Split up long sections by a newline. See MAX_TEXT_LENGTH.
@@ -3134,18 +3375,19 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
                 }
                 String part = text.substring(0, breakTarget);
                 String remaining = text.substring(breakTarget);
-                doc.insertString(doc.getLength(), newline+part, style);
-                doc.setParagraphAttributes(doc.getLength(), 1, styles.paragraph(), true);
+                doc.insertString(insertOffset,
+                                 insertTop ? part+newline : newline+part, style);
+                doc.setParagraphAttributes(getCurrentParagraphOffset(), 1, styles.paragraph(), true);
                 newlineRequired = true;
                 print(remaining, style);
             }
             else {
                 //System.out.println("1:"+doc.getLength());
-                doc.insertString(doc.getLength(), newline+text, style);
+                doc.insertString(insertOffset, insertTop ? text+newline : newline+text, style);
                 //System.out.println("2:"+doc.getLength());
                 //this.getHighlighter().addHighlight(doc.getLength(), 10, null);
                 // TODO: check how this works
-                doc.setParagraphAttributes(doc.getLength(), 1, styles.paragraph(), true);
+                doc.setParagraphAttributes(getCurrentParagraphOffset(), 1, styles.paragraph(), true);
                 scrollDownIfNecessary();
             }
         } catch (BadLocationException e) {
@@ -3182,6 +3424,9 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         scrollManager.setScrollPane(scroll);
         scroll.getVerticalScrollBar().addAdjustmentListener(e -> {
             linkController.updatePopup();
+            if (linePopup != null) {
+                linePopup.update();
+            }
         });
     }
     
@@ -3412,6 +3657,9 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
          */
         private boolean isScrollPositionNearEnd() {
             JScrollBar vbar = scrollpane.getVerticalScrollBar();
+            if (insertTop) {
+                return vbar.getMinimum() + 20 >= vbar.getValue();
+            }
             return vbar.getMaximum() - 20 <= vbar.getValue() + vbar.getVisibleAmount();
         }
 
@@ -3485,7 +3733,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         }
         
         private void scrollDown1() {
-            scrollpane.getVerticalScrollBar().setValue(scrollpane.getVerticalScrollBar().getMaximum());
+            scrollpane.getVerticalScrollBar().setValue(insertTop ? scrollpane.getVerticalScrollBar().getMinimum() : scrollpane.getVerticalScrollBar().getMaximum());
         }
         
         private void scrollDown2() {
@@ -3766,7 +4014,12 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             }
             if (bottomMargin != prevBottomMargin) {
                 Chatty.println("Bottom Margin: "+bottomMargin);
-                setMargin(new Insets(3, 3, bottomMargin, 3));
+                if (insertTop) {
+                    setMargin(new Insets(bottomMargin, 3, 3, 3));
+                }
+                else {
+                    setMargin(new Insets(3, 3, bottomMargin, 3));
+                }
                 repaint();
             }
             
@@ -3847,12 +4100,17 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             addNumericSetting(Setting.AUTO_SCROLL_TIME, 30, 5, 1234);
             addNumericSetting(Setting.EMOTICON_MAX_HEIGHT, 200, 0, 300);
             addNumericSetting(Setting.EMOTICON_SCALE_FACTOR, 100, 1, 200);
+            addNumericSetting(Setting.EMOTICON_SCALE_FACTOR_GIGANTIFIED, 150, 1, 200);
             addNumericSetting(Setting.USERICON_SCALE_FACTOR, 100, 1, 200);
             addNumericSetting(Setting.CUSTOM_USERICON_SCALE_MODE, 0, 0, 10);
             addNumericSetting(Setting.DISPLAY_NAMES_MODE, 0, 0, 10);
             addNumericSetting(Setting.BOTTOM_MARGIN, -1, -1, 100);
             addNumericSetting(Setting.HIGHLIGHT_HOVERED_USER, 0, 0, 4);
             addNumericSetting(Setting.CHANNEL_LOGO_SIZE, -1, -1, 100);
+            addNumericSetting(Setting.SHOW_CHANNEL_NAME, -1, -1, 100);
+            addNumericSetting(Setting.SHARED_BADGES, 0, 0, 100);
+            addNumericSetting(Setting.SHARED_LOGO_SIZE, 22, 0, 60);
+            addSetting(Setting.SHARED_LOGO_ALWAYS, true);
             timestampFormat = styleServer.getTimestampFormat();
             linkController.setPopupEnabled(settings.get(Setting.SHOW_TOOLTIPS));
             linkController.setPopupImagesEnabled(settings.get(Setting.SHOW_TOOLTIP_IMAGES));
@@ -4170,7 +4428,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             }
                     
             if (msgId != null) {
-                userStyle.addAttribute(Attribute.ID, msgId);
+                userStyle.addAttribute(Attribute.MSG_ID, msgId);
             }
             return userStyle;
         }
@@ -4203,14 +4461,16 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
          * little space on the side, so it can be displayed easier. It caches
          * styles, so it only needs to create the style and modify the icon
          * once.
-         * 
+         *
          * @param icon
          * @param user
+         * @param sourceStreams
+         * @param sharedStyle
          * @return The created style (or read from the cache)
          */
-        public MutableAttributeSet makeIconStyle(Usericon icon, User user) {
+        public MutableAttributeSet makeIconStyle(Usericon icon, User user, java.util.List<String> sourceStreams, boolean sharedStyle) {
             MutableAttributeSet style = new SimpleAttributeSet(nick());
-            CachedImage<Usericon> usericonImage = icon.getIcon(usericonScaleFactor(), getInt(Setting.CUSTOM_USERICON_SCALE_MODE), ChannelTextPane.this);
+            CachedImage<Usericon> usericonImage = icon.getIcon(usericonScaleFactor(), getInt(Setting.CUSTOM_USERICON_SCALE_MODE), 0, sharedStyle ? 0.5f : -1, ChannelTextPane.this);
             StyleConstants.setIcon(style, usericonImage.getImageIcon());
             style.addAttribute(Attribute.USERICON, usericonImage);
             if (icon.type == Usericon.Type.TWITCH
@@ -4220,15 +4480,25 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
                     && user.getSubMonths() > 0) {
                 style.addAttribute(Attribute.USERICON_INFO, DateTime.formatMonthsVerbose(user.getSubMonths()));
             }
+            if (sourceStreams != null) {
+                style.addAttribute(Attribute.USERICON_SHARED_INFO, sourceStreams);
+            }
             return style;
         }
         
-        public int emoticonMaxHeight() {
-            return numericSettings.get(Setting.EMOTICON_MAX_HEIGHT);
+        public int emoticonMaxHeight(boolean gigantified) {
+            return (int)(numericSettings.get(Setting.EMOTICON_MAX_HEIGHT) * gigantifiedFactor(gigantified));
         }
         
-        public float emoticonScaleFactor() {
-            return (float)(numericSettings.get(Setting.EMOTICON_SCALE_FACTOR) / 100.0);
+        public float emoticonScaleFactor(boolean gigantified) {
+            return (float)(numericSettings.get(Setting.EMOTICON_SCALE_FACTOR) / 100.0) * gigantifiedFactor(gigantified);
+        }
+        
+        private float gigantifiedFactor(boolean gigantified) {
+            if (gigantified) {
+                return (float)(numericSettings.get(Setting.EMOTICON_SCALE_FACTOR_GIGANTIFIED) / 100.0);
+            }
+            return 1;
         }
         
         public float usericonScaleFactor() {
@@ -4273,13 +4543,14 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
          * Make a style with the given icon.
          * 
          * @param emoticon
+         * @param gigantified
          * @return 
          */
-        public MutableAttributeSet emoticon(Emoticon emoticon) {
+        public MutableAttributeSet emoticon(Emoticon emoticon, boolean gigantified) {
             // Does this need any other attributes e.g. standard?
             SimpleAttributeSet emoteStyle = new SimpleAttributeSet();
             CachedImage<Emoticon> emoteImage = emoticon.getIcon(
-                    emoticonScaleFactor(), emoticonMaxHeight(), emoticonImageType(), ChannelTextPane.this);
+                    emoticonScaleFactor(gigantified), emoticonMaxHeight(gigantified), emoticonImageType(), ChannelTextPane.this);
             StyleConstants.setIcon(emoteStyle, emoteImage.getImageIcon());
             
             emoteStyle.addAttribute(Attribute.EMOTICON, emoteImage);
@@ -4394,6 +4665,17 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         return new ImageIcon(res);
     }
     
+    public static ImageIcon getIconWithOpacity(ImageIcon icon, float opacity) {
+        int width = icon.getIconWidth();
+        int height = icon.getIconHeight();
+        BufferedImage res = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = res.createGraphics();
+        g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
+        g.drawImage(icon.getImage(), 0, 0, null);
+        g.dispose();
+        return new ImageIcon(res);
+    }
+    
     private static class MentionCheck {
         public final User user;
         public final Matcher matcher;
@@ -4404,9 +4686,33 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         }
     }
     
+    public boolean hasLineId(long lineId) {
+        return getLineForId(lineId) != null;
+    }
+    
+    private Element getLineForId(long lineId) {
+        return findLineBy(line -> line.getAttributes().containsAttribute(Attribute.LINE_ID, lineId));
+    }
+    
+    private SimplePopup linePopup;
+    
+    public void scrollToLine(long lineId, String label) {
+        Element line = getLineForId(lineId);
+        if (line != null) {
+            try {
+                Rectangle rect = modelToView(line.getStartOffset());
+                if (rect != null) {
+                    rect.translate(0, -50);
+                    scrollRectToVisible(rect);
+                }
+                if (linePopup == null) {
+                    linePopup = new SimplePopup(this, () -> {});
+                }
+                linePopup.showPopup(label, line.getStartOffset(), 4000, SimplePopup.BorderStyle.REGULAR);
+            } catch (BadLocationException ex) {
+                LOGGER.warning("Bad Location");
+            }
+        }
+    }
+    
 }
-
-
-
-
-

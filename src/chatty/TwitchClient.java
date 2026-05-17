@@ -6,7 +6,6 @@ import chatty.ChannelFavorites.Favorite;
 import chatty.lang.Language;
 import chatty.gui.colors.UsercolorManager;
 import chatty.gui.components.admin.StatusHistory;
-import chatty.util.api.pubsub.*;
 import chatty.util.commands.CustomCommands;
 import chatty.util.api.usericons.Usericon;
 import chatty.util.api.usericons.UsericonManager;
@@ -22,6 +21,7 @@ import chatty.util.api.ChannelInfo;
 import chatty.util.api.TwitchApi;
 import chatty.WhisperManager.WhisperListener;
 import chatty.gui.GuiUtil;
+import chatty.gui.Highlighter;
 import chatty.gui.laf.LaF;
 import chatty.gui.laf.LaF.LaFSettings;
 import chatty.gui.MainGui;
@@ -34,6 +34,7 @@ import chatty.gui.components.updating.Stuff;
 import chatty.gui.defaults.DefaultsDialog;
 import chatty.splash.Splash;
 import chatty.util.BTTVEmotes;
+import chatty.util.BatchAction;
 import chatty.util.BotNameManager;
 import chatty.util.DateTime;
 import chatty.util.Debugging;
@@ -52,6 +53,7 @@ import chatty.util.ProcessManager;
 import chatty.util.Pronouns;
 import chatty.util.RawMessageTest;
 import chatty.util.ReplyManager;
+import chatty.util.Sound;
 import chatty.util.Speedruncom;
 import chatty.util.StreamHighlightHelper;
 import chatty.util.StreamStatusWriter;
@@ -81,10 +83,16 @@ import chatty.util.api.TwitchApi.RequestResultCode;
 import chatty.util.api.UserInfo;
 import chatty.util.api.eventsub.EventSubListener;
 import chatty.util.api.eventsub.EventSubManager;
+import chatty.util.api.eventsub.payloads.ChannelPointsRedemptionPayload;
+import chatty.util.api.eventsub.payloads.ModActionPayload;
 import chatty.util.api.eventsub.payloads.PollPayload;
 import chatty.util.api.eventsub.payloads.RaidPayload;
 import chatty.util.api.eventsub.payloads.ShieldModePayload;
 import chatty.util.api.eventsub.payloads.ShoutoutPayload;
+import chatty.util.api.eventsub.payloads.SuspiciousMessagePayload;
+import chatty.util.api.eventsub.payloads.SuspiciousUpdatePayload;
+import chatty.util.api.eventsub.payloads.UserMessageHeldPayload;
+import chatty.util.api.eventsub.payloads.WarningAcknowledgePayload;
 import chatty.util.chatlog.ChatLog;
 import chatty.util.commands.CustomCommand;
 import chatty.util.commands.Parameters;
@@ -97,6 +105,8 @@ import chatty.util.settings.SettingsListener;
 import chatty.util.seventv.SevenTV;
 import chatty.util.seventv.WebPUtil;
 import chatty.util.srl.SpeedrunsLive;
+import chatty.util.tts.TextToSpeech;
+import chatty.util.tts.TextToSpeechCommands;
 import java.awt.Color;
 import java.io.File;
 import java.lang.management.ManagementFactory;
@@ -106,6 +116,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Consumer;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -150,9 +161,6 @@ public class TwitchClient {
      */
     public final TwitchApi api;
     
-    public final chatty.util.api.pubsub.Manager pubsub;
-    private final PubSubResults pubsubListener = new PubSubResults();
-    
     public final EventSubManager eventSub;
     
     public final EmotesetManager emotesetManager;
@@ -188,6 +196,8 @@ public class TwitchClient {
     public final RoomManager roomManager;
 
     public final HistoryManager historyManager;
+    
+    private final SendMessageManager sendMessageManager;
     
     /**
      * Holds the UserManager instance, which manages all the user objects.
@@ -311,8 +321,6 @@ public class TwitchClient {
         TwitchEmotesApi.api.setTwitchApi(api);
         Timestamp.setTwitchApi(api);
         
-        pubsub = new chatty.util.api.pubsub.Manager(
-                settings.getString("pubsub"), pubsubListener, api);
         eventSub = new EventSubManager("wss://eventsub.wss.twitch.tv/ws", new EventSubResults(), api);
 //        eventSub = new EventSubManager("ws://localhost:8080/eventsub", new EventSubResults(), api);
         
@@ -388,6 +396,7 @@ public class TwitchClient {
         g.showGui();
         
         autoModCommandHelper = new AutoModCommandHelper(g, api);
+        sendMessageManager = new SendMessageManager(api, g);
         
         timerCommand = new TimerCommand(settings, new TimerCommand.TimerAction() {
             @Override
@@ -717,13 +726,15 @@ public class TwitchClient {
         // Check if not on any associated channel anymore
         if (!c.onOwnerChannel(room.getOwnerChannel())) {
             frankerFaceZ.left(room.getOwnerChannel());
-            pubsub.unlistenModLog(room.getStream());
-            pubsub.unlistenUserModeration(room.getStream());
-            pubsub.unlistenPoints(room.getStream());
             eventSub.unlistenRaid(room.getStream());
             eventSub.unlistenPoll(room.getStream());
             eventSub.unlistenShield(room.getStream());
             eventSub.unlistenShoutouts(room.getStream());
+            eventSub.unlistenModActions(room.getStream());
+            eventSub.unlistenAutoMod(room.getStream());
+            eventSub.unlistenSuspicousMessage(room.getStream());
+            eventSub.unlistenWarnings(room.getStream());
+            eventSub.unlistenMessageHeld(room.getStream());
         }
     }
     
@@ -1000,14 +1011,38 @@ public class TwitchClient {
         if (sendAsReply(channel, text)) {
             return;
         }
-        if (c.sendSpamProtectedMessage(channel, text, false)) {
+        // Don't use for now, only for replies for testing
+        if (false) {
+            String tempMsgId = sendMessageManager.sendApiMessage(channel, text, null, false);
             User user = c.localUserJoined(channel);
-            g.printMessage(user, text, false);
+            g.printMessage(user, text, false, MsgTags.create("chatty-temp-msg-id", tempMsgId));
             if (allowCommandMessageLocally) {
                 modCommandAddStreamHighlight(user, text, MsgTags.EMPTY);
             }
-        } else {
-            g.printLine("# Message not sent to prevent ban: " + text);
+//            api.sendChatMessage(Helper.toStream(channel), text, null, result -> {
+//                if (result.wasSent) {
+//                    User user = c.localUserJoined(channel);
+//                    g.printMessage(user, text, false);
+//                    if (allowCommandMessageLocally) {
+//                        modCommandAddStreamHighlight(user, text, MsgTags.EMPTY);
+//                    }
+//                }
+//                else {
+//                    g.printLine("# Message not sent: " + result.dropReasonMessage);
+//                }
+//            });
+        }
+        else {
+            if (c.sendSpamProtectedMessage(channel, text, false)) {
+                User user = c.localUserJoined(channel);
+                g.printMessage(user, text, false);
+                if (allowCommandMessageLocally) {
+                    modCommandAddStreamHighlight(user, text, MsgTags.EMPTY);
+                }
+            }
+            else {
+                g.printLine("# Message not sent to prevent ban: " + text);
+            }
         }
     }
     
@@ -1035,7 +1070,6 @@ public class TwitchClient {
                     if (result.action != SelectReplyMessageResult.Action.SEND_NORMALLY) {
                         // Should not send normally, so return true
                         if (result.action == SelectReplyMessageResult.Action.REPLY) {
-                            // If changed to parent msg-id, atMsg will be null
                             sendReply(channel, actualMsg, username, result.atMsgId, result.atMsg);
                         }
                         else {
@@ -1060,22 +1094,23 @@ public class TwitchClient {
      * parent id of a thread, not as a first response)
      */
     private void sendReply(String channel, String text, String atUsername, String atMsgId, String atMsg) {
-        MsgTags tags = MsgTags.create("reply-parent-msg-id", atMsgId);
-        if (c.sendSpamProtectedMessage(channel, text, false, tags)) {
-            User user = c.localUserJoined(channel);
-            String localOutputText = text;
-            if (!text.startsWith("@")) {
-                localOutputText = String.format("@%s %s",
-                        atUsername, text);
-            }
-            ReplyManager.addReply(atMsgId, null,
-                    String.format("<%s> %s", user.getName(), localOutputText),
-                    atMsg != null ? String.format("<%s> %s", atUsername, atMsg) : null);
-            g.printMessage(user, localOutputText, false, tags);
+        String tempMsgId = sendMessageManager.sendApiMessage(channel, text, atMsgId, false);
+        MsgTags tags = MsgTags.create(
+                "reply-parent-msg-id", atMsgId,
+                // Could be used later on to attach actual msg id to message in chat
+                "chatty-temp-msg-id", tempMsgId);
+        User user = c.localUserJoined(channel);
+        String localOutputText = text;
+        if (!text.startsWith("@")) {
+            localOutputText = String.format("@%s %s",
+                                            atUsername, text);
         }
-        else {
-            g.printLine("# Message not sent to prevent ban: " + text);
-        }
+        g.printMessage(user, localOutputText, false, tags);
+    }
+    
+    public boolean isOwnUsername(String name) {
+        String ownUsername = getUsername();
+        return ownUsername != null && ownUsername.equalsIgnoreCase(name);
     }
     
     private boolean checkRejectTimedMessage(Room room, Parameters parameters) {
@@ -1258,16 +1293,6 @@ public class TwitchClient {
                     String atMsgId = p.getParameters().get("msg-id");
                     String atMsg = p.getParameters().get("msg");
                     String msg = p.getArgs();
-                    if (p.getEnteredCommandName().equalsIgnoreCase("msgreplythread")) {
-                        String parentMsgId = ReplyManager.getParentMsgId(atMsgId);
-                        if (parentMsgId != null) {
-                            // Overwrite result with parent msg-id if available
-                            // Msg should be null for this, since the selected.text
-                            // isn't the parent text
-                            atMsgId = parentMsgId;
-                            atMsg = null;
-                        }
-                    }
                     sendReply(p.getChannel(), msg, atUsername, atMsgId, atMsg);
             }
             else {
@@ -1442,6 +1467,7 @@ public class TwitchClient {
                     result,
                     chan != null ? chan : "all channels"));
         });
+        commands.add("logAudioInfo", p -> Sound.logAudioSystemInfo());
         
         //-----------------------
         // Settings/Customization
@@ -1546,7 +1572,7 @@ public class TwitchClient {
             g.printSystem("[FFZ-WS] Status: "+frankerFaceZ.getWsStatus());
         });
         commands.add("pubsubstatus", p -> {
-            g.printSystem("[PubSub] Status: "+pubsub.getStatus());
+            g.printSystem("[PubSub] Removed");
         });
         commands.add("refresh", p -> {
             commandRefresh(p.getRoom().getOwnerChannel(), p.getArgs());
@@ -1649,8 +1675,14 @@ public class TwitchClient {
                         text = split.get(1);
                     }
                 }
-                g.triggerCommandNotification(p.getChannel(), title, text,
-                        args.hasOption("h"), args.hasOption("m"));
+                String item = "";
+                if (args.hasOption("h")) {
+                    item += " config:!notify";
+                }
+                if (args.hasOption("m")) {
+                    item += " config:silent";
+                }
+                g.triggerCommandNotification(p.getChannel(), title, text, new Highlighter.HighlightItem(item));
             }
             else {
                 g.printSystem("Usage: /triggerNotification [-hmt] <text>");
@@ -1728,6 +1760,10 @@ public class TwitchClient {
             else {
                 g.printSystem("Usage: /foreach [list] > [command]");
             }
+        });
+        commands.add("tts", "Text to Speech", p -> {
+            TextToSpeechCommands.settings = settings;
+            g.printSystem(TextToSpeechCommands.command(p));
         });
         commands.add("runin", p -> {
             String[] split;
@@ -1937,7 +1973,7 @@ public class TwitchClient {
 //            g.printMessage("test10", testUser, "longer message abc hmm fwef wef wef wefwe fwe ewfwe fwef wwefwef"
 //                    + "fjwfjfwjefjwefjwef wfejfkwlefjwoefjwf wfjwoeifjwefiowejfef wefjoiwefj", false, null, 0);
         } else if (command.equals("requestfollowers")) {
-            api.getFollowers(parameter);
+            api.getFollowers(parameter, false);
         } else if (command.equals("simulate2")) {
             c.simulate(parameter);
         } else if (command.equals("simulate")) {
@@ -1969,6 +2005,8 @@ public class TwitchClient {
                     c.simulate(raw);
                 }
                 return;
+            } else if (parameter.startsWith("file ")) {
+                RawMessageTest.simulateFile(c, parameter.substring("file ".length()));
             }
             String raw = RawMessageTest.simulateIRC(channel, parameter, c.getUsername());
             if (raw != null) {
@@ -1983,67 +2021,25 @@ public class TwitchClient {
             frankerFaceZ.connectWs();
         } else if (command.equals("wsdisconnect")) {
             frankerFaceZ.disconnectWs();
-        } else if (command.equals("psconnect")) {
-//            pubsub.connect();
-        } else if (command.equals("psdisconnect")) {
-            pubsub.disconnect();
-        } else if (command.equals("psreconnect")) {
-            pubsub.reconnect();
         } else if (command.equals("eventsubreconnect")) {
             eventSub.reconnect();
-        } else if (command.equals("modaction")) {
-            String by = "Blahfasel";
-            String action = "timeout";
-            List<String> args = new ArrayList<>();
-            if (parameter != null && !parameter.isEmpty()) {
-                String[] split = parameter.split(" ");
-                by = split[0];
-                action = split[1];
-                for (int i=2;i<split.length;i++) {
-                    args.add(split[i]);
-                }
-            } else {
-                args.add("tduvatest");
-                args.add("5");
-            }
-            ModeratorActionData data = new ModeratorActionData("", "", "", room.getStream(), action, args, by, "");
-            //args.add("still not using LiveSplit Autosplitter D:");
-            //g.printModerationAction(new ModeratorActionData("", "", "", room.getStream(), action, args, "Blahfasel", ""), false);
-            pubsubListener.messageReceived(new Message(null, null, data, null));
-        } else if (command.equals("automod")) {
-            List<String> args = new ArrayList<>();
-            args.add("tduva");
-            if (parameter != null) {
-                if (parameter.contains(",")) {
-                    String[] split = parameter.split(",", 2);
-                    args.add(split[1]);
-                    args.add(split[0]);
-                } else {
-                    args.add(parameter);
-                }
-            } else {
-                args.add("fuck and stuff like that, rather long message and whatnot Kappa b "+Debugging.count(channel));
-            }
-            g.printModerationAction(new ModeratorActionData("", "", "", room.getStream(), "twitchbot_rejected", args, "twitchbot", "TEST"), false);
-        } else if (command.equals("automod2")) {
-            List<String> args = new ArrayList<>();
-            args.add("tduva");
-            ModeratorActionData data = new ModeratorActionData("", "", "", room.getStream(), "denied_automod_message", args, "asdas", "TEST");
-            g.printModerationAction(data, false);
-        } else if (command.equals("simulatepubsub")) {
-            pubsub.simulate(parameter);
         } else if (command.equals("simulateeventsub")) {
             eventSub.simulate(parameter);
+        } else if (command.equals("es_s")) {
+            api.getEventSubSubs(s -> {
+                LOGGER.info(s.total+" "+s.getCountBySession());
+                LOGGER.info(s.toString());
+            });
+        } else if (command.equals("es_t")) {
+            LOGGER.info(eventSub.getTopics());
+        } else if (command.equals("es_lt")) {
+            eventSub.logActiveTopics();
         } else if (command.equals("repeat")) {
             String[] split = parameter.split(" ", 2);
             int count = Integer.parseInt(split[0]);
             for (int i=0;i<count;i++) {
 //                commandInput(room, "/"+split[1]);
             }
-        } else if (command.equals("modactiontest3")) {
-            List<String> args = new ArrayList<>();
-            args.add("tduva");
-            g.printModerationAction(new ModeratorActionData("", "", "", "tduvatest", "approved_twitchbot_message", args, "tduvatest", "TEST"+Math.random()), false);
         } else if (command.equals("loadsoferrors")) {
             for (int i=0;i<10000;i++) {
                 SwingUtilities.invokeLater(new Runnable() {
@@ -2054,6 +2050,8 @@ public class TwitchClient {
                     }
                 });
             }
+        } else if (command.equals("error")) {
+            Helper.unhandledException();
         } else if (command.equals("getuserid")) {
             if (parameter == null) {
                 g.printSystem("Parameter required.");
@@ -2625,118 +2623,53 @@ public class TwitchClient {
         }
     }
     
-    private class PubSubResults implements PubSubListener {
-
-        @Override
-        public void messageReceived(Message message) {
-            if (message.data != null) {
-                if (message.data instanceof ModeratorActionData) {
-                    ModeratorActionData data = (ModeratorActionData) message.data;
-                    /**
-                     * PubSub topics get unlistened to when the channel is
-                     * closed, however there may be edgecases where a message
-                     * still comes in and causes unwanted effects (like
-                     * reopening the channel, although that may only happen for
-                     * other reward and user moderation info messages).
-                     */
-                    if (c.isChannelOpen(Helper.toChannel(data.stream))) {
-                        handleModAction(data);
-                    }
-                }
-                else if (message.data instanceof RewardRedeemedMessageData) {
-                    RewardRedeemedMessageData data = (RewardRedeemedMessageData) message.data;
-                    if (c.isChannelOpen(Helper.toChannel(data.stream))) {
-                        handleReward(data);
-                    }
-                }
-                else if (message.data instanceof UserModerationMessageData) {
-                    UserModerationMessageData data = (UserModerationMessageData) message.data;
-                    if (c.isChannelOpen(Helper.toChannel(data.stream))) {
-                        handleUserModeration(data);
-                    }
-                }
-                else if (message.data instanceof LowTrustUserMessageData) {
-                    LowTrustUserMessageData data = (LowTrustUserMessageData) message.data;
-                    if (c.isChannelOpen(Helper.toChannel(data.stream))) {
-                        handleLowTrustUser(data);
-                    }
-                }
-                else if (message.data instanceof LowTrustUserUpdateData) {
-                    LowTrustUserUpdateData data = (LowTrustUserUpdateData) message.data;
-                    String channel = Helper.toChannel(data.stream);
-                    
-                    // Mod Action
-                    List<String> args = new ArrayList<>();
-                    args.add(data.targetUsername);
-                    handleModAction(new ModeratorActionData(
-                        "", "chat_moderator_actions", "",
-                        data.stream,
-                        data.treatment.name(),
-                        args,
-                        data.moderatorUsername,
-                        null));
-                    
-                    User targetUser = c.getUser(channel, data.targetUsername);
-                    targetUser.addInfo("", data.makeInfo());
-                    g.updateUserinfo(targetUser);
-                }
-            }
-        }
-
-        @Override
-        public void info(String info) {
-            g.printDebugPubSub(info);
-        }
-        
-        private void handleReward(RewardRedeemedMessageData data) {
-            User user = c.getUser(Helper.toChannel(data.stream), data.username);
-            // Uses added source and reward id for merging
-            g.printPointsNotice(user, data.msg, data.attached_msg,
-                    MsgTags.create("chatty-source", "pubsub",
-                            "custom-reward-id", data.reward_id));
-        }
-        
-        private void handleUserModeration(UserModerationMessageData data) {
-            g.printLine(c.getRoomByChannel(Helper.toChannel(data.stream)), data.info);
-        }
-
-        private void handleLowTrustUser(LowTrustUserMessageData data) {
-            String channel = Helper.toChannel(data.stream);
-            
-            g.printLowTrustUserInfo(c.getUser(channel, data.username), data);
-            User targetUser = c.getUser(channel, data.username);
-            targetUser.addLowTrust(data);
-            g.updateUserinfo(targetUser);
-        }
-        
-    }
-    
-    private void handleModAction(ModeratorActionData data) {
-        // A regular mod action that doesn't contain a mod action should be ignored
-        boolean empty = data.type == ModeratorActionData.Type.OTHER && data.moderation_action.isEmpty() && data.args.isEmpty();
-        if (data.stream != null && !empty) {
+    private void handleModAction(ModActionPayload data) {
+        if (data.stream != null) {
             String channel = Helper.toChannel(data.stream);
             g.printModerationAction(data, data.created_by.equals(c.getUsername()));
             chatLog.modAction(data);
 
+            boolean addedTargetUserInfo = false;
+            
             User modUser = c.getUser(channel, data.created_by);
             modUser.addModAction(data);
             g.updateUserinfo(modUser);
-
+            
             String bannedUsername = ModLogInfo.getBannedUsername(data);
             if (bannedUsername != null) {
                 // If this is actually a ban, add info to banned user
                 User bannedUser = c.getUser(channel, bannedUsername);
                 bannedUser.addBanInfo(data);
                 g.updateUserinfo(bannedUser);
+                addedTargetUserInfo = true;
             }
             String unbannedUsername = ModLogInfo.getUnbannedUsername(data);
             if (unbannedUsername != null) {
                 // Add info to unbanned user
                 User unbannedUser = c.getUser(channel, unbannedUsername);
                 int type = User.UnbanMessage.getType(data.moderation_action);
-                unbannedUser.addUnban(type, data.created_by);
+                unbannedUser.addUnban(type, data.created_by, data.getSourceChannel());
                 g.updateUserinfo(unbannedUser);
+                addedTargetUserInfo = true;
+            }
+            if (data.moderation_action.equals("warn")) {
+                String warnedUsername = ModLogInfo.getTargetUsername(data);
+                if (warnedUsername != null) {
+                    User warnedUser = c.getUser(channel, warnedUsername);
+                    String reason = ((ModActionPayload.Warn) data.action).getReason();
+                    warnedUser.addWarning(reason, data.created_by);
+                    g.updateUserinfo(warnedUser);
+                    addedTargetUserInfo = true;
+                }
+            }
+            
+            if (!addedTargetUserInfo) {
+                String targetUsername = ModLogInfo.getTargetUsername(data);
+                if (targetUsername != null) {
+                    User targetUser = c.getUser(channel, targetUsername);
+                    targetUser.addModAction(data);
+                    g.updateUserinfo(targetUser);
+                }
             }
         }
     }
@@ -2767,11 +2700,12 @@ public class TwitchClient {
                         mode.enabled ? "on" : "off",
                         mode.moderatorLogin);
                 g.printInfo(c.getRoomByChannel(channel), infoText, MsgTags.EMPTY);
-                handleModAction(new ModeratorActionData(
-                        "", "chat_moderator_actions", "",
-                        mode.stream, mode.enabled ? "shieldMode" : "shieldModeOff",
-                        new ArrayList<>(),
+                
+                handleModAction(new ModActionPayload(
+                        mode.enabled ? "shieldMode" : "shieldModeOff",
                         mode.moderatorLogin,
+                        null,
+                        mode.stream,
                         null));
             }
             if (message.data instanceof ShoutoutPayload) {
@@ -2784,21 +2718,84 @@ public class TwitchClient {
                 MsgTags tags = MsgTags.createLinks(new MsgTags.Link(MsgTags.Link.Type.JOIN, Helper.toChannel(shoutout.target_login), "Join"));
                 g.printInfo(c.getRoomByChannel(channel), infoText, tags);
                 // Mod Action
-                List<String> args = new ArrayList<>();
-                args.add(shoutout.target_login);
-                handleModAction(new ModeratorActionData(
-                        "", "chat_moderator_actions", "",
-                        shoutout.stream,
+                handleModAction(new ModActionPayload(
                         "shoutout",
-                        args,
                         shoutout.moderator_login,
+                        new ModActionPayload.Shoutout(shoutout.target_login),
+                        shoutout.stream,
                         null));
+            }
+            if (message.data instanceof ModActionPayload) {
+                ModActionPayload modAction = (ModActionPayload) message.data;
+                if (c.isChannelOpen(Helper.toChannel(modAction.stream))) {
+                    handleModAction(modAction);
+                }
+            }
+            if (message.data instanceof SuspiciousMessagePayload) {
+                SuspiciousMessagePayload data = (SuspiciousMessagePayload) message.data;
+                if (c.isChannelOpen(Helper.toChannel(data.stream))) {
+                    String channel = Helper.toChannel(data.stream);
+
+                    User targetUser = c.getUser(channel, data.username);
+                    g.printLowTrustUserInfo(targetUser, data);
+
+                    targetUser.addLowTrust(data);
+                    g.updateUserinfo(targetUser);
+                }
+            }
+            if (message.data instanceof SuspiciousUpdatePayload) {
+                SuspiciousUpdatePayload data = (SuspiciousUpdatePayload) message.data;
+                
+                    String channel = Helper.toChannel(data.stream);
+                    
+                    handleModAction(new ModActionPayload(
+                            data.treatment.id,
+                            data.moderatorUsername,
+                            new ModActionPayload.SuspiciousUpdate(data.treatment.id, data.targetUsername),
+                            data.stream,
+                            null));
+                    
+                    User targetUser = c.getUser(channel, data.targetUsername);
+                    targetUser.addInfo("", data.makeInfo(), false, null);
+                    g.updateUserinfo(targetUser);
+            }
+            if (message.data instanceof WarningAcknowledgePayload) {
+                WarningAcknowledgePayload data = (WarningAcknowledgePayload) message.data;
+                User user = c.getUser(Helper.toChannel(data.stream), data.username);
+                user.addWarningAcknowledged();
+                g.updateUserinfo(user);
+                g.printModerationAction(
+                        new ModActionPayload(
+                                "acknowledge_warning", 
+                                data.username, null, 
+                                data.stream, null),
+                        false);
+            }
+            if (message.data instanceof UserMessageHeldPayload) {
+                UserMessageHeldPayload data = (UserMessageHeldPayload) message.data;
+                if (c.isChannelOpen(Helper.toChannel(data.stream))) {
+                    g.printLine(c.getRoomByChannel(Helper.toChannel(data.stream)), data.info);
+                }
+            }
+            if (message.data instanceof ChannelPointsRedemptionPayload) {
+                ChannelPointsRedemptionPayload data = (ChannelPointsRedemptionPayload) message.data;
+                if (c.isChannelOpen(Helper.toChannel(data.stream))) {
+                    User user = c.getUser(Helper.toChannel(data.stream), data.redeemedByUsername);
+                    // Uses added source and reward id for merging
+                    String text = String.format("%s redeemed %s (%,d)",
+                                                data.redeemedByUsername, data.rewardTitle, data.rewardCost);
+                    g.printPointsNotice(user, text, data.attachedMsg,
+                                        MsgTags.create("chatty-source", "eventsub",
+                                                       "custom-reward-id", data.rewardId),
+                                        data.redemptionId, data.isUpdate, data.status);
+                }
             }
         }
 
         @Override
         public void info(String info) {
             g.printDebugEventSub(info);
+            Logging.logEventSub(info);
         }
         
     }
@@ -3055,6 +3052,32 @@ public class TwitchClient {
                 }
             }
         });
+    }
+    
+    public void resolveSourceData(User user, MsgTags tags, Consumer<MsgTags> resultListener) {
+        if (!tags.isSharedMessage()) {
+            resultListener.accept(tags);
+        }
+        else {
+            String sourceRoomId = tags.get("source-room-id");
+            api.getCachedUserInfoById(Arrays.asList(new String[]{sourceRoomId}), requestResult -> {
+                UserInfo info = requestResult.get(sourceRoomId);
+                if (info != null) {
+                    if (!StringUtil.isNullOrEmpty(info.profileImageUrl)) {
+                        usericonManager.addChannelLogoUrl(Helper.toChannel(info.login), info.profileImageUrl);
+                    }
+                    resultListener.accept(MsgTags.addTag(tags, MsgTags.SHARED_MESSAGE_SOURCE_CHANNEL, Helper.toChannel(info.login)));
+                }
+                else {
+                    /**
+                     * In case of error just output message, in which case
+                     * channel icon and name will be missing, but there will
+                     * still be some indication that it's a shared message.
+                     */
+                    resultListener.accept(tags);
+                }
+            });
+        }
     }
 
     private class MyStreamInfoListener implements StreamInfoListener {
@@ -3360,11 +3383,11 @@ public class TwitchClient {
     public void exit() {
         shuttingDown = true;
         saveSettings(true, false);
+        TextToSpeech.shutdownIfNecessary();
         logAllViewerstats();
         Pronouns.instance().saveCache();
         c.disconnect();
         frankerFaceZ.disconnectWs();
-        pubsub.disconnect();
         eventSub.disconnect();
         g.cleanUp();
         chatLog.close();
@@ -3418,45 +3441,6 @@ public class TwitchClient {
     }
     
     private class Messages implements TwitchConnection.ConnectionListener {
-
-        private void checkModLogListen(User user) {
-            Debugging.println("pubsub", "%s/%s==%s/%s",
-                    user.hasChannelModeratorRights(),
-                    user.getName(),
-                    c.getUsername(),
-                    user.getStream());
-            if (user.getName().equals(c.getUsername())
-                    && user.getStream() != null) {
-                pubsub.setLocalUsername(c.getUsername());
-                if (user.hasChannelModeratorRights()) {
-                    if (settings.listContains("scopes", TokenInfo.Scope.CHAN_MOD.scope)) {
-                        Debugging.println("pubsub", "Listen");
-                        pubsub.listenModLog(user.getStream(), settings.getString("token"));
-                    }
-                    else {
-                        EventLog.addSystemEvent("access.modlog");
-                    }
-                    pubsub.unlistenUserModeration(user.getStream());
-                }
-                else {
-                    if (settings.listContains("scopes", TokenInfo.Scope.CHAT_EDIT.scope)) {
-                        pubsub.listenUserModeration(user.getStream(), settings.getString("token"));
-                    }
-                    else {
-                        EventLog.addSystemEvent("access.chat");
-                    }
-                    pubsub.unlistenModLog(user.getStream());
-                }
-            }
-        }
-        
-        private void checkPointsListen(User user) {
-            if (settings.listContains("scopes", TokenInfo.Scope.POINTS.scope)
-                    && user.getName().equals(c.getUsername())
-                    && user.getStream() != null) {
-                pubsub.listenPoints(user.getStream(), settings.getString("token"));
-            }
-        }
         
         private void checkEventSubListen(User user) {
             // Is user the local user (can be on any channel though)
@@ -3464,20 +3448,60 @@ public class TwitchClient {
                     || user.getStream() == null) {
                 return;
             }
+            
+            Debugging.println("es", "Check %s (mod: %s)", user.getChannel(), user.hasChannelModeratorRights());
+            
+            // Mainly for listen/unlisten message held
+            BatchAction.queue(eventSub, 100, false, true, () -> {
+                checkEventSubListenInternal(user);
+            });
+        }
+        
+        private void checkEventSubListenInternal(User user) {
             eventSub.setLocalUsername(c.getUsername());
             eventSub.listenRaid(user.getStream());
-            if (settings.listContains("scopes", TokenInfo.Scope.MANAGE_POLLS.scope)
-                    && user.isBroadcaster()) {
+            if (AccessChecker.isBroadcaster(user, TokenInfo.Scope.MANAGE_POLLS)) {
                 eventSub.listenPoll(user.getStream());
             }
-            if (settings.listContains("scopes", TokenInfo.Scope.MANAGE_SHIELD.scope)
-                    && (user.isModerator() || user.isBroadcaster())) {
+            if (AccessChecker.isModerator(user, TokenInfo.Scope.MANAGE_SHIELD)) {
                 eventSub.listenShield(user.getStream());
                 api.getShieldMode(user.getRoom(), true);
             }
-            if (settings.listContains("scopes", TokenInfo.Scope.MANAGE_SHOUTOUTS.scope)
-                    && (user.isModerator() || user.isBroadcaster())) {
+            if (AccessChecker.isModerator(user, TokenInfo.Scope.MANAGE_SHOUTOUTS)) {
                 eventSub.listenShoutouts(user.getStream());
+            }
+            if (AccessChecker.isModerator("modActions", user,
+                                          TokenInfo.Scope.BLOCKED_READ,
+                                          TokenInfo.Scope.MANAGE_CHAT,
+                                          TokenInfo.Scope.MANAGE_UNBAN_REQUESTS,
+                                          TokenInfo.Scope.MANAGE_BANS,
+                                          TokenInfo.Scope.MANAGE_MSGS,
+                                          TokenInfo.Scope.MANAGE_WARNINGS,
+                                          TokenInfo.Scope.READ_MODS,
+                                          TokenInfo.Scope.READ_VIPS)) {
+                eventSub.listenModActions(user.getStream());
+            }
+            if (AccessChecker.isModerator(user, TokenInfo.Scope.AUTOMOD)) {
+                eventSub.listenAutoMod(user.getStream());
+            }
+            if (AccessChecker.isModerator(user, TokenInfo.Scope.READ_SUSPICIOUS_USERS)) {
+                eventSub.listenSuspiciousMessage(user.getStream());
+            }
+            if (AccessChecker.isModerator(user, TokenInfo.Scope.MANAGE_WARNINGS)) {
+                eventSub.listenWarnings(user.getStream());
+            }
+            
+            if (!user.hasChannelModeratorRights()) {
+                if (AccessChecker.hasScope(TokenInfo.Scope.USER_READ_CHAT)) {
+                    eventSub.listenMessageHeld(user.getStream());
+                }
+            }
+            else {
+                eventSub.unlistenMessageHeld(user.getStream());
+            }
+            
+            if (AccessChecker.isBroadcaster(user, TokenInfo.Scope.READ_POINTS)) {
+                eventSub.listenPoints(user.getStream());
             }
         }
         
@@ -3501,8 +3525,6 @@ public class TwitchClient {
                 requestChannelEmotes(stream);
                 frankerFaceZ.joined(stream);
                 requestChannelHistory(stream);
-                checkModLogListen(user);
-                checkPointsListen(user);
                 api.removeShieldModeCache(user.getRoom());
                 checkEventSubListen(user);
                 updateStreamInfoChannelOpen(user.getChannel());
@@ -3544,7 +3566,6 @@ public class TwitchClient {
                 g.updateUser(user);
             }
             g.updateUserinfo(user);
-            checkModLogListen(user);
             checkEventSubListen(user);
         }
 
@@ -3555,14 +3576,23 @@ public class TwitchClient {
                 String info = String.format("%s redeemed a custom reward (%s)",
                                             user.getDisplayNick(),
                                             rewardInfo != null ? rewardInfo : "unknown");
-                g.printPointsNotice(user, info, text, tags);
+                g.printPointsNotice(user, info, text, tags, null, false, null);
             }
             else {
                 if (!historyManager.addQueueMessage(user, text, tags, action)) {
-                    g.printMessage(user, text, action, tags);
+                    if (!isOwnUsername(user.getName())
+                            || !sendMessageManager.shouldIgnoreMessage(user, text, tags, action)) {
+                        g.printMessage(user, text, action, tags);
+                    }
                 }
                 if (tags.isReply() && tags.hasReplyUserMsg() && tags.hasId()) {
-                    ReplyManager.addReply(tags.getReplyParentMsgId(), tags.getId(), String.format("<%s> %s", user.getName(), text), tags.getReplyUserMsg());
+                    /**
+                     * When using the API to send messages a message will be
+                     * received back, so add the reply here instead of when
+                     * sending the message (it's fine if there is some delay for
+                     * this).
+                     */
+                    ReplyManager.addReply(tags.getReplyParentMsgId(), tags.getReplyThreadParentMsgId(), tags.getId(), String.format("<%s> %s", user.getName(), text), tags.getReplyUserMsg());
                 }
                 if (!action) {
                     addressbookCommands(user.getChannel(), user, text);
@@ -3724,7 +3754,7 @@ public class TwitchClient {
                 api.checkToken();
             }
             if (reason == Irc.ERROR_CONNECTION_CLOSED) {
-                pubsub.checkConnection();
+//                pubsub.checkConnection();
             }
         }
 
@@ -3924,7 +3954,7 @@ public class TwitchClient {
     public String getSecondaryConnectionsStatus() {
         return String.format("%s%s",
                 frankerFaceZ.isWsConnected() ? "F" : "",
-                pubsub.isConnected() ? "M" : "");
+                eventSub.isConnected() ? "M" : "");
     }
     
     private class MyWhisperListener implements WhisperListener {

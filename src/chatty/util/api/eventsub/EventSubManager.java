@@ -1,6 +1,7 @@
 
 package chatty.util.api.eventsub;
 
+import chatty.Logging;
 import chatty.gui.components.eventlog.EventLog;
 import chatty.util.Debugging;
 import chatty.util.StringUtil;
@@ -8,10 +9,12 @@ import chatty.util.api.TwitchApi;
 import chatty.util.jws.JWSClient;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -43,6 +46,8 @@ public class EventSubManager {
     
     private final RaidTopicManager raidTopicManager;
     
+    private boolean loggedTopicsYet;
+    
     public EventSubManager(String server, final EventSubListener listener, TwitchApi api) {
         this.api = api;
         this.listener = listener;
@@ -55,14 +60,10 @@ public class EventSubManager {
             return new Connections(new URI(server), new ConnectionsMessageHandler() {
                 
                 @Override
-                public void handleReceived(int id, String received) {
-                    listener.info(String.format(Locale.ROOT, "[%d(%d)/%d(%d)]--> %s",
-                            id,
-                            c.getNumTopics(id),
-                            c.getNumConnections(),
-                            c.getNumTopics(),
+                public void handleReceived(int id, String received, Message message) {
+                    listener.info(String.format(Locale.ROOT, "%s--> %s",
+                            c.getConnectionPrefix(id),
                             StringUtil.trim(received)));
-                    Message message = Message.fromJson(received, userIds);
                     if (message != null && message.data != null) {
                         listener.messageReceived(message);
                     }
@@ -87,6 +88,25 @@ public class EventSubManager {
                 public void handleConnect(int id, JWSClient c) {
                     
                 }
+
+                @Override
+                public void handleRegisterError(int responseCode) {
+                    if (responseCode == 429) {
+                        EventLog.addSystemEvent("session.eventsub.limit",
+                                                "EventSub error",
+                                                "EventSub has reached an unexpected request limit, "
+                                                + "which will cause some features to not fully work, "
+                                                + "such as displaying Mod Actions, AutoMod and others. "
+                                                + "Note that API limits are per Twitch account/Client ID, "
+                                                + "so if you have other Chatty instances running it may affect limits on this one.");
+                        if (!loggedTopicsYet) {
+                            // Only log on error once per session
+                            logActiveTopics();
+                            loggedTopicsYet = true;
+                        }
+                    }
+                }
+                
             }, api);
         }
         catch (URISyntaxException ex) {
@@ -104,6 +124,14 @@ public class EventSubManager {
         c.simulate(input);
     }
     
+    public void logActiveTopics() {
+        api.getEventSubSubs(s -> {
+            listener.info(String.format("[Current topics according to API]\n%s total\nPer sesssion: %s\n%s",
+                                              s.total, s.getCountBySession(), s.toString()));
+        });
+        listener.info(String.format("[Current topics according to Chatty]%s\n",
+                                          getTopics()));
+    }
     
     //==========================
     // Topics / various
@@ -167,6 +195,69 @@ public class EventSubManager {
         removeTopic(new ShoutoutCreate(username));
     }
     
+    public void listenModActions(String username) {
+        addTopic(new ChannelModerate(username));
+    }
+    
+    public void unlistenModActions(String username) {
+        removeTopic(new ChannelModerate(username));
+    }
+    
+    public void listenAutoMod(String username) {
+        addTopic(new AutoModMessageHold(username));
+        addTopic(new AutoModMessageUpdate(username));
+    }
+    
+    public void unlistenAutoMod(String username) {
+        removeTopic(new AutoModMessageHold(username));
+        removeTopic(new AutoModMessageUpdate(username));
+    }
+    
+    public void listenSuspiciousMessage(String username) {
+        addTopic(new SuspiciousMessage(username));
+        addTopic(new SuspiciousUpdate(username));
+    }
+    
+    public void unlistenSuspicousMessage(String username) {
+        removeTopic(new SuspiciousMessage(username));
+        removeTopic(new SuspiciousUpdate(username));
+    }
+    
+    public void listenWarnings(String username) {
+        addTopic(new WarningAcknowledge(username));
+    }
+    
+    public void unlistenWarnings(String username) {
+        removeTopic(new WarningAcknowledge(username));
+    }
+    
+    public void listenMessageHeld(String username) {
+        /**
+         * Currently IRC sends a message about a message held, so don't need
+         * this, just not for apporved/denied. For private terms (even when
+         * triggered by mods) EventSub seems to be silent both for the
+         * broadcaster and the affected user (but at message from IRC is still
+         * received for the message being held).
+         */
+//        addTopic(new UserMessageHeld(username));
+        addTopic(new UserMessageUpdate(username));
+    }
+    
+    public void unlistenMessageHeld(String username) {
+//        removeTopic(new UserMessageHeld(username));
+        removeTopic(new UserMessageUpdate(username));
+    }
+    
+    public void listenPoints(String username) {
+        addTopic(new ChannelPointsRedemption(username));
+        addTopic(new ChannelPointsRedemptionUpdate(username));
+    }
+    
+    public void unlistenPoints(String username) {
+        removeTopic(new ChannelPointsRedemption(username));
+        removeTopic(new ChannelPointsRedemptionUpdate(username));
+    }
+    
     /**
      * Adds the given topic to be requested. If the topic is already being
      * listened to, it will still be added, processed and tried to listen to
@@ -216,19 +307,19 @@ public class EventSubManager {
                 }
             }
         }
-        Debugging.println("pubsub", "[PubSub] Send: %s, Pending: %s",
+        Debugging.println("es", "[EventSub] Send: %s, Pending: %s",
                 readyTopics, pendingTopics);
         for (Topic topic : readyTopics) {
             boolean success = c.addTopic(topic);
             if (!success) {
                 // Prefixed with "session" so it can create a notification again
                 // next session, even if marked as read
-//                EventLog.addSystemEvent("session.pubsub.maxtopics",
-//                        "Too many channels",
-//                        "The amount of channels you have joined (especially "
-//                        + "where you are a moderator) will cause some features "
-//                                + "to not fully work, such as displaying Mod "
-//                                + "Actions, AutoMod and others.");
+                EventLog.addSystemEvent("session.eventsub.maxtopics",
+                        "EventSub max channels reached",
+                        "The amount of channels you have joined (especially "
+                        + "where you are a moderator) will cause some features "
+                                + "to not fully work, such as displaying Mod "
+                                + "Actions, AutoMod and others.");
             }
         }
     }
@@ -312,6 +403,42 @@ public class EventSubManager {
     
     public void tokenUpdated() {
         c.tokenUpdated();
+    }
+    
+    public String getTopics() {
+        Map<String, List<Topic>> topics = c.getTopics();
+        StringBuilder b = new StringBuilder();
+        for (Map.Entry<String, List<Topic>> entry : topics.entrySet()) {
+            b.append("\n[").append(entry.getKey()).append("]\n");
+            List<StreamTopic> topics2 = new ArrayList<>();
+            entry.getValue().forEach(t -> {
+                if (t instanceof StreamTopic) {
+                    topics2.add((StreamTopic) t);
+                }
+                else {
+                    LOGGER.warning("Unexpected topic: "+t);
+                }
+            });
+            Collections.sort(topics2, (o1, o2) -> {
+                         return o1.stream.compareTo(o2.stream);
+                     });
+            int count = 0;
+            String currentStream = null;
+            for (StreamTopic t : topics2) {
+                if (currentStream != null
+                        && !t.stream.equals(currentStream)) {
+                    b.append("\n---\n");
+                    count = 0;
+                }
+                count++;
+                currentStream = t.stream;
+                b.append(count).append(".");
+                b.append(t).append("(").append(t.getCost()).append(")\n");
+            }
+        }
+        b.append("\n");
+        b.append(c.getDebugText());
+        return b.toString();
     }
     
     //==========================
@@ -542,6 +669,304 @@ public class EventSubManager {
             return new ShoutoutCreate(stream);
         }
 
+    }
+    
+    private class ChannelModerate extends StreamTopic {
+
+        ChannelModerate(String stream) {
+            super(stream);
+        }
+        
+        @Override
+        public String make(String sessionId) {
+            String userId = getUserId(stream);
+            if (userId != null && localUserId != null) {
+                Map<String, String> condition = new HashMap<>();
+                condition.put("broadcaster_user_id", userId);
+                condition.put("moderator_user_id", localUserId);
+                return Helper.makeAddEventSubBody("channel.moderate", condition, sessionId, "2");
+            }
+            return null;
+        }
+
+        @Override
+        public int getExpectedCost() {
+            return 0;
+        }
+        
+        @Override
+        public Topic copy() {
+            return new ChannelModerate(stream);
+        }
+
+    }
+    
+    private class AutoModMessageHold extends StreamTopic {
+
+        AutoModMessageHold(String stream) {
+            super(stream);
+        }
+        
+        @Override
+        public String make(String sessionId) {
+            String userId = getUserId(stream);
+            if (userId != null && localUserId != null) {
+                Map<String, String> condition = new HashMap<>();
+                condition.put("broadcaster_user_id", userId);
+                condition.put("moderator_user_id", localUserId);
+                return Helper.makeAddEventSubBody("automod.message.hold", condition, sessionId, "2");
+            }
+            return null;
+        }
+
+        @Override
+        public int getExpectedCost() {
+            return 0;
+        }
+        
+        @Override
+        public Topic copy() {
+            return new AutoModMessageHold(stream);
+        }
+
+    }
+    
+    private class AutoModMessageUpdate extends StreamTopic {
+
+        AutoModMessageUpdate(String stream) {
+            super(stream);
+        }
+        
+        @Override
+        public String make(String sessionId) {
+            String userId = getUserId(stream);
+            if (userId != null && localUserId != null) {
+                Map<String, String> condition = new HashMap<>();
+                condition.put("broadcaster_user_id", userId);
+                condition.put("moderator_user_id", localUserId);
+                return Helper.makeAddEventSubBody("automod.message.update", condition, sessionId, "2");
+            }
+            return null;
+        }
+
+        @Override
+        public int getExpectedCost() {
+            return 0;
+        }
+        
+        @Override
+        public Topic copy() {
+            return new AutoModMessageUpdate(stream);
+        }
+
+    }
+    
+    private class SuspiciousMessage extends StreamTopic {
+
+        SuspiciousMessage(String stream) {
+            super(stream);
+        }
+        
+        @Override
+        public String make(String sessionId) {
+            String userId = getUserId(stream);
+            if (userId != null && localUserId != null) {
+                Map<String, String> condition = new HashMap<>();
+                condition.put("broadcaster_user_id", userId);
+                condition.put("moderator_user_id", localUserId);
+                return Helper.makeAddEventSubBody("channel.suspicious_user.message", condition, sessionId, "1");
+            }
+            return null;
+        }
+
+        @Override
+        public int getExpectedCost() {
+            return 0;
+        }
+        
+        @Override
+        public Topic copy() {
+            return new SuspiciousMessage(stream);
+        }
+
+    }
+    
+    private class SuspiciousUpdate extends StreamTopic {
+
+        SuspiciousUpdate(String stream) {
+            super(stream);
+        }
+        
+        @Override
+        public String make(String sessionId) {
+            String userId = getUserId(stream);
+            if (userId != null && localUserId != null) {
+                Map<String, String> condition = new HashMap<>();
+                condition.put("broadcaster_user_id", userId);
+                condition.put("moderator_user_id", localUserId);
+                return Helper.makeAddEventSubBody("channel.suspicious_user.update", condition, sessionId, "1");
+            }
+            return null;
+        }
+
+        @Override
+        public int getExpectedCost() {
+            return 0;
+        }
+        
+        @Override
+        public Topic copy() {
+            return new SuspiciousUpdate(stream);
+        }
+
+    }
+    
+    private class WarningAcknowledge extends StreamTopic {
+
+        WarningAcknowledge(String stream) {
+            super(stream);
+        }
+        
+        @Override
+        public String make(String sessionId) {
+            String userId = getUserId(stream);
+            if (userId != null && localUserId != null) {
+                Map<String, String> condition = new HashMap<>();
+                condition.put("broadcaster_user_id", userId);
+                condition.put("moderator_user_id", localUserId);
+                return Helper.makeAddEventSubBody("channel.warning.acknowledge", condition, sessionId, "1");
+            }
+            return null;
+        }
+
+        @Override
+        public int getExpectedCost() {
+            return 0;
+        }
+        
+        @Override
+        public Topic copy() {
+            return new WarningAcknowledge(stream);
+        }
+
+    }
+    
+    private class UserMessageHeld extends StreamTopic {
+
+        UserMessageHeld(String stream) {
+            super(stream);
+        }
+        
+        @Override
+        public String make(String sessionId) {
+            String userId = getUserId(stream);
+            if (userId != null && localUserId != null) {
+                Map<String, String> condition = new HashMap<>();
+                condition.put("broadcaster_user_id", userId);
+                condition.put("user_id", localUserId);
+                return Helper.makeAddEventSubBody("channel.chat.user_message_hold", condition, sessionId, "1");
+            }
+            return null;
+        }
+
+        @Override
+        public int getExpectedCost() {
+            return 0;
+        }
+        
+        @Override
+        public Topic copy() {
+            return new UserMessageHeld(stream);
+        }
+
+    }
+    
+    private class UserMessageUpdate extends StreamTopic {
+
+        UserMessageUpdate(String stream) {
+            super(stream);
+        }
+        
+        @Override
+        public String make(String sessionId) {
+            String userId = getUserId(stream);
+            if (userId != null && localUserId != null) {
+                Map<String, String> condition = new HashMap<>();
+                condition.put("broadcaster_user_id", userId);
+                condition.put("user_id", localUserId);
+                return Helper.makeAddEventSubBody("channel.chat.user_message_update", condition, sessionId, "1");
+            }
+            return null;
+        }
+
+        @Override
+        public int getExpectedCost() {
+            return 0;
+        }
+        
+        @Override
+        public Topic copy() {
+            return new UserMessageUpdate(stream);
+        }
+
+    }
+    
+    private class ChannelPointsRedemption extends StreamTopic {
+
+        ChannelPointsRedemption(String stream) {
+            super(stream);
+        }
+        
+        @Override
+        public String make(String sessionId) {
+            String userId = getUserId(stream);
+            if (userId != null) {
+                Map<String, String> condition = new HashMap<>();
+                condition.put("broadcaster_user_id", userId);
+                return Helper.makeAddEventSubBody("channel.channel_points_custom_reward_redemption.add", condition, sessionId, "1");
+            }
+            return null;
+        }
+
+        @Override
+        public int getExpectedCost() {
+            return 0;
+        }
+        
+        @Override
+        public Topic copy() {
+            return new ChannelPointsRedemption(stream);
+        }
+        
+    }
+
+    private class ChannelPointsRedemptionUpdate extends StreamTopic {
+
+        ChannelPointsRedemptionUpdate(String stream) {
+            super(stream);
+        }
+        
+        @Override
+        public String make(String sessionId) {
+            String userId = getUserId(stream);
+            if (userId != null) {
+                Map<String, String> condition = new HashMap<>();
+                condition.put("broadcaster_user_id", userId);
+                return Helper.makeAddEventSubBody("channel.channel_points_custom_reward_redemption.update", condition, sessionId, "1");
+            }
+            return null;
+        }
+
+        @Override
+        public int getExpectedCost() {
+            return 0;
+        }
+        
+        @Override
+        public Topic copy() {
+            return new ChannelPointsRedemptionUpdate(stream);
+        }
+        
     }
     
 }

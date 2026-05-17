@@ -15,6 +15,7 @@ import chatty.util.StringUtil;
 import chatty.util.api.TokenInfo;
 import chatty.util.api.usericons.Usericon;
 import chatty.util.colors.ColorCorrectionNew;
+import chatty.util.hotkeys.Hotkey;
 import chatty.util.settings.Setting;
 import chatty.util.settings.Settings;
 import java.awt.CardLayout;
@@ -106,7 +107,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
             "logLockFiles", "logMessageTemplate",
             "laf", "lafTheme", "lafFontScale", "language", "timezone", "locale",
             "userDialogMessageLimit", "cachePath", "imgPath", "exportPath",
-            "webp", "inputLimitsEnabled"
+            "webp", "inputLimitsEnabled", "chatInsertTop"
     ));
     
     private final Set<String> reconnectRequiredDef = new HashSet<>(Arrays.asList(
@@ -150,8 +151,10 @@ public class SettingsDialog extends JDialog implements ActionListener {
         IGNORE("Ignore", Language.getString("settings.page.ignore")),
         FILTER("Filter", Language.getString("settings.page.filter")),
         CUSTOM_TABS("Custom Tabs", Language.getString("settings.page.customTabs")),
+        SHARED_CHAT("Shared Chat", Language.getString("settings.page.sharedChat")),
         HISTORY("History", Language.getString("settings.page.history")),
         NOTIFICATIONS("Notifications", Language.getString("settings.page.notifications")),
+        TTS("TTS", Language.getString("settings.page.tts")),
         LIVE_STREAMS("Live Streams", Language.getString("settings.page.liveStreams")),
         USERCOLORS("Usercolors", Language.getString("settings.page.usercolors")),
         LOGGING("Log to file", Language.getString("settings.page.logging")),
@@ -212,10 +215,12 @@ public class SettingsDialog extends JDialog implements ActionListener {
             Page.FILTER,
             Page.CUSTOM_TABS,
             Page.LOGGING,
+            Page.SHARED_CHAT,
         }));
         MENU.put(Page.WINDOW, Arrays.asList(new Page[]{
             Page.TABS,
             Page.NOTIFICATIONS,
+            Page.TTS,
             Page.LIVE_STREAMS
         }));
         MENU.put(Page.OTHER, Arrays.asList(new Page[]{
@@ -293,6 +298,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
         };
         
         panels.put(Page.MAIN, new MainSettings(this));
+        panels.put(Page.HOTKEYS, new HotkeySettings(this));
         panels.put(Page.MESSAGES, new MessageSettings(this));
         panels.put(Page.MODERATION, new ModerationSettings(this));
         panels.put(Page.EMOTES, new EmoteSettings(this));
@@ -304,9 +310,11 @@ public class SettingsDialog extends JDialog implements ActionListener {
         panels.put(Page.IGNORE, new IgnoreSettings(this));
         panels.put(Page.FILTER, new FilterSettings(this));
         panels.put(Page.CUSTOM_TABS, new RoutingSettings(this));
+        panels.put(Page.SHARED_CHAT, new SharedChatSettings(this));
         panels.put(Page.MSGCOLORS, new MsgColorSettings(this));
         panels.put(Page.HISTORY, new HistorySettings(this));
         panels.put(Page.NOTIFICATIONS, new NotificationSettings(this, settings));
+        panels.put(Page.TTS, new TextToSpeechSettings(this));
         panels.put(Page.LIVE_STREAMS, new LiveStreamsSettings(this));
         panels.put(Page.USERCOLORS, new UsercolorSettings(this));
         panels.put(Page.LOGGING, new LogSettings(this));
@@ -315,7 +323,6 @@ public class SettingsDialog extends JDialog implements ActionListener {
         panels.put(Page.COMMANDS, new CommandSettings(this));
         panels.put(Page.OTHER, new OtherSettings(this));
         panels.put(Page.ADVANCED, new AdvancedSettings(this));
-        panels.put(Page.HOTKEYS, new HotkeySettings(this));
         panels.put(Page.COMPLETION, new CompletionSettings(this));
         panels.put(Page.CHAT, new ChatSettings(this));
         panels.put(Page.NAMES, new NameSettings(this));
@@ -485,8 +492,10 @@ public class SettingsDialog extends JDialog implements ActionListener {
     }
     
     private void stuffBasedOnPanel() {
-        if (currentlyShown.equals(Page.HOTKEYS)) {
-            owner.hotkeyManager.setEnabled(false);
+        switch (currentlyShown) {
+            case HOTKEYS:
+            case TTS:
+                owner.hotkeyManager.setEnabled(false);
         }
     }
     
@@ -932,6 +941,10 @@ public class SettingsDialog extends JDialog implements ActionListener {
         return s;
     }
     
+    protected HotkeyPanel addHotkeyPanel(String actionId, Hotkey.Type type) {
+        return getPanel(HotkeySettings.class).createHotkeyPanel(actionId, type);
+    }
+    
     /**
      * Changes the String setting with the given name to the given value. Does
      * nothing if a setting with this name doesn't exist.
@@ -1040,6 +1053,10 @@ public class SettingsDialog extends JDialog implements ActionListener {
         return result;
     }
     
+    protected void addMapSetting(String name, MapSetting setting) {
+        mapSettings.put(name, setting);
+    }
+    
     protected SimpleTableEditor<String> addStringMapSetting(String name,
             int width, int height,
             String keyLabel, String valueLabel) {
@@ -1143,6 +1160,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
     
     private void cancel() {
         Sound.setDeviceName(settings.getString("soundDevice"));
+        Sound.setCommand(settings.getBoolean("soundCommandEnabled"), settings.getString("soundCommand"));
         if (lafPreviewed) {
             LaF.setLookAndFeel(LaFSettings.fromSettings(settings));
             LaF.updateLookAndFeel();

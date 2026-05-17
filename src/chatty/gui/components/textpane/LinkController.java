@@ -5,6 +5,7 @@ import chatty.Helper;
 import chatty.User;
 import chatty.gui.Highlighter;
 import chatty.gui.LinkListener;
+import chatty.gui.MainGui;
 import chatty.gui.MouseClickedListener;
 import chatty.gui.UserListener;
 import chatty.gui.colors.ColorItem;
@@ -127,6 +128,8 @@ public class LinkController extends MouseAdapter {
     
     private ChannelTextPane.Type type;
     
+    private MainGui main;
+    
     public void setType(ChannelTextPane.Type type) {
         this.type = type;
     }
@@ -184,6 +187,10 @@ public class LinkController extends MouseAdapter {
     
     public void setChannel(Channel channel) {
         this.channel = channel;
+    }
+    
+    public void setMainGui(MainGui main) {
+        this.main = main;
     }
    
     /**
@@ -312,7 +319,7 @@ public class LinkController extends MouseAdapter {
         if (emoteImage != null) {
             popup.show(textPane, element, p -> makeEmoticonPopupText(emoteImage, popupImagesEnabled, p, element), emoteImage.getImageIcon().getIconWidth());
         } else if (usericonImage != null) {
-            popup.show(textPane, element, p -> makeUsericonPopupText(usericonImage, getUsericonInfo(element), p), usericonImage.getImageIcon().getIconWidth());
+            popup.show(textPane, element, p -> makeUsericonPopupText(usericonImage, getUsericonInfo(element), getUsericonSharedInfo(element), p), usericonImage.getImageIcon().getIconWidth());
         } else if (replacedText != null) {
             popup.show(textPane, element, p -> makeReplacementPopupText(replacedText, p), 1);
         } else if (replyMsgId != null) {
@@ -390,7 +397,7 @@ public class LinkController extends MouseAdapter {
     }
     
     private String getMsgId(Element e) {
-        return (String) e.getAttributes().getAttribute(ChannelTextPane.Attribute.ID);
+        return (String) e.getAttributes().getAttribute(ChannelTextPane.Attribute.MSG_ID);
     }
     
     private String getAutoModMsgId(Element e) {
@@ -407,6 +414,11 @@ public class LinkController extends MouseAdapter {
     
     private String getUsericonInfo(Element e) {
         return (String)(e.getAttributes().getAttribute(ChannelTextPane.Attribute.USERICON_INFO));
+    }
+    
+    @SuppressWarnings("unchecked")
+    private List<String> getUsericonSharedInfo(Element e) {
+        return (List<String>)(e.getAttributes().getAttribute(ChannelTextPane.Attribute.USERICON_SHARED_INFO));
     }
     
     private String getReplacedText(Element e) {
@@ -952,7 +964,7 @@ public class LinkController extends MouseAdapter {
     // Usericon Popup
     //----------------
     
-    private static void makeUsericonPopupText(CachedImage<Usericon> usericonImage, String moreInfo, MyPopup p) {
+    private void makeUsericonPopupText(CachedImage<Usericon> usericonImage, String moreInfo, List<String> sharedInfo, MyPopup p) {
         Usericon usericon = usericonImage.getObject();
         String info;
         if (!usericon.metaTitle.isEmpty()) {
@@ -979,6 +991,20 @@ public class LinkController extends MouseAdapter {
         }
         if (!StringUtil.isNullOrEmpty(moreInfo)) {
             info += "<br />("+moreInfo+")";
+        }
+        if (sharedInfo != null && !sharedInfo.isEmpty()) {
+            if (usericon.type == Usericon.Type.CHANNEL_LOGO) {
+                info += "<br />Shared Chat: "+StringUtil.join(sharedInfo, ", ")+"";
+            }
+            else {
+                String activeChannel = "";
+                // Don't modify original
+                List<String> chans = new ArrayList<>(sharedInfo);
+                if (chans.remove(channel.getName())) {
+                    activeChannel += " and here";
+                }
+                info += "<br />Badge from: "+StringUtil.join(chans, ", ")+activeChannel;
+            }
         }
         p.setText(info);
     }
@@ -1120,6 +1146,25 @@ public class LinkController extends MouseAdapter {
             
             m.addSeparator();
             m.add(menu);
+            
+            Long lineId = (Long) getSource(Attribute.LINE_ID, element);
+            User user = (User) getSource(Attribute.LOCAL_USER, element);
+            if (user == null && element.getParentElement() != null) {
+                user = ChannelTextPane.getUserFromLine(element.getParentElement());
+            }
+            String sourceChannel = user != null ? user.getChannel() : null;
+            if (lineId != null
+                    && sourceChannel != null
+                    && (channel == null || !channel.getChannel().equals(sourceChannel))
+                    && main != null) {
+                JMenuItem item = new JMenuItem("Go to source message");
+                item.setEnabled(main.hasLineId(sourceChannel, lineId));
+                item.setToolTipText("Message from "+sourceChannel);
+                item.addActionListener(e -> {
+                    main.scrollToLineId(sourceChannel, lineId, "Source Message");
+                });
+                m.add(item);
+            }
         }
     }
     

@@ -9,6 +9,7 @@ import chatty.gui.StyleManager;
 import chatty.gui.StyleServer;
 import chatty.gui.components.Channel;
 import chatty.gui.components.menus.ContextMenuAdapter;
+import chatty.gui.components.menus.ContextMenuHelper;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.menus.RoutingTargetContextMenu;
 import chatty.gui.components.menus.TabContextMenu;
@@ -111,7 +112,8 @@ public class RoutingTarget {
                     MutableAttributeSet attr = new SimpleAttributeSet(styles.getStyle(type));
                     // For crossing out messages for timeouts, but never show separate message
                     attr.addAttribute(ChannelTextPane.Setting.SHOW_BANMESSAGES, false);
-                    attr.addAttribute(ChannelTextPane.Setting.CHANNEL_LOGO_SIZE, 22);
+                    attr.addAttribute(ChannelTextPane.Setting.CHANNEL_LOGO_SIZE, channelLogo());
+                    attr.addAttribute(ChannelTextPane.Setting.SHOW_CHANNEL_NAME, showChannelName());
                     return attr;
                 }
                 return styles.getStyle(type);
@@ -160,6 +162,7 @@ public class RoutingTarget {
     //==========
     public void settingsUpdated() {
         setChannel(currentChannel, true);
+        refreshStyles();
     }
     
     private int multiChannel() {
@@ -172,6 +175,14 @@ public class RoutingTarget {
     
     private boolean channelFixed() {
         return routingManager.getSettings(targetId).channelFixed;
+    }
+    
+    private int channelLogo() {
+        return routingManager.getSettings(targetId).channelLogo;
+    }
+    
+    private int showChannelName() {
+        return routingManager.getSettings(targetId).showChannelName;
     }
     
     //==========
@@ -232,7 +243,7 @@ public class RoutingTarget {
     }
     
     private TextPane createTextPane(String channel) {
-        TextPane textPane = new TextPane(main, modifiedStyles, true);
+        TextPane textPane = new TextPane(main, modifiedStyles);
         JScrollPane scroll = new JScrollPane(textPane);
         textPane.setScrollPane(scroll);
         textPane.setContextMenuListener(new ContextMenuAdapter(contextMenuListener) {
@@ -264,6 +275,17 @@ public class RoutingTarget {
                     routingManager.updateSettings(targetId,
                             settings.setChannelFixed(!settings.channelFixed));
                 }
+                else if (e.getActionCommand().startsWith("logoSize")) {
+                    int size = Integer.parseInt(e.getActionCommand().substring("logoSize".length()));
+                    RoutingTargetSettings settings = routingManager.getSettings(targetId);
+                    routingManager.updateSettings(targetId,
+                            settings.setChannelLogo(size));
+                }
+                ContextMenuHelper.handleNumericOption(e.getActionCommand(), "showChannelName", value -> {
+                    RoutingTargetSettings settings = routingManager.getSettings(targetId);
+                    routingManager.updateSettings(targetId,
+                            settings.setShowChannelName(value.intValue()));
+                });
                 super.menuItemClicked(e);
             }
             
@@ -378,8 +400,8 @@ public class RoutingTarget {
         
         private JScrollPane scrollPane;
         
-        public TextPane(MainGui main, StyleServer styleServer, boolean startAtBottom) {
-            super(main, styleServer, ChannelTextPane.Type.REGULAR, startAtBottom);
+        public TextPane(MainGui main, StyleServer styleServer) {
+            super(main, styleServer, ChannelTextPane.Type.REGULAR, true, main.getSettings().getBoolean("chatInsertTop"));
             
             // Overriding constructor is required to set the custom context menu
             linkController.setContextMenuCreator(() -> new RoutingTargetContextMenu(
@@ -387,7 +409,9 @@ public class RoutingTarget {
                     routingManager.getSettings(targetId).channelFixed,
                     multiChannel() == 2,
                     routingManager.getSettings(targetId).showAll,
-                    currentChannel));
+                    currentChannel,
+                    channelLogo(),
+                    showChannelName()));
         }
         
         @Override

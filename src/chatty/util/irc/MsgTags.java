@@ -53,8 +53,8 @@ public class MsgTags extends IrcMsgTags {
         return get("custom-reward-id");
     }
     
-    public boolean isFromPubSub() {
-        return isValue("chatty-source", "pubsub");
+    public boolean isFromEventSub() {
+        return isValue("chatty-source", "eventsub");
     }
 
     public boolean isHistoricMsg() {
@@ -94,6 +94,10 @@ public class MsgTags extends IrcMsgTags {
         return get("reply-parent-msg-id");
     }
     
+    public String getReplyThreadParentMsgId() {
+        return get("reply-thread-parent-msg-id");
+    }
+    
     public String getHypeChatAmountText() {
         int amount = getInteger("pinned-chat-paid-amount", -1);
         String currency = get("pinned-chat-paid-currency");
@@ -110,6 +114,53 @@ public class MsgTags extends IrcMsgTags {
         return String.format("Level %s Hype Chat for %s",
                 get("pinned-chat-paid-level"),
                 getHypeChatAmountText());
+    }
+    
+    public String getPowerUpInfo() {
+        if (hasValue("msg-id")) {
+            switch (get("msg-id")) {
+                case "gigantified-emote-message":
+                    return "Gigantified Emote";
+                case "animated-message":
+                    return String.format("Styled Message (%s)",
+                                         StringUtil.shortenTo(get("animation-id"), 20));
+            }
+        }
+        return null;
+    }
+    
+    public boolean hasGigantifiedEmote() {
+        return isValue("msg-id", "gigantified-emote-message");
+    }
+    
+    public static final String IS_HIGHLIGHTED = "chatty-highlighted";
+    
+    public boolean isChattyHighlighted() {
+        return hasValue(IS_HIGHLIGHTED);
+    }
+    
+    public boolean isSharedMessage() {
+        return hasValue("source-room-id") && !get("source-room-id").equals(get("room-id"));
+    }
+    
+    public boolean isSharedChatActive() {
+        return hasValue("source-room-id");
+    }
+    
+    public static final String SHARED_MESSAGE_SOURCE_CHANNEL = "chatty-source-channel";
+    
+    /**
+     * May be null even for shared messages when an error occured getting the
+     * channel name/logo from the API.
+     * 
+     * @return 
+     */
+    public String getSourceChannel() {
+        return get(SHARED_MESSAGE_SOURCE_CHANNEL);
+    }
+    
+    public String getSourceId() {
+        return get("source-id");
     }
     
     //================
@@ -184,11 +235,15 @@ public class MsgTags extends IrcMsgTags {
      */
     public static MsgTags addTag(MsgTags a, String key, String value) {
         Map<String, String> result = new HashMap<>();
-        a.fill(result);
+        if (a != null) {
+            a.fill(result);
+        }
         result.put(key, value);
         
         Map<String, Object> objectsResult = new HashMap<>();
-        a.fillObjects(objectsResult);
+        if (a != null) {
+            a.fillObjects(objectsResult);
+        }
         
         return new MsgTags(result, objectsResult);
     }
@@ -252,7 +307,7 @@ public class MsgTags extends IrcMsgTags {
             return String.format("[%s.%s %s](%d-%d)",
                                  type, target, label, startIndex, endIndex);
         }
-
+        
         @Override
         public boolean equals(Object obj) {
             if (this == obj) {
@@ -274,12 +329,16 @@ public class MsgTags extends IrcMsgTags {
             if (!Objects.equals(this.target, other.target)) {
                 return false;
             }
-            return Objects.equals(this.label, other.label);
+            if (!Objects.equals(this.label, other.label)) {
+                return false;
+            }
+            return this.type == other.type;
         }
         
         @Override
         public int hashCode() {
-            int hash = 7;
+            int hash = 3;
+            hash = 79 * hash + Objects.hashCode(this.type);
             hash = 79 * hash + Objects.hashCode(this.target);
             hash = 79 * hash + Objects.hashCode(this.label);
             hash = 79 * hash + this.startIndex;

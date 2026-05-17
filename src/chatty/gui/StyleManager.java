@@ -42,6 +42,7 @@ public class StyleManager implements StyleServer {
             "lineSpacing", "bufferSize", "actionColored","combineBanMessages",
             "timestampTimezone", "autoScrollTimeout", "searchResultColor2",
             "inputFont","emoteScale", "emoteMaxHeight", "usericonScale",
+            "emoteScaleGigantified",
             "customUsericonScaleMode", "botBadgeEnabled",
             "filterCombiningCharacters", "pauseChatOnMouseMove",
             "pauseChatOnMouseMoveCtrlRequired",
@@ -53,6 +54,7 @@ public class StyleManager implements StyleServer {
             "nickColorCorrection",
             "mentions", "mentionsInfo", "markHoveredUser", "highlightMatchesAll",
             "nickColorBackground", "mentionMessages", "msgColorsLinks",
+            "sharedBadges", "sharedLogoSize", "sharedLogoAlways",
             "inputHistoryMultirowRequireCtrl" // Not delievered through this
             ));
     
@@ -200,6 +202,7 @@ public class StyleManager implements StyleServer {
         addBooleanSetting(Setting.EMOTICONS_ENABLED, "emoticonsEnabled");
         addLongSetting(Setting.EMOTICON_SCALE_FACTOR, "emoteScale");
         addLongSetting(Setting.EMOTICON_MAX_HEIGHT, "emoteMaxHeight");
+        addLongSetting(Setting.EMOTICON_SCALE_FACTOR_GIGANTIFIED, "emoteScaleGigantified");
         addLongSetting(Setting.USERICON_SCALE_FACTOR, "usericonScale");
         addLongSetting(Setting.CUSTOM_USERICON_SCALE_MODE, "customUsericonScaleMode");
         addBooleanSetting(Setting.USERICONS_ENABLED, "usericonsEnabled");
@@ -238,6 +241,10 @@ public class StyleManager implements StyleServer {
         }
         other.addAttribute(Setting.DELETED_MESSAGES_MODE, deletedMessagesModeNumeric);
         addLongSetting(Setting.DISPLAY_NAMES_MODE, "displayNamesMode");
+        
+        addLongSetting(Setting.SHARED_BADGES, "sharedBadges");
+        addLongSetting(Setting.SHARED_LOGO_SIZE, "sharedLogoSize");
+        addBooleanSetting(Setting.SHARED_LOGO_ALWAYS, "sharedLogoAlways");
         
         colorCorrector = ColorCorrector.get(settings.getString("nickColorCorrection"));
     }

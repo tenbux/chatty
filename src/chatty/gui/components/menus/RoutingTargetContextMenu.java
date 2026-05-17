@@ -3,8 +3,13 @@ package chatty.gui.components.menus;
 
 import chatty.gui.DockedDialogHelper;
 import chatty.gui.components.Channel;
+import static chatty.gui.components.menus.ContextMenuHelper.addNumericOptions;
+import chatty.gui.components.routing.RoutingTargetSettings;
+import chatty.gui.components.settings.RoutingSettingsTable;
+import chatty.lang.Language;
 import java.awt.event.ActionEvent;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Context menu for Custom Tabs.
@@ -17,7 +22,9 @@ public class RoutingTargetContextMenu extends ContextMenu {
                                     boolean fixedChannelEnabled,
                                     boolean addAllEntry,
                                     boolean showAll,
-                                    String currentChannel) {
+                                    String currentChannel,
+                                    int channelLogoValue,
+                                    int showChannelName) {
         
         if (openChannels != null) {
             addItem("clearAll", "Clear all");
@@ -34,6 +41,25 @@ public class RoutingTargetContextMenu extends ContextMenu {
         else {
             addItem("clearAll", "Clear");
         }
+        addSeparator();
+        addChannelLogoOptions(this, channelLogoValue);
+        addShowChannelNameOptions(this, showChannelName);
+    }
+    
+    public static void addChannelLogoOptions(ContextMenu menu, long channelLogoValue) {
+        addNumericOptions(menu,
+                          Language.getString("settings.label.routingTargets.channelLogo").replace(":", ""),
+                          "logoSize",
+                          channelLogoValue,
+                          RoutingSettingsTable.makeChannelLogoValues());
+    }
+    
+    public static void addShowChannelNameOptions(ContextMenu menu, long showChannelName) {
+        addNumericOptions(menu,
+                          Language.getString("settings.label.routingTargets.showChannelName").replace(":", ""),
+                          "showChannelName",
+                          showChannelName,
+                          RoutingSettingsTable.makeChannelNameValues());
     }
     
     @Override

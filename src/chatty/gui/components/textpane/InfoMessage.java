@@ -24,6 +24,7 @@ public class InfoMessage {
         COMMANDS.put("subs_on", "subscribers");
         COMMANDS.put("subs_off", "subscribersoff");
         COMMANDS.put("followers_on", "followers");
+        COMMANDS.put("followers_on_zero", "followers");
         COMMANDS.put("followers_off", "followersoff");
         COMMANDS.put("emote_only_on", "emoteonly");
         COMMANDS.put("emote_only_off", "emoteonlyoff");
@@ -49,6 +50,8 @@ public class InfoMessage {
     public final String text;
     public final MsgTags tags;
     
+    public final long lineId;
+    
     public boolean highlighted;
     private boolean hidden;
     public Color color;
@@ -69,6 +72,7 @@ public class InfoMessage {
         this.msgType = msgType;
         this.text = text;
         this.tags = tags;
+        lineId = Message.getLineId();
     }
     
     public InfoMessage(InfoMessage other) {
@@ -86,6 +90,7 @@ public class InfoMessage {
         routingSource = other.routingSource;
         objectId = other.objectId;
         localUser = other.localUser;
+        lineId = other.lineId;
     }
     
     public InfoMessage copy() {

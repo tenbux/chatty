@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 import chatty.util.api.ResultManager.CategoryResult;
 import chatty.util.api.ResultManager.CreateClipResult;
 import chatty.util.api.eventsub.EventSubAddResult;
+import chatty.util.api.eventsub.EventSubSubs;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -243,16 +244,16 @@ public class TwitchApi {
         StreamLabels.request(requests);
     }
     
-    public void getFollowers(String stream) {
-        followerManager.request(stream);
+    public void getFollowers(String stream, boolean forceRefresh) {
+        followerManager.request(stream, forceRefresh);
     }
 
     public Follower getSingleFollower(String stream, String streamId, String user, String userId, boolean refresh) {
         return followerManager.getSingleFollower(stream, streamId, user, userId, refresh);
     }
     
-    public void getSubscribers(String stream) {
-        subscriberManager.request(stream);
+    public void getSubscribers(String stream, boolean forceRefresh) {
+        subscriberManager.request(stream, forceRefresh);
     }
     
     public UserInfo getCachedUserInfo(String channel, Consumer<UserInfo> result) {
@@ -556,6 +557,16 @@ public class TwitchApi {
         }, stream);
     }
     
+    public void sendChatMessage(String stream, String message, String replyToMsgId, Consumer<SendMessageResult> listener) {
+        userIDs.getUserIDsAsap(r -> {
+            if (r.hasError()) {
+                listener.accept(new SendMessageResult(false, null, "Failed to resolve channel id"));
+            } else {
+                requests.sendChatMessage(r.getId(stream), message, replyToMsgId, listener);
+            }
+        }, stream);
+    }
+    
     public void subscribe(ResultManager.Type type, Object listener) {
         resultManager.subscribe(type, listener);
     }
@@ -589,6 +600,12 @@ public class TwitchApi {
     public void shoutout(User targetUser, SimpleRequestResultListener listener) {
         runWithUserIds(targetUser, listener, (streamId, targetId) -> {
             requests.shoutout(streamId, targetId, listener);
+        });
+    }
+    
+    public void warn(User targetUser, String reason, SimpleRequestResultListener listener) {
+        runWithUserIds(targetUser, listener, (streamId, targetId) -> {
+            requests.warn(streamId, targetId, reason, listener);
         });
     }
     
@@ -767,6 +784,10 @@ public class TwitchApi {
     
     public void removeEventSub(String id, Consumer<Integer> listener) {
         requests.removeEventSub(id, listener);
+    }
+    
+    public void getEventSubSubs(Consumer<EventSubSubs> listener) {
+        requests.getEventSubSubs(null, listener, null);
     }
     
 }

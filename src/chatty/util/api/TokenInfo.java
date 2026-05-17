@@ -21,16 +21,18 @@ public class TokenInfo {
         BASIC("basic",
                 Scope.CHAT_READ,
                 Scope.CHAT_EDIT,
+                Scope.USER_READ_CHAT,
+                Scope.USER_WRITE_CHAT,
                 Scope.WHISPER_READ,
                 Scope.WHISPER_EDIT,
                 Scope.WHISPER_MANAGE,
                 Scope.MANAGE_COLOR,
-                Scope.POINTS,
                 Scope.FOLLOWS,
                 Scope.CLIPS_EDIT
         ),
         MODERATION("moderation",
                 Scope.MANAGE_CHAT,
+                Scope.MANAGE_WARNINGS,
                 Scope.MANAGE_BANS,
                 Scope.MANAGE_MSGS,
                 Scope.CHAN_MOD,
@@ -40,7 +42,11 @@ public class TokenInfo {
                 Scope.ANNOUNCEMENTS,
                 Scope.MANAGE_SHIELD,
                 Scope.MANAGE_SHOUTOUTS,
-                Scope.CHANNEL_FOLLOWERS
+                Scope.CHANNEL_FOLLOWERS,
+                Scope.MANAGE_UNBAN_REQUESTS,
+                Scope.READ_MODS,
+                Scope.READ_VIPS,
+                Scope.READ_SUSPICIOUS_USERS
         ),
         BROADCASTER("broadcaster",
                 Scope.MANAGE_MODS,
@@ -50,7 +56,8 @@ public class TokenInfo {
                 Scope.COMMERICALS,
                 Scope.SUBSCRIBERS,
                 Scope.MANAGE_RAIDS,
-                Scope.MANAGE_POLLS
+                Scope.MANAGE_POLLS,
+                Scope.READ_POINTS
         );
         
         public List<Scope> scopes;
@@ -94,7 +101,7 @@ public class TokenInfo {
         AUTOMOD("moderator:manage:automod", "automod"),
         BLOCKED_READ("moderator:read:blocked_terms", "blockedRead"),
         BLOCKED_MANAGE("moderator:manage:blocked_terms", "blockedManage"),
-        POINTS("channel:read:redemptions", "points"),
+        READ_POINTS("channel:read:redemptions", "points"),
         ANNOUNCEMENTS("moderator:manage:announcements", "announcements"),
         MANAGE_BANS("moderator:manage:banned_users", "manageBans"),
         MANAGE_CHAT("moderator:manage:chat_settings", "manageChat"),
@@ -106,7 +113,14 @@ public class TokenInfo {
         MANAGE_RAIDS("channel:manage:raids", "manageRaids"),
         MANAGE_POLLS("channel:manage:polls", "managePolls"),
         MANAGE_SHOUTOUTS("moderator:manage:shoutouts", "manageShoutouts"),
-        CLIPS_EDIT("clips:edit", "editClips");
+        MANAGE_WARNINGS("moderator:manage:warnings", "manageWarnings"),
+        MANAGE_UNBAN_REQUESTS("moderator:manage:unban_requests", "manageUnbanRequests"),
+        READ_MODS("moderator:read:moderators", "readMods"),
+        READ_VIPS("moderator:read:vips", "readVips"),
+        READ_SUSPICIOUS_USERS("moderator:read:suspicious_users", "readSuspiciousUsers"),
+        CLIPS_EDIT("clips:edit", "editClips"),
+        USER_READ_CHAT("user:read:chat", "userReadChat"),
+        USER_WRITE_CHAT("user:write:chat", "userWriteChat");
         
         public String scope;
         public String label;

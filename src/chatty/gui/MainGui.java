@@ -3,7 +3,6 @@ package chatty.gui;
 
 import chatty.gui.transparency.TransparencyManager;
 import chatty.gui.laf.LaF;
-import chatty.util.api.pubsub.LowTrustUserMessageData;
 import chatty.util.colors.HtmlColors;
 import chatty.Addressbook;
 import chatty.ChannelState;
@@ -25,6 +24,7 @@ import chatty.util.api.*;
 
 import java.util.List;
 import chatty.Chatty;
+import chatty.Commands;
 import chatty.TwitchClient;
 import chatty.Helper;
 import chatty.User;
@@ -85,7 +85,9 @@ import chatty.gui.notifications.NotificationWindowManager;
 import chatty.lang.Language;
 import chatty.util.api.Emoticons.TagEmotes;
 import chatty.util.api.TwitchApi.RequestResultCode;
-import chatty.util.api.pubsub.ModeratorActionData;
+import chatty.util.api.eventsub.payloads.ModActionPayload;
+import chatty.util.api.eventsub.payloads.ModActionPayload.AutoModMessageUpdate;
+import chatty.util.api.eventsub.payloads.SuspiciousMessagePayload;
 import chatty.util.commands.CustomCommand;
 import chatty.util.commands.Parameters;
 import chatty.util.dnd.DockContent;
@@ -121,7 +123,9 @@ import chatty.util.gif.FocusUpdates;
 import chatty.util.gif.GifUtil;
 import chatty.util.history.HistoryUtil;
 import chatty.util.seventv.WebPUtil;
+import chatty.util.tts.TextToSpeech;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import org.json.simple.JSONValue;
 
 /**
@@ -853,6 +857,35 @@ public class MainGui extends JFrame implements Runnable {
             }
         });
         
+        hotkeyManager.registerAction("window.minimizeToTray", "Window: Minimize to Tray", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                minimizeToTray();
+            }
+        });
+        
+        hotkeyManager.registerAction("window.restoreFromTray", "Window: Restore from Tray/Minimized", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                makeVisible();
+            }
+        });
+        
+        hotkeyManager.registerAction("window.toggleMinimizeToTray", "Window: Toggle Minimize to Tray", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (isMinimized()) {
+                    makeVisible();
+                }
+                else {
+                    minimizeToTray();
+                }
+            }
+        });
+        
         hotkeyManager.registerAction("window.toggleCompact", "Window: Toggle Compact Mode", new AbstractAction() {
 
             @Override
@@ -923,6 +956,62 @@ public class MainGui extends JFrame implements Runnable {
             @Override
             public void actionPerformed(ActionEvent e) {
                 notificationWindowManager.clearAllShown();
+            }
+        });
+        
+        hotkeyManager.registerAction("tts.pause", "Text to speech: Pause speaking (queue active)", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                TextToSpeech.get(client.settings).pause();
+            }
+        });
+        
+        hotkeyManager.registerAction("tts.resume", "Text to speech: Resume speaking", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                TextToSpeech.get(client.settings).start();
+            }
+        });
+        
+        hotkeyManager.registerAction("tts.skipForwards", "Text to speech: Skip forwards in queue (interrupt current message)", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                TextToSpeech.get(client.settings).skipForwards();
+            }
+        });
+        
+        hotkeyManager.registerAction("tts.skipBackwards", "Text to speech: Skip backwards in queue (repeat previous message)", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                TextToSpeech.get(client.settings).skipBackwards();
+            }
+        });
+        
+        hotkeyManager.registerAction("tts.clearQueue", "Text to speech: Clear current queue", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                TextToSpeech.get(client.settings).clearQueue();
+            }
+        });
+        
+        hotkeyManager.registerAction("tts.on", "Text to speech: Enable TTS (queue active, speaking)", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                TextToSpeech.get(client.settings).enable();
+            }
+        });
+        
+        hotkeyManager.registerAction("tts.off", "Text to speech: Disable TTS (queue inactive, no speaking)", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                TextToSpeech.get(client.settings).disable();
             }
         });
         
@@ -1102,6 +1191,7 @@ public class MainGui extends JFrame implements Runnable {
         // will delete the attributes correctly depending on the setting
         channels.setPopoutAttributes(client.settings.getList("popoutAttributes"));
         updatePopoutSettings();
+        channels.setInsertTop(client.settings.getBoolean("chatInsertTop"));
         
         loadCommercialDelaySettings();
         UrlOpener.setSettings(client.settings);
@@ -1146,6 +1236,7 @@ public class MainGui extends JFrame implements Runnable {
         adminDialog.setStatusHistorySorting(client.settings.getString("statusHistorySorting"));
         
         Sound.setDeviceName(client.settings.getString("soundDevice"));
+        Sound.setCommand(client.settings.getBoolean("soundCommandEnabled"), client.settings.getString("soundCommand"));
         
         dockedDialogs.loadSettings();
         
@@ -2464,9 +2555,9 @@ public class MainGui extends JFrame implements Runnable {
             Emoticon emote = emoteImage.getObject();
             String url = null;
             if (e.getActionCommand().equals("code")) {
-                channels.getActiveChannel().insertText(emote.code, true);
+                channels.getActiveChannel().insertText(emote.code, "s");
             } else if (e.getActionCommand().equals("codeEmoji")) {
-                channels.getActiveChannel().insertText(emote.stringId, true);
+                channels.getActiveChannel().insertText(emote.stringId, "s");
             } else if (e.getActionCommand().equals("cheer")) {
                 url = "https://help.twitch.tv/customer/portal/articles/2449458";
             } else if (e.getActionCommand().equals("emoteImage")) {
@@ -2548,6 +2639,9 @@ public class MainGui extends JFrame implements Runnable {
             }
             else if (e.getActionCommand().equals("badgeImage")) {
                 UrlOpener.openUrlPrompt(getActiveWindow(), usericonImage.getSourceUrl(), true);
+            }
+            else if (e.getActionCommand().equals("hideChannelLogo")) {
+                JOptionPane.showMessageDialog(getActiveWindow(), "Custom Tabs/Stream Chat: Right-click on empty space to open context menu.");
             }
         }
         
@@ -2820,10 +2914,19 @@ public class MainGui extends JFrame implements Runnable {
             openSearchDialog();
         });
         client.commands.addEdt("insert", p -> {
-            insert(p.getArgs(), false);
+            insert(p.getRoom(), p.getArgs(), false);
         });
         client.commands.addEdt("insertWord", p -> {
-            insert(p.getArgs(), true);
+            insert(p.getRoom(), p.getArgs(), true);
+        });
+        client.commands.addEdt("insert2", "[-options] <text>", p -> {
+            Commands.CommandParsedArgs args = p.parsedArgs(1, 1);
+            if (args == null) {
+                printLine(p.getCommand().getUsage());
+            }
+            else {
+                insert(p.getRoom(), args.get(0), args.options);
+            }
         });
         client.commands.addEdt("openUrl", p -> {
             if (!UrlOpener.openUrl(p.getArgs())) {
@@ -2971,20 +3074,51 @@ public class MainGui extends JFrame implements Runnable {
     }
     
     public void insert(final String text, final boolean spaces) {
-        insert(text, spaces, false);
+        insert(channels.getLastActiveChannel().getRoom(), text, spaces, false);
     }
     
     public void insert(final String text, final boolean spaces, boolean focus) {
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                if (text != null) {
-                    channels.getLastActiveChannel().insertText(text, spaces);
-                    if (focus) {
-                        channels.getLastActiveChannel().requestFocus();
-                        channels.getLastActiveChannel().getInput().requestFocusInWindow();
-                    }
+        insert(channels.getLastActiveChannel().getRoom(), text, spaces, focus);
+    }
+    
+    public void insert(final Room room, final String text, final boolean spaces) {
+        insert(room, text, spaces, false);
+    }
+    
+    public void insert(final Room room, final String text, final boolean spaces, boolean focus) {
+        String options = spaces ? "s" : "";
+        options += focus ? "f" : "";
+        insert(room, text, options);
+    }
+    
+    /**
+     * 
+     * c - Current channel
+     * f - Focus input
+     * p - Prepend
+     * a - Append
+     * b - Set caret to beginning after inserting
+     * e - Set caret to end after inserting
+     * s - Add space if necessary
+     * 
+     * @param room
+     * @param text
+     * @param options 
+     */
+    public void insert(final Room room, final String text, final String options) {
+        SwingUtilities.invokeLater(() -> {
+            if (text != null) {
+                Channel chan;
+                if (options.contains("c")) {
+                    chan = channels.getLastActiveChannel();
+                }
+                else {
+                    chan = channels.getChannel(room);
+                }
+                chan.insertText(text, options);
+                if (options.contains("f")) {
+                    chan.requestFocus();
+                    chan.getInput().requestFocusInWindow();
                 }
             }
         });
@@ -3386,9 +3520,9 @@ public class MainGui extends JFrame implements Runnable {
         });
     }
     
-    public void triggerCommandNotification(String channel, String title, String text, boolean noNotify, boolean noSound) {
+    public void triggerCommandNotification(String channel, String title, String text, HighlightItem fakeItem) {
         GuiUtil.edt(() -> {
-            notificationManager.commandNotification(channel, title, text, noNotify, noSound);
+            notificationManager.commandNotification(channel, title, text, fakeItem);
         });
     }
     
@@ -3462,6 +3596,9 @@ public class MainGui extends JFrame implements Runnable {
     }
     
     public void printMessage(User user, String text2, boolean action, MsgTags tags0) {
+        client.resolveSourceData(user, tags0, tags1 -> {
+            
+        
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
@@ -3475,7 +3612,7 @@ public class MainGui extends JFrame implements Runnable {
                 boolean decodeZWF = client.settings.getLong("emojiZWJ") > 0;
                 String text = decodeZWF ? EmojiUtil.decodeZWJ(text2) : text2;
                 
-                MsgTags tags = tags0;
+                MsgTags tags = tags1;
                 Channel chan;
                 String channel = user.getChannel();
                 boolean whisper = false;
@@ -3522,7 +3659,7 @@ public class MainGui extends JFrame implements Runnable {
                     tags = MsgTags.addTag(tags, "id", String.valueOf(User.MSG_ID++));
                 }
                 
-                boolean isOwnMessage = isOwnUsername(user.getName()) || (whisper && action);
+                boolean isOwnMessage = client.isOwnUsername(user.getName()) || (whisper && action);
                 boolean ignoredUser = (userIgnored(user, whisper) && !isOwnMessage);
                 // May be necessary to check even if ignoredUser, to get ignore matchings later on
                 boolean ignored = checkMsg(ignoreList, "ignore", text, -2, -2, user, localUser, tags, isOwnMessage, false) || ignoredUser;
@@ -3550,6 +3687,7 @@ public class MainGui extends JFrame implements Runnable {
                                 || highlighter.getLastMatchItem().overrideIgnored()) {
                             ignored = false;
                         }
+                        tags = MsgTags.addTag(tags, MsgTags.IS_HIGHLIGHTED, "true");
                     }
                 }
                 
@@ -3570,16 +3708,15 @@ public class MainGui extends JFrame implements Runnable {
                     } else {
                         channels.setChannelNewMessage(chan);
                     }
-                    notificationManager.highlight(user, localUser, text, tags,
-                            highlighter.getLastMatchNoNotification(),
-                            highlighter.getLastMatchNoSound(),
-                            isOwnMessage, whisper, bitsAmount > 0);
+                    notificationManager.highlight(user, localUser, text, tags, isOwnMessage, whisper, bitsAmount > 0, highlighter.getLastMatchItem());
+                    TextToSpeech.get(client.settings).message(user, text, tags, isOwnMessage);
                 } else if (!ignored) {
                     if (whisper) {
                         notificationManager.whisper(user, localUser, text, isOwnMessage);
                     } else {
                         notificationManager.message(user, localUser, text, tags, isOwnMessage,
                                 bitsAmount > 0);
+                        TextToSpeech.get(client.settings).message(user, text, tags, isOwnMessage);
                     }
                     if (!isOwnMessage) {
                         channels.setChannelNewMessage(chan);
@@ -3698,10 +3835,10 @@ public class MainGui extends JFrame implements Runnable {
                 // Update User
                 String hypeChatAmount = tags.getHypeChatAmountText();
                 if (hypeChatAmount != null) {
-                    user.addSub(processMessage(text), tags.getHypeChatInfo(), tags.getId());
+                    user.addSub(processMessage(text), tags.getHypeChatInfo(), tags.getId(), tags.getSourceId(), tags.getSourceChannel());
                 }
                 else {
-                    user.addMessage(processMessage(text), action, tags.getId(), tags.getHistoricTimeStamp());
+                    user.addMessage(processMessage(text), action, tags.getId(), tags.getSourceId(), tags.getSourceChannel(), tags.getHistoricTimeStamp());
                 }
                 if (highlighted) {
                     user.setHighlighted();
@@ -3709,17 +3846,26 @@ public class MainGui extends JFrame implements Runnable {
                 updateUserInfoDialog(user);
             }
         });
+        
+        
+        });
     }
     
     public void printSubscriberMessage(final User user, final String text,
-            final String message, final MsgTags tags) {
+            final String message, final MsgTags tags0) {
+        client.resolveSourceData(user, tags0, tags -> {
+            
+            
         SwingUtilities.invokeLater(() -> {
             SubscriberMessage m = new SubscriberMessage(user, text, message, tags);
 
-            boolean printed = printUsernotice(m);
+            boolean printed = printUsernoticeInternal(m);
             if (printed) {
                 notificationManager.newSubscriber(user, client.getLocalUser(user.getChannel()), text, message);
             }
+        });
+        
+        
         });
     }
     
@@ -3737,27 +3883,49 @@ public class MainGui extends JFrame implements Runnable {
      * @param message
      * @param tags 
      */
-    public void printPointsNotice(final User user, final String text, final String message, final MsgTags tags) {
+    public void printPointsNotice(final User user, final String text, final String message, final MsgTags tags, final String redemptionId, boolean isUpdate, String status) {
         SwingUtilities.invokeLater(() -> {
-            UserNotice m = new UserNotice("Points", user, text, message, tags);
-            if (message != null) {
-                Helper.pointsMerge(m, this);
+            if (isUpdate && redemptionId != null && status != null) {
+                channels.getChannel(user.getRoom()).printInfoMessage(InfoMessage.createAppend(redemptionId, String.format("(%s)", status)));
             }
             else {
-                printUsernotice(m);
+                UserNotice m = new UserNotice("Points", user, text, message, tags);
+                if (redemptionId != null) {
+                    // For appending status in an update
+                    m.objectId = redemptionId;
+                }
+                if (message != null) {
+                    // With EventSub this may always be non-null
+                    Helper.pointsMerge(m, this);
+                }
+                else {
+                    printUsernoticeInternal(m);
+                }
             }
         });
     }
     
     public void printUsernotice(final String type, final User user, final String text,
-            final String message, final MsgTags tags) {
-        SwingUtilities.invokeLater(() -> {
-            UserNotice m = new UserNotice(type, user, text, message, tags);
-            printUsernotice(m);
+            final String message, final MsgTags tags0) {
+        client.resolveSourceData(user, tags0, tags -> {
+            
+            
+            SwingUtilities.invokeLater(() -> {
+                UserNotice m = new UserNotice(type, user, text, message, tags);
+                printUsernoticeInternal(m);
+            });
+            
+            
         });
     }
     
-    private boolean printUsernotice(UserNotice m) {
+    public void printUsernotice(UserNotice m) {
+        GuiUtil.edt(() -> {
+            printUsernoticeInternal(m);
+        });
+    }
+    
+    private boolean printUsernoticeInternal(UserNotice m) {
         boolean notIgnored = printInfo(channels.getChannel(m.user.getRoom()), m);
         
         // Only add if not dummy user (dummy user possibly not used anymore)
@@ -3765,9 +3933,9 @@ public class MainGui extends JFrame implements Runnable {
             String message = m.attachedMessage != null ? processMessage(m.attachedMessage) : "";
             String text = m.infoText;
             if (m instanceof SubscriberMessage) {
-                m.user.addSub(message, text, m.tags.getId());
+                m.user.addSub(message, text, m.tags.getId(), m.tags.getSourceId(), m.tags.getSourceChannel());
             } else {
-                m.user.addInfo(message, m.text);
+                m.user.addInfo(message, m.text, m.tags.isSharedMessage(), m.tags.getSourceChannel());
             }
             updateUserInfoDialog(m.user);
         }
@@ -3831,11 +3999,6 @@ public class MainGui extends JFrame implements Runnable {
     private boolean showIgnoredInfo() {
         return !client.settings.getBoolean("ignoreShowNotDialog") ||
                 !ignoredMessages.isVisible();
-    }
-    
-    private boolean isOwnUsername(String name) {
-        String ownUsername = client.getUsername();
-        return ownUsername != null && ownUsername.equalsIgnoreCase(name);
     }
     
     public void userBanned(final User user, final long duration, final String reason, final String id) {
@@ -4033,6 +4196,7 @@ public class MainGui extends JFrame implements Runnable {
                         || highlighter.getLastMatchItem().overrideIgnored()) {
                     ignored = false;
                 }
+                tags = MsgTags.addTag(tags, MsgTags.IS_HIGHLIGHTED, "true");
             }
         }
         if (!ignored) {
@@ -4047,6 +4211,7 @@ public class MainGui extends JFrame implements Runnable {
                     message.bgColor = highlighter.getLastMatchBackgroundColor();
                     message.colorSource = highlighter.getColorSource();
                     message.highlightSource = highlighter.getLastMatchItems();
+                    message.localUser = localUser;
                     routingTargets.add(highlighter.getLastMatchItem());
 
                     if (!highlighter.getLastMatchNoNotification()) {
@@ -4055,8 +4220,7 @@ public class MainGui extends JFrame implements Runnable {
                         channels.setChannelNewMessage(channel);
                     }
                     notificationManager.infoHighlight(channel.getRoom(), message.text,
-                            highlighter.getLastMatchNoNotification(),
-                            highlighter.getLastMatchNoSound(), localUser);
+                            highlighter.getLastMatchItem(), localUser);
                 } else {
                     notificationManager.info(channel.getRoom(), message.text, localUser);
                 }
@@ -4088,7 +4252,7 @@ public class MainGui extends JFrame implements Runnable {
             routingTargets.add(ignoreList.getLastMatchItem());
             if (!ignoreList.getLastMatchItem().hide()) {
                 ignoredMessages.addInfoMessage(channel.getChannel(), message.text,
-                        ignoreList.getLastTextMatches(), ignoreList.getLastMatchItems());
+                        ignoreList.getLastTextMatches(), ignoreList.getLastMatchItems(), localUser);
             }
             if (!ignoreList.getLastMatchItem().noLog()) {
                 client.chatLog.info("ignored", message.text, channel.getChannel());
@@ -4205,7 +4369,7 @@ public class MainGui extends JFrame implements Runnable {
         GuiUtil.edt(() -> debugWindow.printTimerLog(line));
     }
     
-    public void printModerationAction(final ModeratorActionData data,
+    public void printModerationAction(final ModActionPayload data,
             final boolean ownAction) {
         SwingUtilities.invokeLater(new Runnable() {
 
@@ -4219,14 +4383,15 @@ public class MainGui extends JFrame implements Runnable {
                 // AutoMod only seems to work in Stream Chat
                 if (channels.isChannel(channel)) {
                     Channel chan = channels.getExistingChannel(channel);
-                    if (data.type == ModeratorActionData.Type.AUTOMOD_REJECTED
-                            && data.args.size() > 1) {
+                    if (data.type == ModActionPayload.Type.AUTOMOD_FILTERED
+                            && data.action instanceof AutoModMessageUpdate) {
+                        AutoModMessageUpdate update = (AutoModMessageUpdate) data.action;
                         // Automod
-                        String username = data.args.get(0);
-                        String message = data.args.get(1);
+                        String username = update.getUsername();
+                        String message = update.getMessage();
                         if (client.settings.getBoolean("showAutoMod")) {
                             User user = client.getUser(channel, username);
-                            printInfo(chan, new AutoModMessage(user, message, data.msgId));
+                            printInfo(chan, new AutoModMessage(user, message, update.getMsgId()));
                         }
                         notificationManager.autoModMessage(channel, username, message);
                     }
@@ -4235,13 +4400,13 @@ public class MainGui extends JFrame implements Runnable {
                 // Moderator Actions apparently apply to all rooms
                 Collection<Channel> chans = channels.getExistingChannelsByOwner(channel);
                 if (!chans.isEmpty()
-                        && data.type != ModeratorActionData.Type.AUTOMOD_REJECTED
-                        && data.type != ModeratorActionData.Type.UNMODDED) {
+                        && data.type != ModActionPayload.Type.AUTOMOD_FILTERED
+                        && data.type != ModActionPayload.Type.UNMODDED) {
                     boolean showActions = client.settings.getBoolean("showModActions");
                     boolean showActionsRestrict = client.settings.getBoolean("showModActionsRestrict");
                     boolean showMessage =
                                showActions
-                            && (!ownAction || ModLogInfo.isIndirectAction(data))
+                            && (!ownAction || data.action.isIndirectAction())
                             && !(showActionsRestrict && ModLogInfo.isAssociated(data));
                     boolean showActionby = client.settings.getBoolean("showActionBy");
                     for (Channel chan : chans) {
@@ -4257,7 +4422,7 @@ public class MainGui extends JFrame implements Runnable {
         });
     }
 
-    public void printLowTrustUserInfo(User user, final LowTrustUserMessageData data) {
+    public void printLowTrustUserInfo(User user, final SuspiciousMessagePayload data) {
         String channel = Helper.toValidChannel(data.stream);
         if (channels.isChannel(channel)) {
             data.fetchUserInfoForBannedChannels(client.api, () -> SwingUtilities.invokeLater(() -> {
@@ -4265,7 +4430,7 @@ public class MainGui extends JFrame implements Runnable {
                 // Restricted Message
                 //--------------------------
                 Channel chan = channels.getExistingChannel(channel);
-                if (data.treatment == LowTrustUserMessageData.Treatment.RESTRICTED
+                if (data.treatment == SuspiciousMessagePayload.Treatment.RESTRICTED
                         && client.settings.getBoolean("showRestrictedMessages")) {
                     // Message is not being posted to actual chat, display it here anyway
                     MsgTags tags = MsgTags.create(
@@ -4274,7 +4439,7 @@ public class MainGui extends JFrame implements Runnable {
                     );
                     printMessage(user, data.text, false, tags);
                 }
-                
+
                 //--------------------------
                 // Appended Info
                 //--------------------------
@@ -5482,6 +5647,10 @@ public class MainGui extends JFrame implements Runnable {
                     emoticons.setCheerBackground(HtmlColors.decode((String)value));
                 } else if (setting.equals("soundDevice")) {
                     Sound.setDeviceName((String)value);
+                } else if (setting.startsWith("soundCommand")) {
+                    BatchAction.queue(Sound.SOUND_COMMAND_UNIQUE,
+                                      () -> Sound.setCommand(client.settings.getBoolean("soundCommandEnabled"), client.settings.getString("soundCommand"))
+                    );
                 } else if (setting.equals("userDialogTimestamp")) {
                     userInfoDialog.setTimestampFormat(styleManager.makeTimestampFormat("userDialogTimestamp"));
                 }
@@ -5628,6 +5797,14 @@ public class MainGui extends JFrame implements Runnable {
         });
     }
     
+    public boolean hasLineId(String channel, long lineId) {
+        return channels.hasLineId(channel, lineId);
+    }
+    
+    public void scrollToLineId(String channel, long lineId, String label) {
+        GuiUtil.edt(() -> channels.scrollToLineId(channel, lineId, label));
+    }
+    
     public WindowListener getWindowListener() {
         return windowListener;
     }
@@ -5759,6 +5936,11 @@ public class MainGui extends JFrame implements Runnable {
 
             @Override
             public void run() {
+                String ignore = client.settings.getString("ignoreError");
+                if (!ignore.isEmpty()
+                        && Pattern.compile(ignore).matcher(ErrorMessage.makeErrorText(error, previous)).find()) {
+                    return;
+                }
                 int result = errorMessage.show(error, previous, client.getOpenChannels().size());
                 if (result == ErrorMessage.QUIT) {
                     exit();

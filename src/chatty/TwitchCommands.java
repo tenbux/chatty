@@ -165,6 +165,13 @@ public class TwitchCommands {
                 api.shoutout(user, resultListener);
             }, "");
         });
+        commands.add("warn", "<user> <reason>", p -> {
+            Commands.CommandParsedArgs args = p.parsedArgs(2, 2);
+            String reason = args != null ? args.get(1, "") : "";
+            userCommand(client, p, args, (user, resultListener) -> {
+                api.warn(user, reason, resultListener);
+            }, StringUtil.aEmptyb(reason, "", " (%s)"));
+        });
         //--------------------------
         // Broadcaster
         //--------------------------
@@ -236,7 +243,7 @@ public class TwitchCommands {
                     TwitchApi.CHAT_SETTINGS_UNIQUE, false);
         }, "r9kbetaOff", "r9kOff");
         commands.add("followers", p -> {
-            int minutes = (int) DateTime.parseDurationSeconds(p.getArgs()) / 60;
+            int minutes = (int) DateTime.parseDurationSeconds(p.getArgs(), TimeUnit.MINUTES) / 60;
             if (minutes == -1) {
                 updateChatSettings(client, p, "",
                         TwitchApi.CHAT_SETTINGS_FOLLOWER_MODE, true);
@@ -477,7 +484,7 @@ public class TwitchCommands {
         return message;
     }
     
-    private static String formatDuration(int seconds) {
+    public static String formatDuration(int seconds) {
         if (seconds > 0) {
             return DateTime.duration(TimeUnit.SECONDS.toMillis(seconds), DateTime.Formatting.NO_ZERO_VALUES);
         }

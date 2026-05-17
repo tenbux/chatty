@@ -75,14 +75,14 @@ public class UserTest {
         }
         assertFalse(otherTypes.linesCleared());
         assertFalse(otherTypes.maxLinesExceeded());
-        otherTypes.addInfo(null, null);
+        otherTypes.addInfo(null, null, false, null);
         assertFalse(otherTypes.linesCleared());
         assertTrue(otherTypes.maxLinesExceeded());
         otherTypes.clearLinesIfInactive(0);
         assertTrue(otherTypes.linesCleared());
         assertFalse(otherTypes.maxLinesExceeded());
         for (int i=0;i<99;i++) {
-            otherTypes.addAutoModMessage(null, null, null);
+            otherTypes.addAutoModMessage(null, null, null, null, null);
         }
         assertTrue(otherTypes.linesCleared());
         assertFalse(otherTypes.maxLinesExceeded());

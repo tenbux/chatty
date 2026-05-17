@@ -1,7 +1,6 @@
 
 package chatty.util.api.eventsub;
 
-import chatty.util.api.TwitchApi;
 import chatty.util.jws.JWSClient;
 import chatty.util.jws.MessageHandler;
 import java.net.URI;
@@ -17,21 +16,21 @@ import java.util.Set;
  */
 public class Connection extends JWSClient {
     
-    private static final int MAX_TOPICS = 100;
+    private static final int MAX_TOPICS = 300;
 
     private final MessageHandler handler;
     private final Map<Topic, Topic> topics;
-    private final TwitchApi api;
+    public final int id;
     
     private volatile String sessionId;
     private volatile Connection replacesConnection;
     private volatile int connectionTimeoutSeconds;
     
-    public Connection(URI server, MessageHandler handler, TwitchApi api) {
+    public Connection(URI server, MessageHandler handler, int id) {
         super(server);
         this.handler = handler;
         this.topics = new HashMap<>();
-        this.api = api;
+        this.id = id;
     }
     
     public void setConnectionTimeout(int seconds) {
@@ -99,6 +98,12 @@ public class Connection extends JWSClient {
             topics.put(topic, topic);
         }
         return true;
+    }
+    
+    public Topic getTopic(Topic topic) {
+        synchronized (topics) {
+            return topics.get(topic);
+        }
     }
     
     public Topic removeTopic(Topic topic) {

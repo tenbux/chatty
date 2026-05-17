@@ -15,6 +15,8 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -104,6 +106,8 @@ public class RoutingSettingsTable<T extends RoutingTargetSettings> extends Table
         private final JCheckBox logEnabled = new JCheckBox(Language.getString("settings.customTabSettings.logEnabled"));
         private final JTextField logFile = new JTextField(10);
         private final ComboLongSetting openOnMessage;
+        private final ComboLongSetting channelLogo;
+        private final ComboLongSetting showChannelName;
         private final JCheckBox exclusive;
         private final JRadioButton multiChannelAll = new JRadioButton();
         private final JRadioButton multiChannelSep = new JRadioButton();
@@ -179,11 +183,20 @@ public class RoutingSettingsTable<T extends RoutingTargetSettings> extends Table
             dialog.add(name, gbc);
             
             
+            JPanel generalPanel = new JPanel(new GridBagLayout());
+            generalPanel.setBorder(BorderFactory.createTitledBorder("General"));
+            
             openOnMessage = new ComboLongSetting(RoutingTargetSettings.getOpenOnMessageValues());
+            channelLogo = new ComboLongSetting(makeChannelLogoValues());
+            showChannelName = new ComboLongSetting(makeChannelNameValues());
             exclusive = new JCheckBox("Exclusive");
             
-            dialog.add(openOnMessage,
+            generalPanel.add(openOnMessage,
                     GuiUtil.makeGbc(1, 1, 2, 1, GridBagConstraints.WEST));
+            
+            SettingsUtil.addLabeledComponent(generalPanel, "settings.label.routingTargets.channelLogo", 1, 2, 1, GridBagConstraints.WEST, channelLogo);
+            SettingsUtil.addLabeledComponent(generalPanel, "settings.label.routingTargets.showChannelName", 1, 3, 1, GridBagConstraints.WEST, showChannelName);
+            
 //            dialog.add(exclusive,
 //                    GuiUtil.makeGbc(1, 4, 2, 1, GridBagConstraints.WEST));
             
@@ -246,6 +259,11 @@ public class RoutingSettingsTable<T extends RoutingTargetSettings> extends Table
             gbc = GuiUtil.makeGbc(0, 2, 4, 1, GridBagConstraints.WEST);
             logPanel.add(new JLabel(HTML_PREFIX+Language.getString("settings.customTabSettings.logInfo")), gbc);
             
+            gbc = GuiUtil.makeGbc(0, 6, 3, 1);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            gbc.weightx = 1;
+            dialog.add(generalPanel, gbc);
+            
             gbc = GuiUtil.makeGbc(0, 7, 3, 1);
             gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.weightx = 1;
@@ -284,6 +302,8 @@ public class RoutingSettingsTable<T extends RoutingTargetSettings> extends Table
             if (preset != null) {
                 name.setText(preset.getName());
                 openOnMessage.setSettingValue((long) preset.openOnMessage);
+                channelLogo.setSettingValue((long) preset.channelLogo);
+                showChannelName.setSettingValue((long) preset.showChannelName);
                 exclusive.setSelected(preset.exclusive);
                 logEnabled.setSelected(preset.logEnabled);
                 logFile.setText(preset.getRawLogFilename());
@@ -305,6 +325,8 @@ public class RoutingSettingsTable<T extends RoutingTargetSettings> extends Table
             } else {
                 name.setText(null);
                 openOnMessage.setSettingValue(1L);
+                channelLogo.setSettingValue((long) RoutingTargetSettings.CHANNEL_LOGO_DEFAULT);
+                showChannelName.setSettingValue((long) RoutingTargetSettings.SHOW_CHANNEL_NAME_DEFAULT);
                 exclusive.setSelected(false);
                 logEnabled.setSelected(false);
                 logFile.setText(null);
@@ -326,7 +348,9 @@ public class RoutingSettingsTable<T extends RoutingTargetSettings> extends Table
                         logFile.getText(),
                         getMultiChannelValue(),
                         channelFixed.isSelected(),
-                        preset != null ? preset.showAll : false);
+                        preset != null ? preset.showAll : false,
+                        channelLogo.getSettingValue().intValue(),
+                        showChannelName.getSettingValue().intValue());
             }
             return null;
         }
@@ -346,6 +370,25 @@ public class RoutingSettingsTable<T extends RoutingTargetSettings> extends Table
             ok.setEnabled(enabled);
         }
         
+    }
+    
+    public static Map<Long, String> makeChannelLogoValues() {
+        Map<Long, String> result = new LinkedHashMap<>();
+        result.put(0L, "Off");
+        for (int i = 12; i <= 30; i += 2) {
+            result.put((long) i, i + "px");
+        }
+        return result;
+    }
+
+    public static Map<Long, String> makeChannelNameValues() {
+        Map<Long, String> result = new LinkedHashMap<>();
+        result.put(0L, "Off");
+        result.put(100L, "Show fully");
+        for (int i = 4; i <= 30; i += 2) {
+            result.put((long) i, String.format("Shorten to %d characters", i));
+        }
+        return result;
     }
     
 }

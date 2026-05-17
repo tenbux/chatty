@@ -10,8 +10,8 @@ import chatty.gui.NamedColor;
 import chatty.gui.components.textpane.ModLogInfo;
 import chatty.util.Debugging;
 import chatty.util.StringUtil;
-import chatty.util.api.pubsub.LowTrustUserMessageData;
-import chatty.util.api.pubsub.ModeratorActionData;
+import chatty.util.api.eventsub.payloads.ModActionPayload;
+import chatty.util.api.eventsub.payloads.SuspiciousMessagePayload;
 import chatty.util.irc.IrcBadges;
 import chatty.util.irc.MsgTags;
 import java.awt.Color;
@@ -332,7 +332,7 @@ public class User implements Comparable<User> {
     }
     
     public synchronized void addMessage(String line, boolean action, String id) {
-        addMessage(line, action, id, System.currentTimeMillis());
+        addMessage(line, action, id, null, null, System.currentTimeMillis());
     }
     
     /**
@@ -341,14 +341,21 @@ public class User implements Comparable<User> {
      * @param line 
      * @param action 
      * @param id 
+     * @param sourceId 
+     * @param sourceChannel 
      * @param timestamp 
      */
-    public synchronized void addMessage(String line, boolean action, String id, long timestamp) {
+    public synchronized void addMessage(String line, boolean action, String id, String sourceId, String sourceChannel, long timestamp) {
         if (timestamp == -1) {
             timestamp = System.currentTimeMillis();
         }
         setFirstSeen();
-        addLine(new TextMessage(timestamp, line, action, id, null));
+        if (sourceId != null && !sourceId.equals(id)) {
+            addLine(new SharedTextMessage(timestamp, line, action, id, sourceId, sourceChannel, null));
+        }
+        else {
+            addLine(new TextMessage(timestamp, line, action, id, null));
+        }
         replayCachedLowTrust();
         numberOfMessages++;
     }
@@ -365,8 +372,13 @@ public class User implements Comparable<User> {
         replayCachedBanInfo();
     }
     
-    public synchronized void addUnban(int type, String by) {
-        addLine(new UnbanMessage(System.currentTimeMillis(), type, by));
+    public synchronized void addUnban(int type, String by, String sourceChannel) {
+        if (sourceChannel != null) {
+            addLine(new SharedUnbanMessage(System.currentTimeMillis(), type, by, sourceChannel));
+        }
+        else {
+            addLine(new UnbanMessage(System.currentTimeMillis(), type, by));
+        }
     }
     
     public synchronized void addMsgDeleted(String targetMsgId, String msg) {
@@ -374,32 +386,67 @@ public class User implements Comparable<User> {
         replayCachedBanInfo();
     }
     
-    public synchronized void addSub(String message, String text, String id) {
+    public synchronized void addSub(String message, String text, String id, String sourceId, String sourceChannel) {
         setFirstSeen();
-        addLine(new SubMessage(System.currentTimeMillis(), message, text, id));
+        if (sourceId != null && !sourceId.equals(id)) {
+            addLine(new SharedSubMessage(System.currentTimeMillis(), message, text, id, sourceId, sourceChannel));
+        }
+        else {
+            addLine(new SubMessage(System.currentTimeMillis(), message, text, id));
+        }
     }
     
-    public synchronized void addInfo(String message, String fullText) {
+    public synchronized void addInfo(String message, String fullText, boolean isShared, String sourceChannel) {
         setFirstSeen();
-        addLine(new InfoMessage(System.currentTimeMillis(), message, fullText));
+        if (isShared) {
+            addLine(new SharedInfoMessage(System.currentTimeMillis(), message, fullText, sourceChannel));
+        }
+        else {
+            addLine(new InfoMessage(System.currentTimeMillis(), message, fullText));
+        }
     }
     
-    public synchronized void addModAction(ModeratorActionData data) {
+    public synchronized void addWarning(String reason, String by) {
         setFirstSeen();
-        addLine(new ModAction(System.currentTimeMillis(), data.moderation_action+" "+ModLogInfo.makeArgsText(data)));
+        addLine(new WarnMessage(System.currentTimeMillis(), reason, by));
     }
     
-    private List<ModeratorActionData> cachedBanInfo;
+    public synchronized void addWarningAcknowledged() {
+        setFirstSeen();
+        addLine(new WarnMessage(System.currentTimeMillis(), null, null));
+    }
+    
+    public synchronized void addModAction(ModActionPayload data) {
+        setFirstSeen();
+        if (data.created_by.equals(nick)) {
+            if (data.isShared()) {
+                addLine(new SharedModAction(System.currentTimeMillis(), data.getPseudoCommandString(), data.getSourceChannel()));
+            }
+            else {
+                addLine(new ModAction(System.currentTimeMillis(), data.getPseudoCommandString()));
+            }
+        }
+        else if (ModLogInfo.getTargetUserInfo(data) != null) {
+            if (data.isShared()) {
+                addLine(new SharedModAction(System.currentTimeMillis(), ModLogInfo.getTargetUserInfo(data), data.getSourceChannel()));
+            }
+            else {
+                addLine(new ModAction(System.currentTimeMillis(), ModLogInfo.getTargetUserInfo(data)));
+            }
+        }
+    }
+    
+    private List<ModActionPayload> cachedBanInfo;
     
     /**
      * Add ban info (by/reason) for this user. Must be for this user.
      * 
      * @param data 
      */
-    public synchronized void addBanInfo(ModeratorActionData data) {
+    public synchronized void addBanInfo(ModActionPayload data) {
         if (!addBanInfoNow(data)) {
             // Adding failed, cache and wait to see if it works later
-            Debugging.println("modlog", "[UserModLogInfo] Caching: %s", data.getCommandAndParameters());
+            Debugging.println("modlog", "[UserModLogInfo] Caching: %s", data.getPseudoCommandString());
             if (cachedBanInfo == null) {
                 cachedBanInfo = new ArrayList<>();
             }
@@ -414,9 +461,9 @@ public class User implements Comparable<User> {
             return;
         }
         Debugging.println("modlog", "[UserModLogInfo] Replaying: %s", cachedBanInfo);
-        Iterator<ModeratorActionData> it = cachedBanInfo.iterator();
+        Iterator<ModActionPayload> it = cachedBanInfo.iterator();
         while (it.hasNext()) {
-            ModeratorActionData data = it.next();
+            ModActionPayload data = it.next();
             if (System.currentTimeMillis() - data.created_at > BAN_INFO_WAIT) {
                 it.remove();
                 Debugging.println("modlog", "[UserModLogInfo] Abandoned: %s", data);
@@ -432,7 +479,7 @@ public class User implements Comparable<User> {
         }
     }
     
-    private synchronized boolean addBanInfoNow(ModeratorActionData data) {
+    private synchronized boolean addBanInfoNow(ModActionPayload data) {
         if (lines == null) {
             return false;
         }
@@ -453,13 +500,13 @@ public class User implements Comparable<User> {
             if (m instanceof BanMessage) {
                 BanMessage bm = (BanMessage)m;
                 if (bm.by == null && command.equals(Helper.makeBanCommand(this, bm.duration, bm.id))) {
-                    lines.set(i, bm.addModLogInfo(data.created_by, ModLogInfo.getReason(data)));
+                    lines.set(i, bm.addModLogInfo(data.created_by, ModLogInfo.getReason(data), data.getSourceChannel()));
                     return true;
                 }
             } else if (m instanceof MsgDeleted) {
                 MsgDeleted md = (MsgDeleted)m;
                 if (md.by == null && command.equals(Helper.makeBanCommand(this, -2, md.targetMsgId))) {
-                    lines.set(i, md.addModLogInfo(data.created_by));
+                    lines.set(i, md.addModLogInfo(data.created_by, data.getSourceChannel()));
                     return true;
                 }
             }
@@ -467,14 +514,14 @@ public class User implements Comparable<User> {
         return false;
     }
     
-    private List<LowTrustUserMessageData> cachedLowTrust;
+    private List<SuspiciousMessagePayload> cachedLowTrust;
     
     /**
      * Add ban info (by/reason) for this user. Must be for this user.
      * 
      * @param data 
      */
-    public synchronized void addLowTrust(LowTrustUserMessageData data) {
+    public synchronized void addLowTrust(SuspiciousMessagePayload data) {
         if (!addLowTrustNow(data)) {
             // Adding failed, cache and wait to see if it works later
             if (cachedLowTrust == null) {
@@ -488,9 +535,9 @@ public class User implements Comparable<User> {
         if (cachedLowTrust == null) {
             return;
         }
-        Iterator<LowTrustUserMessageData> it = cachedLowTrust.iterator();
+        Iterator<SuspiciousMessagePayload> it = cachedLowTrust.iterator();
         while (it.hasNext()) {
-            LowTrustUserMessageData data = it.next();
+            SuspiciousMessagePayload data = it.next();
             if (System.currentTimeMillis() - data.created_at > BAN_INFO_WAIT) {
                 it.remove();
             } else {
@@ -504,7 +551,7 @@ public class User implements Comparable<User> {
         }
     }
     
-    private synchronized boolean addLowTrustNow(LowTrustUserMessageData data) {
+    private synchronized boolean addLowTrustNow(SuspiciousMessagePayload data) {
         if (lines == null) {
             return false;
         }
@@ -525,8 +572,8 @@ public class User implements Comparable<User> {
         return false;
     }
     
-    public synchronized void addAutoModMessage(String line, String id, String reason) {
-        addLine(new AutoModMessage(line, id, reason));
+    public synchronized void addAutoModMessage(String line, String id, String reason, ModActionPayload.Type type, String moderatorName) {
+        addLine(new AutoModMessage(line, id, reason, type, moderatorName));
     }
     
     /**
@@ -1264,9 +1311,9 @@ public class User implements Comparable<User> {
         public final String text;
         public final boolean action;
         public final String id;
-        public final LowTrustUserMessageData lowTrust;
+        public final SuspiciousMessagePayload lowTrust;
         
-        public TextMessage(long time, String message, boolean action, String id, LowTrustUserMessageData lowTrust) {
+        public TextMessage(long time, String message, boolean action, String id, SuspiciousMessagePayload lowTrust) {
             super(time);
             this.text = message;
             this.action = action;
@@ -1282,8 +1329,31 @@ public class User implements Comparable<User> {
             return action;
         }
         
-        public TextMessage addLowTrust(LowTrustUserMessageData data) {
+        public TextMessage addLowTrust(SuspiciousMessagePayload data) {
             return new TextMessage(getTime(), text, action, id, data);
+        }
+        
+    }
+    
+    public static class SharedTextMessage extends TextMessage implements SharedMessage {
+        
+        public final String sourceId;
+        public final String sourceChannel;
+        
+        public SharedTextMessage(long time, String message, boolean action, String id, String sourceId, String sourceChannel, SuspiciousMessagePayload lowTrust) {
+            super(time, message, action, id, lowTrust);
+            this.sourceId = sourceId;
+            this.sourceChannel = sourceChannel;
+        }
+        
+        @Override
+        public TextMessage addLowTrust(SuspiciousMessagePayload data) {
+            return new SharedTextMessage(getTime(), text, action, id, sourceId, sourceChannel, data);
+        }
+
+        @Override
+        public String getSourceChannel() {
+            return sourceChannel;
         }
         
     }
@@ -1304,12 +1374,31 @@ public class User implements Comparable<User> {
             this.by = by;
         }
         
-        public BanMessage addModLogInfo(String by, String reason) {
+        public BanMessage addModLogInfo(String by, String reason, String sourceChannel) {
             if (reason == null) {
                 // Probably not set anyway, but just in case
                 reason = this.reason;
             }
+            if (sourceChannel != null) {
+                return new SharedBanMessage(getTime(), duration, reason, id, by, sourceChannel);
+            }
             return new BanMessage(getTime(), duration, reason, id, by);
+        }
+        
+    }
+    
+    public static class SharedBanMessage extends BanMessage implements SharedMessage {
+        
+        public final String sourceChannel;
+        
+        public SharedBanMessage(long time, long duration, String reason, String id, String by, String sourceChannel) {
+            super(time, duration, reason, id, by);
+            this.sourceChannel = sourceChannel;
+        }
+
+        @Override
+        public String getSourceChannel() {
+            return sourceChannel;
         }
         
     }
@@ -1339,6 +1428,22 @@ public class User implements Comparable<User> {
         
     }
     
+    public static class SharedUnbanMessage extends UnbanMessage implements SharedMessage {
+
+        public final String sourceChannel;
+        
+        public SharedUnbanMessage(long time, int type, String by, String sourceChannel) {
+            super(time, type, by);
+            this.sourceChannel = sourceChannel;
+        }
+        
+        @Override
+        public String getSourceChannel() {
+            return sourceChannel;
+        }
+        
+    }
+    
     public static class MsgDeleted extends Message {
         
         public final String targetMsgId;
@@ -1352,9 +1457,29 @@ public class User implements Comparable<User> {
             this.by = by;
         }
         
-        public MsgDeleted addModLogInfo(String by) {
+        public MsgDeleted addModLogInfo(String by, String sourceChannel) {
+            if (sourceChannel != null) {
+                return new SharedMsgDeleted(getTime(), targetMsgId, msg, by, sourceChannel);
+            }
             return new MsgDeleted(getTime(), targetMsgId, msg, by);
         }
+        
+    }
+    
+    public static class SharedMsgDeleted extends MsgDeleted implements SharedMessage {
+        
+        public final String sourceChannel;
+        
+        public SharedMsgDeleted(long time, String targetMsgId, String msg, String by, String sourceChannel) {
+            super(time, targetMsgId, msg, by);
+            this.sourceChannel = sourceChannel;
+        }
+
+        @Override
+        public String getSourceChannel() {
+            return sourceChannel;
+        }
+        
     }
     
     public static class SubMessage extends Message {
@@ -1369,6 +1494,24 @@ public class User implements Comparable<User> {
             this.system_msg = text;
             this.id = id;
         }
+    }
+    
+    public static class SharedSubMessage extends SubMessage implements SharedMessage {
+        
+        public final String sourceId;
+        public final String sourceChannel;
+        
+        public SharedSubMessage(long time, String message, String text, String id, String sourceId, String sourceChannel) {
+            super(time, message, text, id);
+            this.sourceId = sourceId;
+            this.sourceChannel = sourceChannel;
+        }
+
+        @Override
+        public String getSourceChannel() {
+            return sourceChannel;
+        }
+        
     }
     
     public static class InfoMessage extends Message {
@@ -1392,6 +1535,21 @@ public class User implements Comparable<User> {
         }
     }
     
+    public static class SharedInfoMessage extends InfoMessage implements SharedMessage {
+        
+        public final String sourceChannel;
+        
+        public SharedInfoMessage(long time, String message, String full_text, String sourceChannel) {
+            super(time, message, full_text);
+            this.sourceChannel = sourceChannel;
+        }
+
+        @Override
+        public String getSourceChannel() {
+            return sourceChannel;
+        }
+    }
+    
     public static class ModAction extends Message {
 
         /**
@@ -1406,19 +1564,63 @@ public class User implements Comparable<User> {
         
     }
     
+    public static class SharedModAction extends ModAction implements SharedMessage {
+
+        public final String sourceChannel;
+        
+        public SharedModAction(long time, String commandAndParameters, String sourceChannel) {
+            super(time, commandAndParameters);
+            this.sourceChannel = sourceChannel;
+        }
+
+        @Override
+        public String getSourceChannel() {
+            return sourceChannel;
+        }
+        
+    }
+    
+    public static class WarnMessage extends Message {
+        
+        public final String reason;
+        public final String by;
+        
+        /**
+         * If reason and by are null, the user has acknowledge a warning.
+         * 
+         * @param time The timestamp the warning was received
+         * @param reason The message associated with the warning
+         * @param by The moderator who has issued the warning
+         */
+        public WarnMessage(long time, String reason, String by) {
+            super(time);
+            this.reason = reason;
+            this.by = by;
+        }
+        
+    }
+    
     public static class AutoModMessage extends Message {
         
         public final String message;
         public final String id;
         public final String reason;
+        public final ModActionPayload.Type status;
+        public final String moderatorName;
         
-        public AutoModMessage(String message, String id, String reason) {
+        public AutoModMessage(String message, String id, String reason, ModActionPayload.Type status, String moderatorName) {
             super(System.currentTimeMillis());
             this.message = message;
             this.id = id;
             this.reason = reason;
+            this.status = status;
+            this.moderatorName = moderatorName;
         }
         
+    }
+    
+    public static interface SharedMessage {
+        public String getSourceChannel();
     }
     
 //    public static final void main(String[] args) {

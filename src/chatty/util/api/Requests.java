@@ -38,6 +38,7 @@ import chatty.util.api.TokenInfo.Scope;
 import chatty.util.api.TwitchApi.SimpleRequestResult;
 import chatty.util.api.TwitchApi.SimpleRequestResultListener;
 import chatty.util.api.eventsub.EventSubAddResult;
+import chatty.util.api.eventsub.EventSubSubs;
 import chatty.util.api.queue.ResultListener;
 import java.util.Arrays;
 import java.util.Locale;
@@ -82,7 +83,7 @@ public class Requests {
     }
     
     public void requestFollowersNew(String streamId, String stream) {
-        boolean modAccess = AccessChecker.instance().check(Helper.toChannel(stream), TokenInfo.Scope.CHANNEL_FOLLOWERS, true, false);
+        boolean modAccess = AccessChecker.isModerator(Helper.toChannel(stream), TokenInfo.Scope.CHANNEL_FOLLOWERS);
         // Use old API in some cases while still available
         if (!modAccess && !FollowerManager.forceNewFollowsApi()) {
             requestFollowers(streamId, stream);
@@ -264,7 +265,7 @@ public class Requests {
     }
     
     public void getSingleFollowerNew(String stream, String streamID, String user, String userID) {
-        boolean modAccess = AccessChecker.instance().check(Helper.toChannel(stream), TokenInfo.Scope.CHANNEL_FOLLOWERS, true, false);
+        boolean modAccess = AccessChecker.isModerator(Helper.toChannel(stream), TokenInfo.Scope.CHANNEL_FOLLOWERS);
         // Use old API in some cases while still available
         if (!modAccess && !FollowerManager.forceNewFollowsApi()) {
             getSingleFollower(stream, streamID, user, userID);
@@ -585,6 +586,20 @@ public class Requests {
         });
     }
     
+    public void warn(String streamId, String targetId, String reason, SimpleRequestResultListener listener) {
+        String url = makeUrl("https://api.twitch.tv/helix/moderation/warnings",
+                "broadcaster_id", streamId,
+                "moderator_id", api.localUserId);
+        JSONObject data = new JSONObject();
+        data.put("user_id", targetId);
+        data.put("reason", reason);
+        JSONObject json = new JSONObject();
+        json.put("data", data);
+        newApi.add(url, "POST", json.toJSONString(), api.defaultToken, r -> {
+            handleResult(r, listener);
+        });
+    }
+    
     public void setVip(String streamId, String targetId, boolean add, SimpleRequestResultListener listener) {
         String url = makeUrl("https://api.twitch.tv/helix/channels/vips",
                 "broadcaster_id", streamId,
@@ -808,6 +823,27 @@ public class Requests {
     // Chat / Emoticons
     //=================
     
+    protected void sendChatMessage(String channelId, String message, String replyToMsgId, Consumer<SendMessageResult> listener) {
+        String url = "https://api.twitch.tv/helix/chat/messages";
+        Map<String, String> data = new HashMap<>();
+        data.put("broadcaster_id", channelId);
+        data.put("sender_id", api.localUserId);
+        data.put("message", message);
+        if (replyToMsgId != null) {
+            data.put("reply_parent_message_id", replyToMsgId);
+        }
+        newApi.add(url, "POST", data, api.defaultToken, r -> {
+            if (r.responseCode == 200) {
+                listener.accept(SendMessageResult.parse(r.text));
+            }
+            else {
+                listener.accept(new SendMessageResult(false, null, String.format("Error %s (%s)",
+                                                                                                        r.responseCode,
+                                                                                                        r.errorText)));
+            }
+        });
+    }
+    
     protected void requestGlobalBadges() {
         String url = "https://api.twitch.tv/helix/chat/badges/global";
         newApi.add(url, "GET", api.defaultToken, r -> {
@@ -880,6 +916,29 @@ public class Requests {
     public void removeEventSub(String id, Consumer<Integer> listener) {
         newApi.add("https://api.twitch.tv/helix/eventsub/subscriptions?id="+id, "DELETE", api.defaultToken, r -> {
             listener.accept(r.responseCode);
+        });
+    }
+    
+    public void getEventSubSubs(String cursor, Consumer<EventSubSubs> listener, EventSubSubs result) {
+        String url = "https://api.twitch.tv/helix/eventsub/subscriptions?status=enabled";
+        if (cursor != null) {
+            url += "&after="+cursor;
+        }
+        newApi.add(url, "GET", api.defaultToken, r -> {
+            String nextCursor = getCursor(r.text);
+            EventSubSubs result2 = result;
+            if (result2 == null) {
+                result2 = EventSubSubs.decode(r.text);
+            }
+            else {
+                result2.addResult(EventSubSubs.decode(r.text));
+            }
+            if (nextCursor != null) {
+                getEventSubSubs(nextCursor, listener, result2);
+            }
+            else {
+                listener.accept(result2);
+            }
         });
     }
     

@@ -1110,6 +1110,10 @@ public class TwitchConnection {
             if (!onChannel(channel)) {
                 return;
             }
+            if (tags.isValue("msg-id", "sharedchatnotice")) {
+                // Overwrite msg-id with original msg-id, so it can be handled properly here
+                tags = MsgTags.addTag(tags, "msg-id", tags.get("source-msg-id"));
+            }
             String login = tags.get("login");
             String text = StringUtil.removeLinebreakCharacters(tags.get("system-msg"));
             int months = tags.getInteger("msg-param-cumulative-months", -1);
@@ -1117,7 +1121,7 @@ public class TwitchConnection {
                 months = tags.getInteger("msg-param-months", -1);
             }
             int giftMonths = tags.getInteger("msg-param-gift-months", -1);
-            int multiMonth = tags.getInteger("msg-param-multimonth-duration", -1);
+//            int multiMonth = tags.getInteger("msg-param-multimonth-duration", -1);
             
             if (tags.isValue("msg-id", "announcement") && !StringUtil.isNullOrEmpty(login)) {
                 String displayName = tags.get("display-name", login);
@@ -1145,9 +1149,10 @@ public class TwitchConnection {
                     }
                     text += " "+recipient+" subscribed for "+months+" months!";
                 }
-                if (multiMonth > 1 && !text.contains("in advance")) {
-                    text += " They subscribed for "+multiMonth+" months in advance.";
-                }
+                // Didn't seem to work the same way anymore, or at least not always
+//                if (multiMonth > 1 && !text.contains("in advance")) {
+//                    text += " They subscribed for "+multiMonth+" months in advance.";
+//                }
                 listener.onSubscriberNotification(user, text, message, months, tags);
             } else if (tags.isValue("msg-id", "charity") && login.equals("twitch")) {
                 listener.onUsernotice("Charity", user, text, message, tags);

@@ -163,6 +163,7 @@ public class PastMessages extends JTextArea {
                     b.append(" [").append(simPercentage).append("%]");
                     endHighlight(b.length(), REPEATED_MSG);
                 }
+                addSourceChannel(tm, b);
                 if (tm.action) {
                     b.append("* ");
                 } else {
@@ -173,7 +174,10 @@ public class PastMessages extends JTextArea {
             }
             else if (m instanceof User.BanMessage) {
                 User.BanMessage bm = (User.BanMessage)m;
-                b.append(timestampFormat.make(m.getTime(), user.getRoom())).append(">");
+                b.append(timestampFormat.make(m.getTime(), user.getRoom()));
+                addSourceChannel(m, b);
+                b.append(">");
+                
                 startHighlight(b.length(), MOD_ACTION);
                 if (bm.duration > 0) {
                     b.append("Timed out (").append(bm.duration).append("s)");
@@ -195,7 +199,10 @@ public class PastMessages extends JTextArea {
             }
             else if (m instanceof User.UnbanMessage) {
                 User.UnbanMessage ubm = (User.UnbanMessage)m;
-                b.append(timestampFormat.make(m.getTime(), user.getRoom())).append(">");
+                b.append(timestampFormat.make(m.getTime(), user.getRoom()));
+                addSourceChannel(m, b);
+                b.append(">");
+                
                 startHighlight(b.length(), MOD_ACTION);
                 if (ubm.type == User.UnbanMessage.TYPE_UNBAN) {
                     b.append("Unbanned");
@@ -208,10 +215,14 @@ public class PastMessages extends JTextArea {
             }
             else if (m instanceof User.MsgDeleted) {
                 User.MsgDeleted md = (User.MsgDeleted)m;
-                b.append(timestampFormat.make(m.getTime(), user.getRoom())).append(">");
+                b.append(timestampFormat.make(m.getTime(), user.getRoom()));
+                addSourceChannel(m, b);
+                b.append(">");
+                
                 startHighlight(b.length(), MOD_ACTION);
-                b.append("Message deleted: ").append(md.msg);
+                b.append("Message deleted:");
                 endHighlight(b.length(), MOD_ACTION);
+                b.append(" ").append(md.msg);
                 if (md.by != null) {
                     b.append(" (@").append(md.by).append(")");
                 }
@@ -241,6 +252,7 @@ public class PastMessages extends JTextArea {
                     endHighlight(b.length(), REPEATED_MSG);
                 }
                 
+                addSourceChannel(sm, b);
                 b.append("$ ");
                 b.append(sm.system_msg);
                 if (!sm.attached_message.isEmpty()) {
@@ -249,15 +261,32 @@ public class PastMessages extends JTextArea {
                 b.append("\n");
             }
             else if (m instanceof User.InfoMessage) {
-                User.InfoMessage sm = (User.InfoMessage)m;
-                b.append(timestampFormat.make(m.getTime(), user.getRoom())).append("I ");
-                b.append(sm.full_text);
+                User.InfoMessage im = (User.InfoMessage)m;
+                b.append(timestampFormat.make(m.getTime(), user.getRoom()));
+                addSourceChannel(im, b);
+                b.append("I ");
+                
+                b.append(im.full_text);
+                b.append("\n");
+            }
+            else if (m instanceof User.WarnMessage) {
+                User.WarnMessage wm = (User.WarnMessage)m;
+                b.append(timestampFormat.make(m.getTime(), user.getRoom())).append("! ");
+                if (wm.by == null && wm.reason == null) {
+                    b.append("Warning acknowledged");
+                }
+                else {
+                    b.append("Warned by ").append(wm.by).append(" (").append(wm.reason).append(")");
+                }
                 b.append("\n");
             }
             else if (m instanceof User.ModAction) {
                 User.ModAction ma = (User.ModAction)m;
-                b.append(timestampFormat.make(m.getTime(), user.getRoom())).append(">");
-                b.append("ModAction: /");
+                b.append(timestampFormat.make(m.getTime(), user.getRoom()));
+                addSourceChannel(m, b);
+                b.append(">");
+                
+                b.append("ModAction: ");
                 b.append(ma.commandAndParameters);
                 b.append("\n");
             }
@@ -270,11 +299,18 @@ public class PastMessages extends JTextArea {
                 b.append(timestampFormat.make(m.getTime(), user.getRoom())).append(">");
                 startHighlight(b.length(), AUTO_MOD);
                 b.append("Filtered by AutoMod");
+                switch (ma.status) {
+                    case AUTOMOD_APPROVED: b.append(":APPROVED"); break;
+                    case AUTOMOD_DENIED: b.append(":DENIED"); break;
+                }
                 endHighlight(b.length(), AUTO_MOD);
                 if (!StringUtil.isNullOrEmpty(ma.reason)) {
                     b.append(" [").append(ma.reason).append("]");
                 }
                 b.append(": ").append(ma.message);
+                if (ma.moderatorName != null) {
+                    b.append(" (@").append(ma.moderatorName).append(")");
+                }
                 b.append("\n");
             }
         }
@@ -288,6 +324,16 @@ public class PastMessages extends JTextArea {
     public void setTimestampFormat(Timestamp timestampFormat) {
         if (timestampFormat != null) {
             this.timestampFormat = timestampFormat;
+        }
+    }
+    
+    private void addSourceChannel(User.Message m, StringBuilder b) {
+        if (m instanceof User.SharedMessage) {
+            User.SharedMessage sm = (User.SharedMessage) m;
+            String channel = sm.getSourceChannel();
+            b.append("[");
+            b.append(channel != null ? channel : "?");
+            b.append("]");
         }
     }
     

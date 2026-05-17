@@ -124,14 +124,15 @@ public class FollowerManager {
      * be updated, in which case it requests the data from the API.
      * 
      * @param streamName The name of the stream to request the data for
+     * @param forceRefresh
      */
-    protected synchronized void request(String streamName) {
+    protected synchronized void request(String streamName, boolean forceRefresh) {
         if (streamName == null || streamName.isEmpty()) {
             return;
         }
         final String stream = StringUtil.toLowerCase(streamName);
         FollowerInfo cachedInfo = cached.get(stream);
-        if (cachedInfo == null || checkTimePassed(cachedInfo)) {
+        if (cachedInfo == null || checkTimePassed(cachedInfo) || forceRefresh) {
             api.userIDs.getUserIDsAsap(r -> {
                 if (!r.hasError()) {
                     String streamId = r.getId(stream);
@@ -275,6 +276,9 @@ public class FollowerManager {
     }
     
     private FollowerInfo parseOwnFollow(String stream, String userName, String json) {
+        if (json == null) {
+            return null;
+        }
         try {
             JSONParser parser = new JSONParser();
             JSONObject root = (JSONObject) parser.parse(json);
@@ -289,7 +293,7 @@ public class FollowerManager {
                 return new FollowerInfo(type, stream, result, -1, -1);
             }
             return new FollowerInfo(type, stream, new ArrayList<>(), -1, -1);
-        } catch (ParseException ex) {
+        } catch (Exception ex) {
             LOGGER.warning("Error parsing "+type+": "+ex);
             return null;
         }
@@ -314,7 +318,7 @@ public class FollowerManager {
                 }
             }
             total = JSONUtil.getInteger(root, "total", -1);
-        } catch (ParseException ex) {
+        } catch (Exception ex) {
             LOGGER.warning("Error parsing "+type+": "+ex);
             return null;
         }

@@ -112,6 +112,7 @@ public class SettingsManager {
         settings.addLong("autoSaveSettings", 15);
         settings.addBoolean("debugLogIrc", false);
         settings.addBoolean("debugLogIrcFile", false);
+        settings.addString("ignoreError", "");
         settings.addBoolean("autoRequestMods", false);
         
         // Backup
@@ -256,6 +257,7 @@ public class SettingsManager {
         settings.addLong("emoteMaxHeight", 0);
         settings.addLong("emoteScale", 100);
         settings.addLong("emoteScaleDialog", 100);
+        settings.addLong("emoteScaleGigantified", 200);
         settings.addList("emoteHiddenSets", new ArrayList<>(), Setting.STRING);
         settings.addBoolean("closeEmoteDialogOnDoubleClick", false);
         settings.addBoolean("ffz", true);
@@ -531,6 +533,7 @@ public class SettingsManager {
         settings.addBoolean("inputEnabled", true);
         settings.addLong("bufferSize", 500);
         settings.addMap("bufferSizes", new HashMap<>(), Setting.LONG);
+        settings.addBoolean("chatInsertTop", false);
 
         settings.addString("liveStreamsSorting", "recent");
         settings.addBoolean("liveStreamsSortingFav", true);
@@ -551,6 +554,8 @@ public class SettingsManager {
         settings.addBoolean("sounds", true);
         settings.addString("soundsPath", "");
         settings.addString("soundDevice", "");
+        settings.addBoolean("soundCommandEnabled", false);
+        settings.addString("soundCommand", "");
         settings.addString("highlightSound", "off");
         settings.addString("highlightSoundFile", "ding.wav");
         settings.addLong("highlightSoundDelay", 15);
@@ -678,6 +683,9 @@ public class SettingsManager {
         settings.addBoolean("ignoredUsersHideInGUI", true);
         settings.addList("ignoreBlacklist", new ArrayList(), Setting.STRING);
         
+        settings.addList("highlightDialog", new ArrayList<>(), Setting.LONG);
+        settings.addList("ignoreDialog", new ArrayList<>(), Setting.LONG);
+        
         // Filter
         settings.addList("filter", new ArrayList(), Setting.STRING);
         settings.addBoolean("filterEnabled", true);
@@ -783,6 +791,11 @@ public class SettingsManager {
         settings.addBoolean("rulesAutoShow", true);
         settings.addList("rulesShown", new HashSet(), Setting.STRING);
 
+        // Shared Chat
+        settings.addLong("sharedBadges", 11);
+        settings.addLong("sharedLogoSize", 22);
+        settings.addBoolean("sharedLogoAlways", true);
+        
         //===============
         // Other Features
         //===============
@@ -805,7 +818,7 @@ public class SettingsManager {
         settings.addString("streamHighlightCustom", "$(timestamp),$(chan),$(uptime),$(streamgame),$(chatuser),$quote($(rawcomment))");
         settings.addBoolean("streamHighlightExtra", true);
         settings.addLong("streamHighlightCooldown", 0);
-
+        
         // Stream Status Writer
         settings.addBoolean("enableStatusWriter", false);
         settings.addString("statusWriter", "");
@@ -814,6 +827,17 @@ public class SettingsManager {
         
         settings.addBoolean("pronouns", false);
         settings.addBoolean("pronounsChat", false);
+        
+        // TTS
+        settings.addBoolean("ttsEnabled", false);
+        settings.addMap("ttsVoice", new HashMap<>(), Setting.STRING);
+        settings.addLong("ttsMaxLength", 2000);
+        settings.addLong("ttsVolume", 100);
+        settings.addLong("ttsRate", 100);
+        settings.addLong("ttsPitch", 0);
+        settings.addLong("ttsHotkeysVolume", 80);
+        settings.addBoolean("ttsReadMessages", false);
+        settings.addBoolean("ttsIgnoreEmoteOnly", false);
     }
     
     private boolean loadSuccess;
