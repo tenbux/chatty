@@ -246,6 +246,52 @@ task releaseWindows(group: 'build') {
     dependsOn release, windowsZip
 }
 
+//-----
+// Mac
+//-----
+
+def macBundleTarget = new File(buildDir, 'jpackage-mac')
+def macBundleSource = new File(macBundleTarget, 'Chatty.app')
+
+task macBuild(type: Exec, group: 'build') {
+    dependsOn shadowJar
+
+    doFirst {
+        delete macBundleTarget
+        macBundleTarget.mkdirs()
+        copy {
+            from tasks.shadowJar.archivePath
+            into new File(macBundleTarget, 'input')
+        }
+    }
+
+    def jpackageExe = project.hasProperty('jpackagePath') ? jpackagePath : 'jpackage'
+    commandLine jpackageExe,
+        '--type', 'app-image',
+        '-n', 'Chatty',
+        '-i', new File(macBundleTarget, 'input'),
+        '-d', macBundleTarget,
+        '--main-class', 'chatty.Chatty',
+        '--main-jar', 'Chatty.jar',
+        '--description', 'Chatty - Twitch Chat Client',
+        '--java-options', '-Xmx600M',
+        '--java-options', '--enable-native-access=ALL-UNNAMED',
+        '--icon', 'assets-bundle/Chatty.icns',
+        '--app-version', project.version.replaceFirst(/^0\./, '1.')
+}
+
+task macZip(type: Zip, group: 'build') {
+    dependsOn macBuild
+
+    from macBundleTarget
+    destinationDirectory = releasesDir
+    archiveFileName = "${archivesBaseName}_${project.version}_mac.zip"
+}
+
+task releaseMac(group: 'build') {
+    dependsOn release, macZip
+}
+
 //----------
 // Innosetup
 //----------
