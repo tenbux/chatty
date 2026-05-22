@@ -10,3 +10,5 @@ META-INF/
 .gradle
 .nb-gradle
 build.xml
+.codegraph/
+.windsurf/
