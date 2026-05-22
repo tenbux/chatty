@@ -554,7 +554,15 @@ public final class Channel extends JPanel {
     public User getSelectedUser() {
         return text.getSelectedUser();
     }
-    
+
+    public String getSelectedMsgId() {
+        return text.getSelectedMsgId();
+    }
+
+    public boolean updateMsgIdForRecentMessage(User user, String newMsgId) {
+        return text.updateMsgIdForRecentMessage(user, newMsgId);
+    }
+
     public boolean hasLineId(long lineId) {
         return text.hasLineId(lineId);
     }

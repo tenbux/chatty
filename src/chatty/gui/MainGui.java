@@ -715,6 +715,23 @@ public class MainGui extends JFrame implements Runnable {
             }
         });
         
+        hotkeyManager.registerAction("selection.deleteMessage", "User Selection: Delete message", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Channel channel = channels.getLastActiveChannel();
+                if (channel == null) {
+                    return;
+                }
+                User selectedUser = channel.getSelectedUser();
+                String selectedMsgId = channel.getSelectedMsgId();
+                User localUser = client.getLocalUser(channel.getRoom().getChannel());
+                if (UserContextMenu.canDelete(selectedUser, localUser, selectedMsgId)) {
+                    client.command(channel.getRoom(), "delete", selectedMsgId);
+                }
+            }
+        });
+
         hotkeyManager.registerAction("commercial.30", "Run commercial (30s)", new AbstractAction() {
 
             @Override
@@ -2030,6 +2047,8 @@ public class MainGui extends JFrame implements Runnable {
                 client.command(user.getRoom(), "automod_approve", autoModMsgId);
             } else if (cmd.equals("autoModDeny")) {
                 client.command(user.getRoom(), "automod_deny", autoModMsgId);
+            } else if (cmd.equals("delete_msg") && msgId != null) {
+                client.command(user.getRoom(), "delete", msgId);
             } else {
                 nameBasedStuff(e, user.getName());
             }
@@ -3552,6 +3571,14 @@ public class MainGui extends JFrame implements Runnable {
                     printInfo(chan, InfoMessage.createInfo("Own message ignored."));
                 }
             } else {
+                // When an own-message echo arrives from the IRC server, update
+                // the optimistic line (printed without tags) instead of adding
+                // a duplicate. The real msg-id is needed for deletion.
+                if (isOwnMessage && tags.getId() != null
+                        && chan.updateMsgIdForRecentMessage(user, tags.getId())) {
+                    return;
+                }
+
                 boolean hasReplacements = checkMsg(filter, "filter", text, -2, -2, user, localUser, tags, isOwnMessage, false);
 
                 // Print message, but determine how exactly

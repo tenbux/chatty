@@ -1408,7 +1408,33 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         }
         return null;
     }
-    
+
+    /**
+     * Finds the most recently printed line for the given user that has no
+     * MSG_ID yet (an optimistic/unconfirmed message) and assigns it the real
+     * msg id from the server echo. Returns true if a line was updated.
+     *
+     * <p>Must be called on the EDT.</p>
+     */
+    public boolean updateMsgIdForRecentMessage(User user, String newMsgId) {
+        if (newMsgId == null) {
+            return false;
+        }
+        java.util.List<Userline> lines = getUserLines(user);
+        for (int i = lines.size() - 1; i >= 0; i--) {
+            Userline userLine = lines.get(i);
+            if (getIdFromElement(userLine.userElement) == null) {
+                int start = userLine.userElement.getStartOffset();
+                int length = userLine.userElement.getEndOffset() - start;
+                SimpleAttributeSet attrs = new SimpleAttributeSet();
+                attrs.addAttribute(Attribute.MSG_ID, newMsgId);
+                doc.setCharacterAttributes(start, length, attrs, false);
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Crosses out the specified line. This is used for messages that are
      * removed because a user was banned/timed out. Optionally shortens the
@@ -1578,7 +1604,11 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
     public User getSelectedUser() {
         return lineSelection.getSelectedUser();
     }
-    
+
+    public String getSelectedMsgId() {
+        return lineSelection.getSelectedMsgId();
+    }
+
     /**
      * Allows to select a user/line using keyboard shortcuts.
      */
@@ -1915,6 +1945,13 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         public User getSelectedUser() {
             if (doesLineExist(currentSelection)) {
                 return currentUser;
+            }
+            return null;
+        }
+
+        public String getSelectedMsgId() {
+            if (doesLineExist(currentSelection)) {
+                return getCurrentId();
             }
             return null;
         }

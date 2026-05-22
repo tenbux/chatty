@@ -3493,9 +3493,8 @@ public class TwitchClient {
             User localUser = c.getLocalUser(user.getChannel());
             if (localUser == user) {
                 g.printLine(user.getRoom(), "Your message was deleted: "+msg);
-            } else {
-                g.msgDeleted(user, targetMsgId, msg);
             }
+            g.msgDeleted(user, targetMsgId, msg);
             chatLog.msgDeleted(user, msg);
         }
         

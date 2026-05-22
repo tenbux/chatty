@@ -76,6 +76,11 @@ public class UserContextMenu extends ContextMenu {
             addItem("autoModDeny", "Deny");
             addSeparator();
         }
+        User localUser = client != null ? client.getLocalUser(user.getRoom().getChannel()) : null;
+        if (canDelete(user, localUser, msgId)) {
+            addItem("delete_msg", "Delete message");
+            addSeparator();
+        }
         
         // Misc Submenu
         addItem("copyNick", Language.getString("userCm.copyName"), MISC_MENU);
@@ -122,6 +127,26 @@ public class UserContextMenu extends ContextMenu {
         }
         
         CommandMenuItems.addCommands(CommandMenuItems.MenuType.USER, this, parameters);
+    }
+
+    /**
+     * Returns true if the local user is permitted to delete the target's
+     * message. Rules mirror Twitch API: regular mods cannot delete the
+     * broadcaster or other mods; broadcasters and lead mods can delete anyone.
+     */
+    public static boolean canDelete(User target, User localUser, String msgId) {
+        if (target == null || msgId == null || localUser == null || !localUser.hasModeratorRights()) {
+            return false;
+        }
+        if (target == localUser) {
+            return true;
+        }
+        boolean localHasFullRights = localUser.isBroadcaster()
+                || localUser.hasTwitchBadge("lead_moderator");
+        if (localHasFullRights) {
+            return true;
+        }
+        return !target.isBroadcaster() && !target.isModerator();
     }
 
     @Override
