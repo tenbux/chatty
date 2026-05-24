@@ -31,6 +31,7 @@ public class SendMessageManager {
 
     private int sentMessageId = 0;
     private final SpecialMap<String, Set<String>> sentMessagePending = new SpecialMap<>(new HashMap<>(), HashSet::new);
+    private final Set<String> ignoreByMsgId = new HashSet<>();
     
     private final TwitchApi api;
     private final MainGui g;
@@ -69,6 +70,10 @@ public class SendMessageManager {
                         synchronized (LOCK) {
                             sentMessagePending.getOptional(channel).remove(tempMsgId);
                             sentMessagePending.removeEmptyValues();
+                            if (result.wasSent && result.msgId != null) {
+                                ignoreByMsgId.add(result.msgId);
+                                Debugging.println("sendmsg", "Will prioritize in queue: %s", result.msgId);
+                            }
                         }
                         handleQueuedMessages(channel);
                     });
@@ -77,9 +82,12 @@ public class SendMessageManager {
     }
     
     /**
-     * Pass messages queued during a pending API request to printMessage, which
-     * uses updateMsgIdForRecentMessage to assign the real msg-id to the
-     * optimistic line and suppress the echo duplicate.
+     * Process messages queued during a pending API request. Our own echo (the
+     * one matching ignoreByMsgId) is dispatched first so that
+     * updateMsgIdForRecentMessage assigns the real msg-id to the optimistic line
+     * before any messages from other clients are processed. That way a
+     * concurrent website message cannot be mistakenly matched to the orphaned
+     * optimistic line and swallowed.
      *
      * @param channel
      */
@@ -93,13 +101,23 @@ public class SendMessageManager {
                 return;
             }
         }
-        List<QueuedMessage> messages = new ArrayList<>();
+        List<QueuedMessage> ours = new ArrayList<>();
+        List<QueuedMessage> others = new ArrayList<>();
         synchronized (LOCK) {
-            messages.addAll(queuedMessages.getOptional(channel));
+            for (QueuedMessage msg : queuedMessages.getOptional(channel)) {
+                if (ignoreByMsgId.remove(msg.tags().getId())) {
+                    ours.add(msg);
+                } else {
+                    others.add(msg);
+                }
+            }
             queuedMessages.remove(channel);
         }
-        for (QueuedMessage message : messages) {
-            g.printMessage(message.user(), message.text(), message.action(), message.tags());
+        for (QueuedMessage msg : ours) {
+            g.printMessage(msg.user(), msg.text(), msg.action(), msg.tags());
+        }
+        for (QueuedMessage msg : others) {
+            g.printMessage(msg.user(), msg.text(), msg.action(), msg.tags());
         }
     }
     
@@ -117,6 +135,10 @@ public class SendMessageManager {
     public boolean shouldIgnoreMessage(User user, String text, MsgTags tags, boolean action) {
         synchronized (LOCK) {
             debugStatus("shouldIgnore");
+            // Clean up if this echo arrives after sentMessagePending cleared (not via queue).
+            // The echo still flows to g.printMessage so updateMsgIdForRecentMessage can
+            // assign the real msg-id to the optimistic line and suppress the duplicate.
+            ignoreByMsgId.remove(tags.getId());
             if (sentMessagePending.containsKey(user.getChannel())) {
                 Debugging.println("sendMsg", "Ignored for now (messages pending): %s", text);
                 queuedMessages.getPut(user.getChannel()).add(
@@ -128,7 +150,7 @@ public class SendMessageManager {
     }
     
     private void debugStatus(String where) {
-        Debugging.println("sendMsg", "[%s] Temp: %s Queue: %s", where, sentMessagePending, queuedMessages);
+        Debugging.println("sendMsg", "[%s] Temp: %s Ignore: %s Queue: %s", where, sentMessagePending, ignoreByMsgId, queuedMessages);
     }
     
 }
