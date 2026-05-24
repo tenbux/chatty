@@ -19,11 +19,11 @@ import java.util.*;
  *
  * Since the Message ID is received from the API request only after a small
  * delay, and it may not be guaranteed that it is received before the chat
- * message is received, ignoring the message requires a two step process:
- * 1. Ignoring all received local user messages as long as a request is pending
- * 2. Ignoring a specific message id once the request is completed, and
- * outputting any messages ignored in the meantime that were sent from another
- * client by the local user
+ * message is received, deduplication requires a two step process:
+ * 1. Queuing all received local user messages while a request is pending
+ * 2. Once the request completes, passing queued messages to printMessage, which
+ * uses updateMsgIdForRecentMessage to assign the real msg-id to the optimistic
+ * line and suppress the duplicate; messages from other clients are shown normally
  *
  * @author tduva
  */
@@ -31,7 +31,6 @@ public class SendMessageManager {
 
     private int sentMessageId = 0;
     private final SpecialMap<String, Set<String>> sentMessagePending = new SpecialMap<>(new HashMap<>(), HashSet::new);
-    private final Set<String> ignoreByMsgId = new HashSet<>();
     
     private final TwitchApi api;
     private final MainGui g;
@@ -70,10 +69,6 @@ public class SendMessageManager {
                         synchronized (LOCK) {
                             sentMessagePending.getOptional(channel).remove(tempMsgId);
                             sentMessagePending.removeEmptyValues();
-                            if (result.wasSent && result.msgId != null) {
-                                ignoreByMsgId.add(result.msgId);
-                                Debugging.println("sendmsg", "Now ignoring: %s", result.msgId);
-                            }
                         }
                         handleQueuedMessages(channel);
                     });
@@ -82,10 +77,11 @@ public class SendMessageManager {
     }
     
     /**
-     * Messages that have been held due to a pending sent API request can now
-     * either be sent or ignored if the msg id to ignore has now been added.
-     * 
-     * @param channel 
+     * Pass messages queued during a pending API request to printMessage, which
+     * uses updateMsgIdForRecentMessage to assign the real msg-id to the
+     * optimistic line and suppress the echo duplicate.
+     *
+     * @param channel
      */
     private void handleQueuedMessages(String channel) {
         synchronized (LOCK) {
@@ -99,14 +95,7 @@ public class SendMessageManager {
         }
         List<QueuedMessage> messages = new ArrayList<>();
         synchronized (LOCK) {
-            for (QueuedMessage message : queuedMessages.getOptional(channel)) {
-                if (ignoreByMsgId.contains(message.tags().getId())) {
-                    ignoreByMsgId.remove(message.tags().getId());
-                }
-                else {
-                    messages.add(message);
-                }
-            }
+            messages.addAll(queuedMessages.getOptional(channel));
             queuedMessages.remove(channel);
         }
         for (QueuedMessage message : messages) {
@@ -128,11 +117,6 @@ public class SendMessageManager {
     public boolean shouldIgnoreMessage(User user, String text, MsgTags tags, boolean action) {
         synchronized (LOCK) {
             debugStatus("shouldIgnore");
-            if (ignoreByMsgId.contains(tags.getId())) {
-                ignoreByMsgId.remove(tags.getId());
-                Debugging.println("sendMsg", "Ignored: %s", text);
-                return true;
-            }
             if (sentMessagePending.containsKey(user.getChannel())) {
                 Debugging.println("sendMsg", "Ignored for now (messages pending): %s", text);
                 queuedMessages.getPut(user.getChannel()).add(
@@ -144,7 +128,7 @@ public class SendMessageManager {
     }
     
     private void debugStatus(String where) {
-        Debugging.println("sendMsg", "[%s] Temp: %s Ignore: %s Queue: %s", where, sentMessagePending, ignoreByMsgId, queuedMessages);
+        Debugging.println("sendMsg", "[%s] Temp: %s Queue: %s", where, sentMessagePending, queuedMessages);
     }
     
 }
