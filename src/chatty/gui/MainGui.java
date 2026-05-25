@@ -3575,7 +3575,7 @@ public class MainGui extends JFrame implements Runnable {
                 // the optimistic line (printed without tags) instead of adding
                 // a duplicate. The real msg-id is needed for deletion.
                 if (isOwnMessage && tags.getId() != null
-                        && chan.updateMsgIdForRecentMessage(user, tags.getId())) {
+                        && chan.updateMsgIdForRecentMessage(user, tags.getId(), tags.getReplyParentMsgId(), text)) {
                     return;
                 }
 

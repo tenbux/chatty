@@ -136,7 +136,9 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         REPLY_PARENT_MSG, REPLY_PARENT_MSG_ID,
         HYPE_CHAT,
         
-        OBJECT_ID
+        OBJECT_ID,
+
+        PENDING_ECHO_TEXT
     }
     
     /**
@@ -639,6 +641,9 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             setCustomColor(getCurrentParagraphOffset(), message.backgroundColor, message.colorSource);
         }
         setParagraphAttribute(getCurrentParagraphOffset(), Attribute.LINE_ID, message.lineId);
+        if (message.msgId == null) {
+            setParagraphAttribute(getCurrentParagraphOffset(), Attribute.PENDING_ECHO_TEXT, message.text);
+        }
         finishLine();
         
         String powerUpInfo = message.tags.getPowerUpInfo();
@@ -1414,16 +1419,33 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
      * MSG_ID yet (an optimistic/unconfirmed message) and assigns it the real
      * msg id from the server echo. Returns true if a line was updated.
      *
+     * <p>The replyParentMsgId parameter narrows matching: a reply echo (non-null)
+     * only matches optimistic lines with the same REPLY_PARENT_MSG_ID attribute,
+     * and a non-reply echo (null) only matches lines without that attribute.
+     * This prevents website echoes from being swallowed by an unrelated reply's
+     * orphaned optimistic line.</p>
+     *
      * <p>Must be called on the EDT.</p>
      */
-    public boolean updateMsgIdForRecentMessage(User user, String newMsgId) {
+    public boolean updateMsgIdForRecentMessage(User user, String newMsgId, String replyParentMsgId, String expectedText) {
         if (newMsgId == null) {
             return false;
         }
         java.util.List<Userline> lines = getUserLines(user);
         for (int i = lines.size() - 1; i >= 0; i--) {
             Userline userLine = lines.get(i);
-            if (getIdFromElement(userLine.userElement) == null) {
+            String lineReplyParentId = (String) userLine.userElement.getAttributes().getAttribute(Attribute.REPLY_PARENT_MSG_ID);
+            String existingMsgId = getIdFromElement(userLine.userElement);
+            if (!Objects.equals(replyParentMsgId, lineReplyParentId)) {
+                continue;
+            }
+            if (existingMsgId == null) {
+                if (expectedText != null) {
+                    String pendingText = (String) userLine.userElement.getAttributes().getAttribute(Attribute.PENDING_ECHO_TEXT);
+                    if (!expectedText.equals(pendingText)) {
+                        continue;
+                    }
+                }
                 int start = userLine.userElement.getStartOffset();
                 int length = userLine.userElement.getEndOffset() - start;
                 SimpleAttributeSet attrs = new SimpleAttributeSet();
@@ -2109,12 +2131,13 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         }
         
         // Output name
+        String replyParentMsgId = tags.getReplyParentMsgId();
         if (user.hasCategory("rainbow")) {
-            printRainbowUser(user, userName, action, SpecialColor.RAINBOW, msgId);
+            printRainbowUser(user, userName, action, SpecialColor.RAINBOW, msgId, replyParentMsgId);
         } else if (user.hasCategory("golden")) {
-            printRainbowUser(user, userName, action, SpecialColor.GOLD, msgId);
+            printRainbowUser(user, userName, action, SpecialColor.GOLD, msgId, replyParentMsgId);
         } else {
-            MutableAttributeSet style = styles.messageUser(user, msgId, background);
+            MutableAttributeSet style = styles.messageUser(user, msgId, replyParentMsgId, background);
             if (whisper) {
                 if (action) {
                     print(">>["+userName + "]", style);
@@ -2127,22 +2150,22 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
                 print(userName, style);
             }
         }
-        
+
         String addition = null;
-        
+
         // Add username in parentheses behind, if necessary
         if (!user.hasRegularDisplayNick() && !user.hasCustomNickSet()
                 && styles.namesMode() == SettingsManager.DISPLAY_NAMES_MODE_BOTH) {
             addition = user.getName();
         }
-        
+
         String notes = UserNotes.instance().getNotesForChat(user);
         if (notes != null) {
             addition = StringUtil.append(addition, ", ", notes);
         }
-        
+
         if (addition != null) {
-            MutableAttributeSet style = styles.messageUser(user, msgId, background);
+            MutableAttributeSet style = styles.messageUser(user, msgId, replyParentMsgId, background);
             StyleConstants.setBold(style, false);
             int fontSize = StyleConstants.getFontSize(style) - 2;
             if (fontSize <= 0) {
@@ -2151,12 +2174,12 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             StyleConstants.setFontSize(style, fontSize);
             print(" ("+addition+")", style);
         }
-        
+
         // Finish up
         // Requires user style because it needs the metadata to detect the end
         // of the nick when deleting messages (and possibly other stuff)
         if (!action && !whisper) {
-            print(":", styles.messageUser(user, msgId, background));
+            print(":", styles.messageUser(user, msgId, replyParentMsgId, background));
         } else {
             //print(" ", styles.messageUser(user));
         }
@@ -2178,12 +2201,15 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
      * @param action 
      */
     private void printRainbowUser(User user, String userName, boolean action,
-            SpecialColor type, String id) {
+            SpecialColor type, String id, String replyParentMsgId) {
         SimpleAttributeSet userStyle = new SimpleAttributeSet(styles.nick());
         userStyle.addAttribute(Attribute.IS_USER_MESSAGE, true);
         userStyle.addAttribute(Attribute.USER, user);
         if (id != null) {
             userStyle.addAttribute(Attribute.MSG_ID, id);
+        }
+        if (replyParentMsgId != null) {
+            userStyle.addAttribute(Attribute.REPLY_PARENT_MSG_ID, replyParentMsgId);
         }
 
         int length = userName.length();
@@ -4323,11 +4349,11 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
          * null (e.g. if not using a custom background)
          * @return 
          */
-        public MutableAttributeSet messageUser(User user, String msgId, Color background) {
+        public MutableAttributeSet messageUser(User user, String msgId, String replyParentMsgId, Color background) {
             SimpleAttributeSet userStyle = new SimpleAttributeSet(nick());
             userStyle.addAttribute(Attribute.IS_USER_MESSAGE, true);
             userStyle.addAttribute(Attribute.USER, user);
-            
+
             Color foreground = getUserColor(user);
             StyleConstants.setForeground(userStyle, foreground);
 //            if (background != null) {
@@ -4345,9 +4371,12 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
                     MyStyleConstants.setLabelBackground(userStyle, getBackground());
                 }
             }
-                    
+
             if (msgId != null) {
                 userStyle.addAttribute(Attribute.MSG_ID, msgId);
+            }
+            if (replyParentMsgId != null) {
+                userStyle.addAttribute(Attribute.REPLY_PARENT_MSG_ID, replyParentMsgId);
             }
             return userStyle;
         }

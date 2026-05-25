@@ -958,38 +958,11 @@ public class TwitchClient {
         if (sendAsReply(channel, text)) {
             return;
         }
-        // Don't use for now, only for replies for testing
-        if (false) {
-            String tempMsgId = sendMessageManager.sendApiMessage(channel, text, null, false);
-            User user = c.localUserJoined(channel);
-            g.printMessage(user, text, false, MsgTags.create("chatty-temp-msg-id", tempMsgId));
-            if (allowCommandMessageLocally) {
-                modCommandAddStreamHighlight(user, text, MsgTags.EMPTY);
-            }
-//            api.sendChatMessage(Helper.toStream(channel), text, null, result -> {
-//                if (result.wasSent) {
-//                    User user = c.localUserJoined(channel);
-//                    g.printMessage(user, text, false);
-//                    if (allowCommandMessageLocally) {
-//                        modCommandAddStreamHighlight(user, text, MsgTags.EMPTY);
-//                    }
-//                }
-//                else {
-//                    g.printLine("# Message not sent: " + result.dropReasonMessage);
-//                }
-//            });
-        }
-        else {
-            if (c.sendSpamProtectedMessage(channel, text, false)) {
-                User user = c.localUserJoined(channel);
-                g.printMessage(user, text, false);
-                if (allowCommandMessageLocally) {
-                    modCommandAddStreamHighlight(user, text, MsgTags.EMPTY);
-                }
-            }
-            else {
-                g.printLine("# Message not sent to prevent ban: " + text);
-            }
+        String tempMsgId = sendMessageManager.sendApiMessage(channel, text, null, false);
+        User user = c.localUserJoined(channel);
+        g.printMessage(user, text, false, MsgTags.create("chatty-temp-msg-id", tempMsgId));
+        if (allowCommandMessageLocally) {
+            modCommandAddStreamHighlight(user, text, MsgTags.EMPTY);
         }
     }
     
