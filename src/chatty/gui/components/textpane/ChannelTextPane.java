@@ -1436,13 +1436,13 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             Userline userLine = lines.get(i);
             String lineReplyParentId = (String) userLine.userElement.getAttributes().getAttribute(Attribute.REPLY_PARENT_MSG_ID);
             String existingMsgId = getIdFromElement(userLine.userElement);
+            String pendingText = (String) userLine.line.getAttributes().getAttribute(Attribute.PENDING_ECHO_TEXT);
             if (!Objects.equals(replyParentMsgId, lineReplyParentId)) {
                 continue;
             }
             if (existingMsgId == null) {
                 if (expectedText != null) {
-                    String pendingText = (String) userLine.line.getAttributes().getAttribute(Attribute.PENDING_ECHO_TEXT);
-                    if (!expectedText.equals(pendingText)) {
+                    if (pendingText == null || !expectedText.strip().equals(pendingText.strip())) {
                         continue;
                     }
                 }
