@@ -1441,7 +1441,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             }
             if (existingMsgId == null) {
                 if (expectedText != null) {
-                    String pendingText = (String) userLine.userElement.getAttributes().getAttribute(Attribute.PENDING_ECHO_TEXT);
+                    String pendingText = (String) userLine.line.getAttributes().getAttribute(Attribute.PENDING_ECHO_TEXT);
                     if (!expectedText.equals(pendingText)) {
                         continue;
                     }
