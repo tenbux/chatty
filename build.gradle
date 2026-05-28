@@ -274,7 +274,7 @@ task macBuild(type: Exec, group: 'build') {
         '--main-class', 'chatty.Chatty',
         '--main-jar', 'Chatty.jar',
         '--description', 'Chatty - Twitch Chat Client',
-        '--java-options', '-Xmx600M',
+        '--java-options', '-Xmx1024M',
         '--java-options', '--enable-native-access=ALL-UNNAMED',
         '--icon', 'assets-bundle/Chatty.icns',
         '--app-version', project.version.replaceFirst(/^0\./, '1.')

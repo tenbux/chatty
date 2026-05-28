@@ -4,6 +4,7 @@ package chatty.util.api;
 import chatty.util.ImageCache;
 import chatty.util.ImageCache.ImageRequest;
 import chatty.util.ImageCache.ImageResult;
+import chatty.util.LogUtil;
 import chatty.util.gif.AnimatedImageSource;
 
 import javax.swing.*;
@@ -224,6 +225,9 @@ public class CachedImage<T> {
      * @return true if the image will be attempted to be loaded, false otherwise
      */
     private boolean loadImage() {
+        if (LogUtil.getMemoryPercentageOfMax() > 95) {
+            return false;
+        }
         if (!loading && loadingAttempts.get() < MAX_LOADING_ATTEMPTS
                 && System.currentTimeMillis() - lastLoadingAttempt > LOADING_ATTEMPT_DELAY) {
             loading = true;

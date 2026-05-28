@@ -178,12 +178,21 @@ public class Emoticons {
     
     private static final int DEFAULT_IMAGE_EXPIRE_MINUTES = 4*60;
     private static final int FASTER_IMAGE_EXPIRE_MINUTES = 60;
-    
+    private static final int AGGRESSIVE_IMAGE_EXPIRE_MINUTES = 15;
+    private static final int EMERGENCY_IMAGE_EXPIRE_MINUTES = 1;
+
     public Emoticons() {
-        Timer timer = new Timer(60 * 60 * 1000, e -> {
-            int imageExpireMinutes = DEFAULT_IMAGE_EXPIRE_MINUTES;
-            if (LogUtil.getMemoryPercentageOfMax() > 80) {
+        Timer timer = new Timer(15 * 60 * 1000, e -> {
+            int memPercent = LogUtil.getMemoryPercentageOfMax();
+            int imageExpireMinutes;
+            if (memPercent > 95) {
+                imageExpireMinutes = EMERGENCY_IMAGE_EXPIRE_MINUTES;
+            } else if (memPercent > 90) {
+                imageExpireMinutes = AGGRESSIVE_IMAGE_EXPIRE_MINUTES;
+            } else if (memPercent > 80) {
                 imageExpireMinutes = FASTER_IMAGE_EXPIRE_MINUTES;
+            } else {
+                imageExpireMinutes = DEFAULT_IMAGE_EXPIRE_MINUTES;
             }
             int removedCount = 0;
             removedCount += clearOldEmoticonImages(twitchEmotesById.values(), imageExpireMinutes);
@@ -191,8 +200,8 @@ public class Emoticons {
             for (Set<Emoticon> emotes : streamEmoticons.values()) {
                 removedCount += clearOldEmoticonImages(emotes, imageExpireMinutes);
             }
-            LOGGER.info(String.format("Cleared %d unused emoticon images (%dm)",
-                    removedCount, imageExpireMinutes));
+            LOGGER.info(String.format("Cleared %d unused emoticon images (%dm, mem=%d%%)",
+                    removedCount, imageExpireMinutes, memPercent));
         });
         timer.setRepeats(true);
         timer.start();
@@ -561,6 +570,9 @@ public class Emoticons {
             return emote;
         }
         emote = CombinedEmoticon.create(emotes, code, imageType);
+        if (combinedEmotes.size() > 500) {
+            combinedEmotes.clear();
+        }
         combinedEmotes.put(code, emote);
         return emote;
     }
