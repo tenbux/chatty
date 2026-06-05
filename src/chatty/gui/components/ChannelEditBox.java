@@ -222,13 +222,13 @@ public class ChannelEditBox extends JTextArea implements KeyListener,
 
     @Override
     public void keyPressed(KeyEvent e) {
-        if (!historyRequireCtrlMultirow || e.isControlDown() || isSingleRow()) {
+        if (!historyRequireCtrlMultirow || e.isControlDown() || isSingleRow() || !historyTextEdited) {
             if (e.getKeyCode() == KeyEvent.VK_UP
-                    && (e.isControlDown() || isCaretInFirstRow())) {
+                    && (e.isControlDown() || !historyTextEdited || isCaretInFirstRow())) {
                 historyBack();
                 e.consume();
             } else if (e.getKeyCode() == KeyEvent.VK_DOWN
-                    && (e.isControlDown() || isCaretInLastRow())) {
+                    && (e.isControlDown() || !historyTextEdited || isCaretInLastRow())) {
                 historyForward();
                 e.consume();
             }
