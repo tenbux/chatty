@@ -126,6 +126,10 @@ public class RawMessageTest {
             case "hello" -> {
                 return "@badges=premium/1;color=#000000;display-name=USER;emotes=30259:0-6;id=ID;login=user;mod=0;msg-id=ritual;msg-param-ritual-name=new_chatter;room-id=1234;subscriber=0;system-msg=@USER\\sis\\snew\\shere.\\sSay\\shello!;tmi-sent-ts=12345;turbo=0;user-id=1234;user-type= :tmi.twitch.tv USERNOTICE " + channel + " :HeyGuys";
             }
+            case "modiversary" -> {
+                // system-msg intentionally omits username (Twitch bug) - chatty prepends display-name
+                return "@badge-info=subscriber/20;badges=moderator/1,subscriber/12;color=#FF7F50;display-name=USERNAME;emotes=;flags=;id=090939a1-18a5-4370-9066-b4f56512c320;login=username;mod=1;msg-id=modiversary;msg-param-months=6;room-id=123;subscriber=1;system-msg=has\\sbeen\\sa\\smoderator\\sfor\\s6\\smonths!;tmi-sent-ts=12345;user-id=1234;user-type=mod :tmi.twitch.tv USERNOTICE " + channel + " :I've been a mod for 6 months!";
+            }
         }
         if (type.startsWith("subbomb")) {
             return "@badges=moderator/1,subscriber/36,bits/100;color=#590094;display-name="+localUsername+";emotes=;id=123;login="+localUsername+";mod=1;msg-id=subgift;msg-param-months=1;msg-param-recipient-display-name="+options+";msg-param-recipient-id=1234;msg-param-recipient-user-name="+options+";msg-param-sender-count=0;msg-param-sub-plan-name=Channel\\sSubscription\\s("+channel+");msg-param-sub-plan=1000;room-id=12345;subscriber=1;system-msg="+localUsername+"\\sgifted\\sa\\sTier\\s1\\ssub\\sto\\s"+options+"!;tmi-sent-ts=1535312941402;turbo=0;user-id=123456;user-type=mod :tmi.twitch.tv USERNOTICE "+channel;

@@ -1146,6 +1146,12 @@ public class TwitchConnection {
                 listener.onUsernotice("Usernotice", user, text, null, tags);
             } else if (tags.isValueOf("msg-id", "announcement")) {
                 listener.onUsernotice("Announcement", user, text, message, tags);
+            } else if (tags.isValue("msg-id", "modiversary")) {
+                // Twitch omits the username from system-msg for mod anniversary
+                if (!text.startsWith(user.getDisplayNick()) && !text.startsWith(login)) {
+                    text = user.getDisplayNick() + " " + text;
+                }
+                listener.onUsernotice("Usernotice", user, text, message, tags);
             } else {
                 // Just output like this if unknown, since Twitch keeps adding
                 // new messages types for this
