@@ -34,6 +34,7 @@ public class AnimatedImageSource implements ImageProducer {
     private Thread thread;
     private ElapsedTime noConsumersTime;
     private boolean errorOccured;
+    private long lastFrameSent;
     
     public AnimatedImageSource(AnimatedImage image) {
         this.image = image;
@@ -113,6 +114,14 @@ public class AnimatedImageSource implements ImageProducer {
                         if (pauseFrame != currentFrame || !hasPixels()) {
                             currentFrame = pauseFrame - 1;
                             nextFrame();
+                        }
+                        else if (shouldSendDummyFrame()) {
+                            /**
+                             * When paused still send frames from time to time
+                             * since otherwise removeConsumer() won't be called
+                             * when the image is no longer displayed.
+                             */
+                            sendFrame();
                         }
                     }
                     try {
@@ -194,10 +203,15 @@ public class AnimatedImageSource implements ImageProducer {
             errorOccured = true;
         }
         
+        sendFrame();
+    }
+    
+    private synchronized void sendFrame() {
         // Send current frame to all
         for (ImageConsumer ic : consumers) {
             sendFrame(ic);
         }
+        lastFrameSent = System.currentTimeMillis();
     }
     
     /**
@@ -226,6 +240,10 @@ public class AnimatedImageSource implements ImageProducer {
                 ic.imageComplete(ImageConsumer.SINGLEFRAMEDONE);
             }
         }
+    }
+    
+    private synchronized boolean shouldSendDummyFrame() {
+        return System.currentTimeMillis() - lastFrameSent > INACTIVITY_SECONDS*1000*4;
     }
     
     //==========================
