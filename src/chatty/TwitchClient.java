@@ -2282,6 +2282,8 @@ public class TwitchClient {
                 sevenTV.requestEmotes(channel, true);
             }
             sevenTV.requestEmotes(null, true);
+        } else if (parameter.equals("pinnedMessage")) {
+            api.requestPinnedMessage(Helper.toStream(channel), null);
         } else {
             g.printLine("Usage: /refresh <type> (invalid type, see help)");
         }
@@ -2745,6 +2747,11 @@ public class TwitchClient {
         api.subscribe(ResultManager.Type.SHIELD_MODE_RESULT, (ResultManager.ShieldModeResult) (stream, enabled) -> {
             String channel = Helper.toChannel(stream);
             getChannelState(channel).setShieldMode(enabled);
+        });
+        api.subscribe(ResultManager.Type.PINNED_MESSAGE, (ResultManager.PinnedMessageResult) (stream, msg) -> {
+            String channel = Helper.toChannel(stream);
+            getChannelState(channel).setPinnedMessage(msg);
+            g.channelStateUpdated(getChannelState(channel));
         });
     }
 
