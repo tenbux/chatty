@@ -135,6 +135,7 @@ public class ModerationPanel extends JPanel {
         });
 
         refreshPinnedMessageButton.addActionListener(e -> {
+            pinnedMessageText.setText(makePinnedMessageText(null));
             sendCommand("/refresh pinnedMessage");
             refreshPinnedMessageButton.setEnabled(false);
             Timer timer = new Timer(2000, e2 -> refreshPinnedMessageButton.setEnabled(true));
@@ -148,7 +149,10 @@ public class ModerationPanel extends JPanel {
             if (applyChanges) {
                 String msgText = editPinnedMessageDialog.msg.getText();
                 long duration = editPinnedMessageDialog.getDuration();
-                if (currentPinnedMessage == null || !currentPinnedMessage.messageText.equals(msgText)) {
+                if (currentPinnedMessage == null
+                        || currentPinnedMessage.hasError()
+                        || currentPinnedMessage.isEmpty()
+                        || !currentPinnedMessage.messageText.equals(msgText)) {
                     sendCommand(String.format("/pin -t %s %s",
                                               duration, msgText));
                 }
@@ -235,7 +239,9 @@ public class ModerationPanel extends JPanel {
         
         currentPinnedMessage = state.pinnedMessage();
         pinnedMessageText.setText(makePinnedMessageText(currentPinnedMessage));
-        unpinButton.setEnabled(currentPinnedMessage != null);
+        unpinButton.setEnabled(currentPinnedMessage != null
+                && !currentPinnedMessage.hasError()
+                && !currentPinnedMessage.isEmpty());
         
         subonlyCheckbox.setSelected(state.subMode());
         emoteonlyCheckbox.setSelected(state.emoteOnly());
@@ -253,7 +259,13 @@ public class ModerationPanel extends JPanel {
     
     private String makePinnedMessageText(PinnedMessage pinnedMessage) {
         if (pinnedMessage == null) {
+            return "Loading...";
+        }
+        if (pinnedMessage.isEmpty()) {
             return "No pinned message";
+        }
+        if (pinnedMessage.hasError()) {
+            return "Request error: "+pinnedMessage.error;
         }
         return String.format("[Pinned by %s until %s]\n<%s> %s",
                              pinnedMessage.pinnedByUsername,
@@ -350,7 +362,7 @@ public class ModerationPanel extends JPanel {
         
         private boolean showDialog(PinnedMessage pinnedMsg) {
             // Not all fields may be set for pinnedMsg
-            if (pinnedMsg == null) {
+            if (pinnedMsg == null || pinnedMsg.messageText == null) {
                 msg.setText(null);
                 duration.setSelectedValue((long)-1);
             }

@@ -246,13 +246,17 @@ public class TwitchCommands {
                 Commands.CommandParsedArgs args = p.parsedArgs(0, 0);
                 long durationSeconds = DateTime.parseDurationSeconds(p.getArgs());
                 api.requestPinnedMessage(p.room().getStream(), msg -> {
-                    if (msg != null) {
+                    // Never returns null (as opposed to in ChannelState which may contain null if no request result set yet)
+                    if (msg.hasError()) {
+                        client.g.printLine(p.room(), "Error requesting pinned message: "+msg.error);
+                    }
+                    else if (msg.isEmpty()) {
+                        client.g.printLine(p.room(), "No pinned message found.");
+                    }
+                    else {
                         channelCommand(client, p, args, listener -> {
                            api.updatePinnedMessage(p.room(), msg.msgId, durationSeconds, listener);
                        }, () -> "Updating pin duration to " + ModerationPanel.formatPinnedDuration(durationSeconds));
-                    }
-                    else {
-                        client.g.printLine(p.room(), "No pinned message found.");
                     }
                 });
             }
@@ -305,13 +309,16 @@ public class TwitchCommands {
             }
             else {
                 api.requestPinnedMessage(p.room().getStream(), msg -> {
-                    if (msg != null) {
+                    if (msg.hasError()) {
+                        client.g.printLine(p.room(), "Error requesting pinned message: "+msg.error);
+                    }
+                    else if (msg.isEmpty()) {
+                        client.g.printLine(p.room(), "No pinned message found.");
+                    }
+                    else {
                         channelCommand(client, p, args, listener -> {
                            api.deletePinnedMessage(p.room(), msg.msgId, listener);
                        });
-                    }
-                    else {
-                        client.g.printLine(p.room(), "No pinned message found.");
                     }
                 });
             }
