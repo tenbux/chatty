@@ -343,7 +343,7 @@ public class TwitchClient {
         g.showGui();
         
         autoModCommandHelper = new AutoModCommandHelper(g, api);
-        sendMessageManager = new SendMessageManager(api, g);
+        sendMessageManager = new SendMessageManager(api::sendChatMessage, g);
         
         timerCommand = new TimerCommand(settings, new TimerCommand.TimerAction() {
             @Override

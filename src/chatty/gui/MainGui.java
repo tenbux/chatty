@@ -80,7 +80,7 @@ import java.util.regex.Pattern;
  * 
  * @author tduva
  */
-public class MainGui extends JFrame implements Runnable { 
+public class MainGui extends JFrame implements Runnable, SendMessageManager.Output { 
     
     private static final Logger LOGGER = Logger.getLogger(MainGui.class.getName());
     
@@ -3405,6 +3405,19 @@ public class MainGui extends JFrame implements Runnable {
      * # Messages #
      */
     
+    /**
+     * Tags the optimistic line printed at send time (identified by
+     * tempMsgId) with the real msg id once the send API call returns.
+     */
+    public void updateMsgIdForTempId(String channel, String tempMsgId, String newMsgId) {
+        SwingUtilities.invokeLater(() -> {
+            Channel chan = channels.getExistingChannel(channel);
+            if (chan != null) {
+                chan.updateMsgIdForTempId(tempMsgId, newMsgId);
+            }
+        });
+    }
+
     public void printMessage(User user, String text, boolean action) {
         printMessage(user, text, action, MsgTags.EMPTY);
     }
@@ -3571,11 +3584,11 @@ public class MainGui extends JFrame implements Runnable {
                     printInfo(chan, InfoMessage.createInfo("Own message ignored."));
                 }
             } else {
-                // When an own-message echo arrives from the IRC server, update
-                // the optimistic line (printed without tags) instead of adding
-                // a duplicate. The real msg-id is needed for deletion.
-                if (isOwnMessage && tags.getId() != null
-                        && chan.updateMsgIdForRecentMessage(user, tags.getId(), tags.getReplyParentMsgId(), text)) {
+                // When an own-message echo arrives from the IRC server, the
+                // optimistic line printed at send time was already tagged with
+                // this msg-id (see SendMessageManager/updateMsgIdForTempId), so
+                // skip printing a duplicate instead of adding a new line.
+                if (isOwnMessage && tags.getId() != null && chan.hasMsgId(tags.getId())) {
                     return;
                 }
 
@@ -5381,6 +5394,11 @@ public class MainGui extends JFrame implements Runnable {
     
     public Settings getSettings() {
         return client.settings;
+    }
+
+    @Override
+    public long getEmojiZWJSetting() {
+        return client.settings.getLong("emojiZWJ");
     }
     
     public Collection<String> getSettingNames() {

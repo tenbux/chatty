@@ -568,8 +568,12 @@ public final class Channel extends JPanel {
         return text.getSelectedMsgId();
     }
 
-    public boolean updateMsgIdForRecentMessage(User user, String newMsgId, String replyParentMsgId, String expectedText) {
-        return text.updateMsgIdForRecentMessage(user, newMsgId, replyParentMsgId, expectedText);
+    public boolean updateMsgIdForTempId(String tempMsgId, String newMsgId) {
+        return text.updateMsgIdForTempId(tempMsgId, newMsgId);
+    }
+
+    public boolean hasMsgId(String msgId) {
+        return text.hasMsgId(msgId);
     }
 
     public boolean hasLineId(long lineId) {

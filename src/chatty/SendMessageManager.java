@@ -1,15 +1,15 @@
 
 package chatty;
 
-import chatty.gui.MainGui;
 import chatty.gui.emoji.EmojiUtil;
 import chatty.util.Debugging;
 import chatty.util.SpecialMap;
-import chatty.util.api.TwitchApi;
+import chatty.util.api.SendMessageResult;
 import chatty.util.history.QueuedMessage;
 import chatty.util.irc.MsgTags;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * Sending message through the API causes a message to be received back.
@@ -21,32 +21,54 @@ import java.util.*;
  * delay, and it may not be guaranteed that it is received before the chat
  * message is received, deduplication requires a two step process:
  * 1. Queuing all received local user messages while a request is pending
- * 2. Once the request completes, passing queued messages to printMessage, which
- * uses updateMsgIdForRecentMessage to assign the real msg-id to the optimistic
- * line and suppress the duplicate; messages from other clients are shown normally
+ * 2. Once the request completes, the real msg-id is assigned to the optimistic
+ * line (see updateMsgIdForTempId) before any queued messages are passed to
+ * printMessage, so the echo can be recognized and suppressed by id
+ * (hasMsgId) instead of comparing text; messages from other clients are
+ * shown normally
  *
  * @author tduva
  */
 public class SendMessageManager {
 
+    /**
+     * The subset of TwitchApi this class needs, so it can be unit tested
+     * without a real TwitchApi instance. TwitchApi.sendChatMessage already
+     * matches this signature, so no adapter is needed at the call site.
+     */
+    public interface MessageSender {
+        void sendChatMessage(String channelId, String message, String replyToMsgId, Consumer<SendMessageResult> listener);
+    }
+
+    /**
+     * The subset of MainGui this class needs, so it can be unit tested
+     * without a real MainGui instance.
+     */
+    public interface Output {
+        long getEmojiZWJSetting();
+        void printLine(String message);
+        void printMessage(User user, String text, boolean action, MsgTags tags);
+        void updateMsgIdForTempId(String channel, String tempMsgId, String newMsgId);
+    }
+
     private int sentMessageId = 0;
     private final SpecialMap<String, Set<String>> sentMessagePending = new SpecialMap<>(new HashMap<>(), HashSet::new);
     private final Set<String> ignoreByMsgId = new HashSet<>();
-    
-    private final TwitchApi api;
-    private final MainGui g;
-    
+
+    private final MessageSender api;
+    private final Output g;
+
     private final Object LOCK = new Object();
-    
+
     private final SpecialMap<String, List<QueuedMessage>> queuedMessages = new SpecialMap<>(new HashMap<>(), ArrayList::new);
-    
-    public SendMessageManager(TwitchApi api, MainGui g) {
+
+    public SendMessageManager(MessageSender api, Output g) {
         this.api = api;
         this.g = g;
     }
-    
+
     public String sendApiMessage(String channel, String text, String replyToMsgId, boolean action) {
-        if (g.getSettings().getLong("emojiZWJ") == 2) {
+        if (g.getEmojiZWJSetting() == 2) {
             text = EmojiUtil.encodeZWJ(text);
         }
         if (action) {
@@ -73,6 +95,7 @@ public class SendMessageManager {
                             if (result.wasSent && result.msgId != null) {
                                 ignoreByMsgId.add(result.msgId);
                                 Debugging.println("sendmsg", "Will prioritize in queue: %s", result.msgId);
+                                g.updateMsgIdForTempId(channel, tempMsgId, result.msgId);
                             }
                         }
                         handleQueuedMessages(channel);
@@ -82,12 +105,11 @@ public class SendMessageManager {
     }
     
     /**
-     * Process messages queued during a pending API request. Our own echo (the
-     * one matching ignoreByMsgId) is dispatched first so that
-     * updateMsgIdForRecentMessage assigns the real msg-id to the optimistic line
-     * before any messages from other clients are processed. That way a
-     * concurrent website message cannot be mistakenly matched to the orphaned
-     * optimistic line and swallowed.
+     * Process messages queued during a pending API request. The optimistic
+     * line was already tagged with the real msg-id in sendApiMessage's
+     * callback (before this is called), so our own echo (the one matching
+     * ignoreByMsgId) is simply suppressed by id when printed; messages from
+     * other clients are shown normally.
      *
      * @param channel
      */
@@ -136,8 +158,8 @@ public class SendMessageManager {
         synchronized (LOCK) {
             debugStatus("shouldIgnore");
             // Clean up if this echo arrives after sentMessagePending cleared (not via queue).
-            // The echo still flows to g.printMessage so updateMsgIdForRecentMessage can
-            // assign the real msg-id to the optimistic line and suppress the duplicate.
+            // The optimistic line was already tagged with the real msg-id in
+            // sendApiMessage's callback, so the echo is suppressed by id when printed.
             ignoreByMsgId.remove(tags.getId());
             if (sentMessagePending.containsKey(user.getChannel())) {
                 Debugging.println("sendMsg", "Ignored for now (messages pending): %s", text);

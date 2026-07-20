@@ -138,7 +138,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         
         OBJECT_ID,
 
-        PENDING_ECHO_TEXT
+        TEMP_MSG_ID
     }
     
     /**
@@ -641,8 +641,9 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             setCustomColor(getCurrentParagraphOffset(), message.backgroundColor, message.colorSource);
         }
         setParagraphAttribute(getCurrentParagraphOffset(), Attribute.LINE_ID, message.lineId);
-        if (message.msgId == null) {
-            setParagraphAttribute(getCurrentParagraphOffset(), Attribute.PENDING_ECHO_TEXT, message.text);
+        String tempMsgId = message.tags.get("chatty-temp-msg-id");
+        if (message.msgId == null && tempMsgId != null) {
+            setParagraphAttribute(getCurrentParagraphOffset(), Attribute.TEMP_MSG_ID, tempMsgId);
         }
         finishLine();
         
@@ -1415,42 +1416,47 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
     }
 
     /**
-     * Finds the most recently printed line for the given user that has no
-     * MSG_ID yet (an optimistic/unconfirmed message) and assigns it the real
-     * msg id from the server echo. Returns true if a line was updated.
-     *
-     * <p>The replyParentMsgId parameter narrows matching: a reply echo (non-null)
-     * only matches optimistic lines with the same REPLY_PARENT_MSG_ID attribute,
-     * and a non-reply echo (null) only matches lines without that attribute.
-     * This prevents website echoes from being swallowed by an unrelated reply's
-     * orphaned optimistic line.</p>
+     * Finds the optimistic/unconfirmed line printed for the given temp id
+     * (assigned when the message was sent, see chatty-temp-msg-id) and tags
+     * it with the real msg id once the send API call returns. This runs
+     * before any server echo can arrive, so the echo can be matched and
+     * suppressed by id alone in {@link #hasMsgId(String)} instead of by
+     * comparing text (which server-side text transforms can silently break).
      *
      * <p>Must be called on the EDT.</p>
      */
-    public boolean updateMsgIdForRecentMessage(User user, String newMsgId, String replyParentMsgId, String expectedText) {
-        if (newMsgId == null) {
+    public boolean updateMsgIdForTempId(String tempMsgId, String newMsgId) {
+        if (tempMsgId == null || newMsgId == null) {
             return false;
         }
-        java.util.List<Userline> lines = getUserLines(user);
+        java.util.List<Userline> lines = getUserLines(null);
         for (int i = lines.size() - 1; i >= 0; i--) {
             Userline userLine = lines.get(i);
-            String lineReplyParentId = (String) userLine.userElement.getAttributes().getAttribute(Attribute.REPLY_PARENT_MSG_ID);
-            String existingMsgId = getIdFromElement(userLine.userElement);
-            String pendingText = (String) userLine.line.getAttributes().getAttribute(Attribute.PENDING_ECHO_TEXT);
-            if (!Objects.equals(replyParentMsgId, lineReplyParentId)) {
-                continue;
-            }
-            if (existingMsgId == null) {
-                if (expectedText != null) {
-                    if (pendingText == null || !expectedText.strip().equals(pendingText.strip())) {
-                        continue;
-                    }
-                }
+            String lineTempMsgId = (String) userLine.line.getAttributes().getAttribute(Attribute.TEMP_MSG_ID);
+            if (tempMsgId.equals(lineTempMsgId) && getIdFromElement(userLine.userElement) == null) {
                 int start = userLine.userElement.getStartOffset();
                 int length = userLine.userElement.getEndOffset() - start;
                 SimpleAttributeSet attrs = new SimpleAttributeSet();
                 attrs.addAttribute(Attribute.MSG_ID, newMsgId);
                 doc.setCharacterAttributes(start, length, attrs, false);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether a line with the given msg id has already been printed (used to
+     * suppress a server echo for a message that was already tagged via
+     * {@link #updateMsgIdForTempId(String, String)}).
+     */
+    public boolean hasMsgId(String msgId) {
+        if (msgId == null) {
+            return false;
+        }
+        java.util.List<Userline> lines = getUserLines(null);
+        for (int i = lines.size() - 1; i >= 0; i--) {
+            if (msgId.equals(getIdFromElement(lines.get(i).userElement))) {
                 return true;
             }
         }
