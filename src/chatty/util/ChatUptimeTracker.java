@@ -27,6 +27,11 @@ public class ChatUptimeTracker {
 
     public ChatUptimeTracker(Path file) {
         this.file = file;
+        // Without this, the first heartbeat() from a raw IRC line during the connection
+        // handshake (which fires before onConnect()'s onRegistered() call) would
+        // immediately flush "now" to disk, clobbering the real prior timestamp before
+        // onConnect() gets a chance to read and diff against it.
+        this.lastFlushed = System.currentTimeMillis();
     }
 
     /**
