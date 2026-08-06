@@ -6,6 +6,8 @@ import chatty.User.UserSettings;
 import chatty.gui.emoji.EmojiUtil;
 import chatty.lang.Language;
 import chatty.util.BotNameManager;
+import chatty.util.ChatUptimeTracker;
+import chatty.util.DateTime;
 import chatty.util.StringUtil;
 import chatty.util.api.Emoticons;
 import chatty.util.irc.MsgTags;
@@ -29,6 +31,8 @@ public class TwitchConnection {
 
     private final ConnectionListener listener;
     private final Settings settings;
+    private final ChatUptimeTracker uptimeTracker = new ChatUptimeTracker(
+            Chatty.getPath(Chatty.PathType.SETTINGS).resolve("chat-uptime.dat"));
 
     /**
      * Channels that should be joined after connecting.
@@ -729,8 +733,13 @@ public class TwitchConnection {
             if (this != irc) {
                 return;
             }
-            
-            
+
+            long downtime = uptimeTracker.onConnect();
+            if (downtime > 0) {
+                listener.onGlobalInfo("Downtime: "+DateTime.duration(downtime, DateTime.Formatting.NO_ZERO_VALUES)
+                        +" (since "+DateTime.formatFullDatetime(System.currentTimeMillis()-downtime)+")");
+            }
+
             if (autojoin != null) {
                 listener.onJoinScheduled(Arrays.asList(autojoin));
                 for (String channel : autojoin) {
@@ -1266,6 +1275,7 @@ public class TwitchConnection {
 
         @Override
         public void raw(String text) {
+            uptimeTracker.heartbeat();
             listener.onRawReceived(idPrefix+text);
         }
 
