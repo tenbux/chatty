@@ -124,7 +124,7 @@ public class RoutingManager {
                 RoutingTarget target = getTarget(name);
                 UserMessage thisMessage = message.copy();
                 thisMessage.routingSource = hlItem;
-                target.addMessage(localUser.getChannel(), thisMessage);
+                target.addMessage(message.user.getChannel(), thisMessage);
 
                 
                 RoutingTargetSettings ts = getSettings(name);
