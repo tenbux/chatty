@@ -271,7 +271,7 @@ public class MsgTags extends IrcMsgTags {
     public record Link(Type type, String target, String label, int startIndex, int endIndex) {
 
         public enum Type {
-                JOIN, URL
+                JOIN, URL, RESEND
             }
 
         public Link(Type type, String target, int startIndex, int endIndex) {

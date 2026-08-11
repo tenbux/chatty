@@ -95,6 +95,38 @@ public class SendMessageManagerTest {
         assertEquals("hi from the website", output.printedMessages.get(0).text);
     }
 
+    @Test
+    public void uncertainFailurePrintsResendLinkInsteadOfPlainLine() {
+        manager.sendApiMessage(CHANNEL, "hello", null, false);
+        sender.respond(SendMessageResult.connectionFailure("timed out"));
+
+        assertTrue("A known failure reason should never be shown as a plain line for an uncertain result",
+                output.lines.isEmpty());
+        assertEquals(1, output.infoMessages.size());
+        assertTrue(output.infoMessages.get(0).contains("timed out"));
+    }
+
+    @Test
+    public void resendingAfterUncertainFailureSendsAgainAndCanSucceed() {
+        String tempMsgId = manager.sendApiMessage(CHANNEL, "hello", null, false);
+        sender.respond(SendMessageResult.connectionFailure("timed out"));
+
+        manager.resend(tempMsgId);
+        sender.respond(success("real-123"));
+
+        assertEquals("Resend must retry with the original message text",
+                "hello", sender.lastMessage);
+        assertEquals("The resend attempt must be tagged with the real id once it succeeds",
+                1, output.taggedTempIds.size());
+        assertTrue(output.taggedTempIds.get(0).endsWith("->real-123"));
+    }
+
+    @Test
+    public void resendingUnknownTempMsgIdDoesNothing() {
+        manager.resend("does-not-exist");
+        assertNull(sender.lastListener);
+    }
+
     private static SendMessageResult success(String msgId) {
         return SendMessageResult.parse("{\"data\":[{\"message_id\":\"" + msgId + "\",\"is_sent\":true}]}");
     }
@@ -107,10 +139,12 @@ public class SendMessageManagerTest {
     private static class FakeSender implements SendMessageManager.MessageSender {
 
         private Consumer<SendMessageResult> lastListener;
+        private String lastMessage;
 
         @Override
         public void sendChatMessage(String channelId, String message, String replyToMsgId, Consumer<SendMessageResult> listener) {
             lastListener = listener;
+            lastMessage = message;
         }
 
         void respond(SendMessageResult result) {
@@ -121,6 +155,7 @@ public class SendMessageManagerTest {
     private static class FakeOutput implements SendMessageManager.Output {
 
         final List<String> lines = new ArrayList<>();
+        final List<String> infoMessages = new ArrayList<>();
         final List<PrintedMessage> printedMessages = new ArrayList<>();
         final List<String> taggedTempIds = new ArrayList<>();
         final List<String> order = new ArrayList<>();
@@ -133,6 +168,11 @@ public class SendMessageManagerTest {
         @Override
         public void printLine(String message) {
             lines.add(message);
+        }
+
+        @Override
+        public void printInfo(String channel, String message, MsgTags tags) {
+            infoMessages.add(message);
         }
 
         @Override

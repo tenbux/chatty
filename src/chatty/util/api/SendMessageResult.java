@@ -19,13 +19,32 @@ public class SendMessageResult {
     public final boolean wasSent;
     public final String msgId;
     public final String dropReasonMessage;
-    
+    /**
+     * True if the request failed without a response from Twitch (e.g.
+     * connection timeout), so it's unknown whether the message actually
+     * went through.
+     */
+    public final boolean uncertain;
+
     protected SendMessageResult(boolean ok, String msgId, String dropReasonMessage) {
+        this(ok, msgId, dropReasonMessage, false);
+    }
+
+    protected SendMessageResult(boolean ok, String msgId, String dropReasonMessage, boolean uncertain) {
         this.wasSent = ok;
         this.msgId = msgId;
         this.dropReasonMessage = dropReasonMessage;
+        this.uncertain = uncertain;
     }
-    
+
+    /**
+     * The request failed without a response from Twitch (e.g. connection
+     * timeout), so it's unknown whether the message actually went through.
+     */
+    public static SendMessageResult connectionFailure(String reason) {
+        return new SendMessageResult(false, null, reason, true);
+    }
+
     public static SendMessageResult parse(String json) {
         try {
             JSONParser parser = new JSONParser();

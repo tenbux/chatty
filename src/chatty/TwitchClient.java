@@ -965,7 +965,16 @@ public class TwitchClient {
             modCommandAddStreamHighlight(user, text, MsgTags.EMPTY);
         }
     }
-    
+
+    /**
+     * Resend a message that previously failed with an uncertain
+     * (connection-level) error, triggered by clicking the "Resend" link
+     * shown next to that error.
+     */
+    public void resendMessage(String tempMsgId) {
+        sendMessageManager.resend(tempMsgId);
+    }
+
     /**
      * Check if the message should be sent as a reply.
      * 

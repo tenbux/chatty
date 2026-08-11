@@ -2672,6 +2672,9 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
                 case URL:
                     UrlOpener.openUrl(link.target());
                     break;
+                case RESEND:
+                    client.resendMessage(link.target());
+                    break;
             }
         }
         
@@ -3882,7 +3885,12 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
             }
         });
     }
-    
+
+    @Override
+    public void printInfo(final String channel, final String line, final MsgTags tags) {
+        printInfo(client.roomManager.getRoom(channel), line, tags);
+    }
+
     public void addToLine(final Room room, Object objectId, String text) {
         GuiUtil.edt(() -> channels.getChannel(room).printInfoMessage(InfoMessage.createAppend(objectId, text)));
     }

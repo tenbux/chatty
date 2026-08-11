@@ -9,6 +9,7 @@ import chatty.util.history.QueuedMessage;
 import chatty.util.irc.MsgTags;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
@@ -47,13 +48,17 @@ public class SendMessageManager {
     public interface Output {
         long getEmojiZWJSetting();
         void printLine(String message);
+        void printInfo(String channel, String message, MsgTags tags);
         void printMessage(User user, String text, boolean action, MsgTags tags);
         void updateMsgIdForTempId(String channel, String tempMsgId, String newMsgId);
     }
 
+    private record ResendData(String channel, String text, String replyToMsgId) {}
+
     private int sentMessageId = 0;
     private final SpecialMap<String, Set<String>> sentMessagePending = new SpecialMap<>(new HashMap<>(), HashSet::new);
     private final Set<String> ignoreByMsgId = new HashSet<>();
+    private final Map<String, ResendData> resendable = new ConcurrentHashMap<>();
 
     private final MessageSender api;
     private final Output g;
@@ -74,6 +79,25 @@ public class SendMessageManager {
         if (action) {
             text = (char)1+"ACTION "+text+(char)1;
         }
+        return attemptSend(channel, text, replyToMsgId);
+    }
+
+    /**
+     * Resend a message that previously failed with an uncertain
+     * (connection-level) error, triggered by the user clicking the "Resend"
+     * link shown next to that error.
+     *
+     * @param tempMsgId The id of the failed send attempt, as passed to the
+     *                  RESEND link's target
+     */
+    public void resend(String tempMsgId) {
+        ResendData data = resendable.remove(tempMsgId);
+        if (data != null) {
+            attemptSend(data.channel(), data.text(), data.replyToMsgId());
+        }
+    }
+
+    private String attemptSend(String channel, String text, String replyToMsgId) {
         String tempMsgId;
         synchronized (LOCK) {
             tempMsgId = String.valueOf(sentMessageId);
@@ -81,13 +105,15 @@ public class SendMessageManager {
             sentMessagePending.getPut(channel).add(tempMsgId);
         }
         api.sendChatMessage(Helper.toStream(channel), text, replyToMsgId, result -> {
-//            try {
-//                Thread.sleep(1000);
-//            } catch (InterruptedException ex) {
-//                Logger.getLogger(SendMessageManager.class.getName()).log(Level.SEVERE, null, ex);
-//            }
                         if (!result.wasSent) {
-                            g.printLine("# Message not sent: " + result.dropReasonMessage);
+                            if (result.uncertain) {
+                                resendable.put(tempMsgId, new ResendData(channel, text, replyToMsgId));
+                                g.printInfo(channel, "Message not sent: " + result.dropReasonMessage,
+                                        MsgTags.createLinks(new MsgTags.Link(MsgTags.Link.Type.RESEND, tempMsgId, "Resend")));
+                            }
+                            else {
+                                g.printLine("# Message not sent: " + result.dropReasonMessage);
+                            }
                         }
                         synchronized (LOCK) {
                             sentMessagePending.getOptional(channel).remove(tempMsgId);
@@ -100,10 +126,10 @@ public class SendMessageManager {
                         }
                         handleQueuedMessages(channel);
                     });
-        
+
         return tempMsgId;
     }
-    
+
     /**
      * Process messages queued during a pending API request. The optimistic
      * line was already tagged with the real msg-id in sendApiMessage's

@@ -803,6 +803,13 @@ public class Requests {
             if (r.responseCode() == 200) {
                 listener.accept(SendMessageResult.parse(r.text()));
             }
+            else if (r.errorText() == null) {
+                // No response body means the request failed at the connection
+                // level (e.g. read timeout), not a rejection from Twitch, so
+                // it's unclear whether the message was actually received.
+                listener.accept(SendMessageResult.connectionFailure(
+                        "Connection issue, unknown if the message was sent"));
+            }
             else {
                 listener.accept(new SendMessageResult(false, null, String.format("Error %s (%s)",
                         r.responseCode(),

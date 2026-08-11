@@ -513,6 +513,7 @@ public class LinkController extends MouseAdapter {
                         yield new StreamsContextMenu(Collections.singletonList(c), contextMenuListener);
                     }
                     case URL -> new UrlContextMenu(link.target(), false, contextMenuListener);
+                    case RESEND -> null;
                 };
             }
             else if (emoteImage != null) {
