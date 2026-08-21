@@ -277,6 +277,7 @@ task macBuild(type: Exec, group: 'build') {
         '--java-options', '-Xmx1024M',
         '--java-options', '--enable-native-access=ALL-UNNAMED',
         '--icon', 'assets-bundle/Chatty.icns',
+        '--resource-dir', 'assets-bundle/mac-resources',
         '--app-version', project.version.replaceFirst(/^0\./, '1.').replaceFirst(/-.*/, '')
 }
 
