@@ -110,6 +110,9 @@ public class MessageSettings extends SettingsPanel {
         otherSettingsPanel.add(d.addSimpleBooleanSetting(
                 "printStreamStatus"),
                 SettingsDialog.makeGbc(0, 3, 4, 1, GridBagConstraints.WEST));
+        otherSettingsPanel.add(d.addSimpleBooleanSetting(
+                "printStreamLive"),
+                SettingsDialog.makeGbc(0, 4, 4, 1, GridBagConstraints.WEST));
     }
     
     public static JPanel createTimestampPanel(SettingsDialog d, String setting) {

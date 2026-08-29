@@ -118,9 +118,11 @@ public class StreamLiveTrackerTest {
     }
 
     @Test
-    public void test_forget_nullStream_doesNotThrow() {
+    public void test_forget_nullStream_leavesOtherStateIntact() {
         StreamLiveTracker tracker = new StreamLiveTracker();
+        tracker.update("teststream", true);
         tracker.forget(null);
+        assertEquals(Transition.WENT_OFFLINE, tracker.update("teststream", false));
     }
 }
 ```
