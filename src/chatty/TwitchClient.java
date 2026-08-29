@@ -29,6 +29,7 @@ import chatty.util.api.*;
 import chatty.util.api.ResultManager.CreateClipResult;
 import chatty.util.api.StreamInfo.StreamType;
 import chatty.util.api.StreamInfo.ViewerStats;
+import chatty.util.api.StreamLiveTracker.Transition;
 import chatty.util.api.TwitchApi.RequestResultCode;
 import chatty.util.api.eventsub.EventSubListener;
 import chatty.util.api.eventsub.EventSubManager;
@@ -133,6 +134,7 @@ public class TwitchClient {
     public final StatusHistory statusHistory;
     
     public final StreamStatusWriter streamStatusWriter;
+    private final StreamLiveTracker streamLiveTracker = new StreamLiveTracker();
     
     protected final BotNameManager botNameManager;
     
@@ -682,6 +684,7 @@ public class TwitchClient {
             eventSub.unlistenSuspicousMessage(room.getStream());
             eventSub.unlistenWarnings(room.getStream());
             eventSub.unlistenMessageHeld(room.getStream());
+            streamLiveTracker.forget(room.getStream());
         }
     }
     
@@ -2899,12 +2902,40 @@ public class TwitchClient {
                 if (info.getOnline() && info.isValid()) {
                     chatLog.viewercount(channel, info.getViewers());
                 }
+                printStreamLiveChange(info, channel);
             }
             streamStatusWriter.streamStatus(info);
             if (info.isNotFound() && notFoundInfoDone.putIfAbsent(info, info) == null) {
                 g.printLine("** This channel doesn't seem to exist on Twitch. "
                         + "You may not be able to join this channel, but trying"
                         + " anyways. **");
+            }
+        }
+
+        /**
+         * Print a line when the stream changed between online and offline.
+         *
+         * @param info The updated StreamInfo
+         * @param channel The channel to print to, must be open
+         */
+        private void printStreamLiveChange(StreamInfo info, String channel) {
+            if (!info.isValidEnough()) {
+                /**
+                 * Stale data must not be reported as the stream going offline.
+                 * The tab indicator can treat it as offline because it shows
+                 * state, but a line claiming the stream just ended would be
+                 * wrong.
+                 */
+                return;
+            }
+            /**
+             * Track before reading the setting, so toggling the setting can't
+             * produce a transition on the next update that never happened.
+             */
+            Transition transition = streamLiveTracker.update(info.getStream(), info.getOnline());
+            if (transition != Transition.NONE && settings.getBoolean("printStreamLive")) {
+                g.printLineByOwnerChannel(channel, "** "+info.getDisplayName()
+                        +" is now "+(transition == Transition.WENT_LIVE ? "LIVE" : "OFFLINE")+" **");
             }
         }
 
