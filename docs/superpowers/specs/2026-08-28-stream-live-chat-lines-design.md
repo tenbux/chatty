@@ -183,7 +183,7 @@ New `test/chatty/util/api/StreamLiveTrackerTest.java`, testing
 - `test_update_repeatedSameState_returnsNone`
 - `test_update_afterForget_returnsNone`
 - `test_update_separateStreams_trackedIndependently`
-- `test_forget_nullStream_doesNotThrow`
+- `test_forget_nullStream_leavesOtherStateIntact`
 
 Run with `./gradlew test --tests "chatty.util.api.StreamLiveTrackerTest"`.
 
