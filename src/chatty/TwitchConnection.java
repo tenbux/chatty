@@ -11,10 +11,12 @@ import chatty.util.DateTime;
 import chatty.util.StringUtil;
 import chatty.util.api.Emoticons;
 import chatty.util.irc.MsgTags;
+import chatty.util.irc.UsernoticeInfo;
 import chatty.util.irc.UserTagsUtil;
 import chatty.util.settings.Settings;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
 /**
@@ -33,6 +35,27 @@ public class TwitchConnection {
     private final Settings settings;
     private final ChatUptimeTracker uptimeTracker = new ChatUptimeTracker(
             Chatty.getPath(Chatty.PathType.SETTINGS).resolve("chat-uptime.dat"));
+
+    /**
+     * Downtime detected on the most recent successful (re)connect, in ms, or
+     * 0 if none/not worth reporting. Read by outage backfill to determine
+     * the gap to request missed messages for.
+     */
+    private volatile long lastDowntimeDurationMs = 0;
+
+    /**
+     * Wall-clock time of the most recent successful (re)connect that had
+     * downtime attached, i.e. the end of the gap described by
+     * {@link #lastDowntimeDurationMs}.
+     */
+    private volatile long lastDowntimeGapEndMs = 0;
+
+    /**
+     * Incremented each time downtime is detected, so callers (one per open
+     * channel) can tell whether they've already acted on the current
+     * downtime or it's from an earlier reconnect.
+     */
+    private final AtomicLong downtimeGeneration = new AtomicLong(0);
 
     /**
      * Channels that should be joined after connecting.
@@ -185,7 +208,118 @@ public class TwitchConnection {
     public boolean isUserlistLoaded(String channel) {
         return irc.isRegistered() && irc.userlistReceived.contains(channel);
     }
-    
+
+    /**
+     * Downtime detected on the most recent successful (re)connect, in ms,
+     * or 0 if none/not worth reporting.
+     */
+    public long getLastDowntimeDurationMs() {
+        return lastDowntimeDurationMs;
+    }
+
+    /**
+     * Wall-clock end of the gap described by {@link #getLastDowntimeDurationMs()}.
+     */
+    public long getLastDowntimeGapEndMs() {
+        return lastDowntimeGapEndMs;
+    }
+
+    /**
+     * Increments each time downtime is detected, so callers can tell
+     * whether they've already acted on the current downtime.
+     */
+    public long getDowntimeGeneration() {
+        return downtimeGeneration.get();
+    }
+
+    /**
+     * Computes the initial notification text for a USERNOTICE (the
+     * system-msg tag, overridden for announcements) and validates that
+     * login and text are both present. Kept separate from {@link
+     * #makeUsernoticeInfo} so the live IRC path can apply this guard
+     * before creating/updating the User object, exactly as it did before
+     * that logic was shared with outage backfill.
+     *
+     * @return null if there's nothing to notify about
+     */
+    public static String makeInitialUsernoticeText(MsgTags tags, String login) {
+        String text = StringUtil.removeLinebreakCharacters(tags.get("system-msg"));
+        if (tags.isValue("msg-id", "announcement") && !StringUtil.isNullOrEmpty(login)) {
+            String displayName = tags.get("display-name", login);
+            text = String.format("<%s> ", displayName);
+        }
+        if (StringUtil.isNullOrEmpty(login, text)) {
+            return null;
+        }
+        return text;
+    }
+
+    /**
+     * Derives the notification label and (further augmented) display text
+     * for a USERNOTICE, independent of any live-connection side effects
+     * (queuing the subscriber address book, dispatching to listeners).
+     * Shared between the live IRC path and outage backfill so recovered
+     * notifications are formatted identically to ones received live.
+     *
+     * Assumes {@code user} already reflects {@code tags} (i.e. called
+     * after updating the user from tags), and {@code text} is the result
+     * of {@link #makeInitialUsernoticeText}.
+     */
+    public static UsernoticeInfo makeUsernoticeInfo(User user, MsgTags tags, String text, String message) {
+        String login = tags.get("login");
+        int months = tags.getInteger("msg-param-cumulative-months", -1);
+        if (months == -1) {
+            months = tags.getInteger("msg-param-months", -1);
+        }
+        int giftMonths = tags.getInteger("msg-param-gift-months", -1);
+
+        if (tags.isValueOf("msg-id", "resub", "sub", "subgift", "anonsubgift")) {
+            text = text.trim();
+            if (giftMonths > 1 && !text.matches(".* gifted "+giftMonths+" .*")) {
+                text += " It's a "+giftMonths+"-month gift!";
+            }
+            // There are still some types of notifications that don't have
+            // this info, and it might be useful
+            if (months > 1 && !text.matches(".*\\b"+months+"\\b.*")) {
+                String recipient = tags.get("msg-param-recipient-display-name");
+                if (StringUtil.isNullOrEmpty(recipient)) {
+                    recipient = "They've";
+                }
+                else {
+                    recipient += " has";
+                }
+                text += " "+recipient+" subscribed for "+months+" months!";
+            }
+            return new UsernoticeInfo("Notification", text, months, false);
+        } else if (tags.isValue("msg-id", "charity") && login.equals("twitch")) {
+            return new UsernoticeInfo("Charity", text, months, false);
+        } else if (tags.isValue("msg-id", "raid")) {
+            return new UsernoticeInfo("Raid", text, months, false);
+        } else if (text.equals("reward") && !StringUtil.isNullOrEmpty(message)) {
+            // For Bits reward text has "reward" and message what should be in text
+            return new UsernoticeInfo("Usernotice", message, months, true);
+        } else if (tags.isValueOf("msg-id", "bitsbadgetier")
+                && text.equals("bits badge tier notification")
+                && tags.hasInteger("msg-param-threshold")) {
+            text = String.format("%s just earned a new %,d Bits badge!",
+                    user.getDisplayNick(),
+                    tags.getInteger("msg-param-threshold", -1));
+            return new UsernoticeInfo("Usernotice", text, months, true);
+        } else if (tags.isValueOf("msg-id", "announcement")) {
+            return new UsernoticeInfo("Announcement", text, months, false);
+        } else if (tags.isValue("msg-id", "modiversary")) {
+            // Twitch omits the username from system-msg for mod anniversary
+            if (!text.startsWith(user.getDisplayNick()) && !text.startsWith(login)) {
+                text = user.getDisplayNick() + " " + text;
+            }
+            return new UsernoticeInfo("Usernotice", text, months, false);
+        } else {
+            // Just output like this if unknown, since Twitch keeps adding
+            // new messages types for this
+            return new UsernoticeInfo("Usernotice", text, months, false);
+        }
+    }
+
     public Set<String> getOpenChannels() {
         synchronized(openChannels) {
             return new HashSet<>(openChannels);
@@ -736,6 +870,9 @@ public class TwitchConnection {
 
             long downtime = uptimeTracker.onConnect();
             if (downtime > 0) {
+                lastDowntimeDurationMs = downtime;
+                lastDowntimeGapEndMs = System.currentTimeMillis();
+                downtimeGeneration.incrementAndGet();
                 listener.onGlobalInfo("Downtime: "+DateTime.duration(downtime, DateTime.Formatting.NO_ZERO_VALUES)
                         +" (since "+DateTime.formatFullDatetime(System.currentTimeMillis()-downtime)+")");
             }
@@ -1100,71 +1237,22 @@ public class TwitchConnection {
                 tags = MsgTags.addTag(tags, "msg-id", tags.get("source-msg-id"));
             }
             String login = tags.get("login");
-            String text = StringUtil.removeLinebreakCharacters(tags.get("system-msg"));
-            int months = tags.getInteger("msg-param-cumulative-months", -1);
-            if (months == -1) {
-                months = tags.getInteger("msg-param-months", -1);
-            }
-            int giftMonths = tags.getInteger("msg-param-gift-months", -1);
-//            int multiMonth = tags.getInteger("msg-param-multimonth-duration", -1);
-            
-            if (tags.isValue("msg-id", "announcement") && !StringUtil.isNullOrEmpty(login)) {
-                String displayName = tags.get("display-name", login);
-                text = String.format("<%s> ", displayName);
-            }
-            if (StringUtil.isNullOrEmpty(login, text)) {
+            String initialText = makeInitialUsernoticeText(tags, login);
+            if (initialText == null) {
                 return;
             }
             User user = userJoined(channel, login);
             updateUserFromTags(user, tags);
+
+            UsernoticeInfo info = makeUsernoticeInfo(user, tags, initialText, message);
+            if (info == null) {
+                return;
+            }
+            String attachedMessage = info.dropAttachedMessage() ? null : message;
             if (tags.isValueOf("msg-id", "resub", "sub", "subgift", "anonsubgift")) {
-                text = text.trim();
-                if (giftMonths > 1 && !text.matches(".* gifted "+giftMonths+" .*")) {
-                    text += " It's a "+giftMonths+"-month gift!";
-                }
-                // There are still some types of notifications that don't have
-                // this info, and it might be useful
-                if (months > 1 && !text.matches(".*\\b"+months+"\\b.*")) {
-                    String recipient = tags.get("msg-param-recipient-display-name");
-                    if (StringUtil.isNullOrEmpty(recipient)) {
-                        recipient = "They've";
-                    }
-                    else {
-                        recipient += " has";
-                    }
-                    text += " "+recipient+" subscribed for "+months+" months!";
-                }
-                // Didn't seem to work the same way anymore, or at least not always
-//                if (multiMonth > 1 && !text.contains("in advance")) {
-//                    text += " They subscribed for "+multiMonth+" months in advance.";
-//                }
-                listener.onSubscriberNotification(user, text, message, months, tags);
-            } else if (tags.isValue("msg-id", "charity") && login.equals("twitch")) {
-                listener.onUsernotice("Charity", user, text, message, tags);
-            } else if (tags.isValue("msg-id", "raid")) {
-                listener.onUsernotice("Raid", user, text, message, tags);
-            } else if (text.equals("reward") && !message.isEmpty()) {
-                // For Bits reward text has "reward" and message what should be in text
-                listener.onUsernotice("Usernotice", user, message, null, tags);
-            } else if (tags.isValueOf("msg-id", "bitsbadgetier")
-                    && text.equals("bits badge tier notification")
-                    && tags.hasInteger("msg-param-threshold")) {
-                text = String.format("%s just earned a new %,d Bits badge!",
-                        user.getDisplayNick(),
-                        tags.getInteger("msg-param-threshold", -1));
-                listener.onUsernotice("Usernotice", user, text, null, tags);
-            } else if (tags.isValueOf("msg-id", "announcement")) {
-                listener.onUsernotice("Announcement", user, text, message, tags);
-            } else if (tags.isValue("msg-id", "modiversary")) {
-                // Twitch omits the username from system-msg for mod anniversary
-                if (!text.startsWith(user.getDisplayNick()) && !text.startsWith(login)) {
-                    text = user.getDisplayNick() + " " + text;
-                }
-                listener.onUsernotice("Usernotice", user, text, message, tags);
+                listener.onSubscriberNotification(user, info.text(), attachedMessage, info.months(), tags);
             } else {
-                // Just output like this if unknown, since Twitch keeps adding
-                // new messages types for this
-                listener.onUsernotice("Usernotice", user, text, message, tags);
+                listener.onUsernotice(info.type(), user, info.text(), attachedMessage, tags);
             }
         }
 

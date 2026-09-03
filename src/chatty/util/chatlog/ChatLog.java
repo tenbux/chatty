@@ -159,7 +159,68 @@ public class ChatLog {
             writeLine(channel, timestamp(null, includedChannel, true)+message);
         }
     }
-    
+
+    /**
+     * Log a chat message recovered by outage backfill, stamped with its
+     * real original send time rather than "now". Unlike the regular
+     * history-service catch-up on join (GUI-only, since recent-messages.
+     * robotty.de doesn't preserve a timestamp worth logging), outage
+     * backfill sources do carry the original tmi-sent-ts, so these are
+     * written to the log like a live message would be.
+     */
+    public void outageBackfillMessage(String channel, User user, String message, boolean action, long timestampMs) {
+        if (isSettingEnabled("logMessage") && isChanEnabled(channel)) {
+            Parameters param = messageParam(
+                            user,
+                            message,
+                            action,
+                            settings,
+                            timestamp(user.getRoom(), null, false, timestampMs));
+            String line = messageTemplate.replace(param);
+            if (line != null && !line.isEmpty()) {
+                writeLine(channel, line);
+            }
+        }
+    }
+
+    /**
+     * Log a bits cheer recovered by outage backfill, see {@link
+     * #outageBackfillMessage}.
+     */
+    public void outageBackfillBits(String channel, User user, int amount, long timestampMs) {
+        if (amount <= 0) {
+            return;
+        }
+        if (isSettingEnabled("logBits") && isChanEnabled(channel)) {
+            writeLine(channel, String.format(Locale.ROOT, "%sBITS: %s (%d)",
+                    timestamp(null, null, true, timestampMs),
+                    user.getRegularDisplayNick(),
+                    amount));
+        }
+    }
+
+    /**
+     * Log a USERNOTICE (sub/giftsub/raid/announcement/etc.) recovered by
+     * outage backfill, see {@link #outageBackfillMessage}.
+     */
+    public void outageBackfillInfo(String channel, String message, long timestampMs) {
+        if (isSettingEnabled("logInfo") && isChanEnabled(channel)) {
+            writeLine(channel, timestamp(null, null, true, timestampMs)+message);
+        }
+    }
+
+    /**
+     * Writes an unconditional marker line, independent of the logMessage/
+     * logBits/logInfo toggles, bracketing a block of outage backfill
+     * output so recovered content stays distinguishable from messages
+     * Chatty actually received live.
+     */
+    public void outageBackfillMarker(String channel, String message) {
+        if (isChanEnabled(channel)) {
+            writeLine(channel, timestamp()+message);
+        }
+    }
+
     public void modAction(ModActionPayload data) {
         if (!Helper.isValidStream(data.stream)) {
             return;
@@ -259,18 +320,22 @@ public class ChatLog {
     private String timestamp() {
         return timestamp(null, null, true);
     }
-    
+
     private String timestamp(Room room, String includedChannel, boolean appendSpace) {
+        return timestamp(room, includedChannel, appendSpace, -1);
+    }
+
+    private String timestamp(Room room, String includedChannel, boolean appendSpace, long time) {
         String space = appendSpace ? " " : "";
         if (includedChannel != null) {
             if (timestamp != null) {
-                return timestamp.make(-1, room)+"["+includedChannel+"]"+space;
+                return timestamp.make(time, room)+"["+includedChannel+"]"+space;
             }
             return "["+includedChannel+"]"+space;
         }
         else {
             if (timestamp != null) {
-                return timestamp.make(-1, room)+space;
+                return timestamp.make(time, room)+space;
             }
             return "";
         }

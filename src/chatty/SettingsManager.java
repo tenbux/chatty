@@ -416,6 +416,10 @@ public class SettingsManager {
         settings.addBoolean("historyMessageRouting", false);
         settings.addBoolean("historyMessageNotifications", false);
 
+        settings.addBoolean("outageBackfillEnabled", false);
+        settings.addString("outageBackfillMirrorUrl", "https://logs.zonian.dev");
+        settings.addLong("outageBackfillMinDowntime", 60);
+
         //=======================
         // Channel Admin Features
         //=======================

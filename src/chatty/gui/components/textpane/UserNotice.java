@@ -68,7 +68,14 @@ public class UserNotice extends InfoMessage {
         return msgEnd;
     }
     
-    private static String makeFullText(String type, String text, String message, MsgTags tags) {
+    /**
+     * Combines a USERNOTICE's type label, derived text and optional
+     * attached user message into the final display/log string, e.g.
+     * "[Notification] user subscribed... [attached comment]". Public so
+     * outage backfill can build the same log line without duplicating
+     * this formatting.
+     */
+    public static String makeFullText(String type, String text, String message, MsgTags tags) {
         if (StringUtil.isNullOrEmpty(message)) {
             return String.format("[%s] %s", type, text);
         }

@@ -14,6 +14,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 
 
 /**
@@ -132,6 +133,43 @@ public class HistorySettings extends SettingsPanel implements ActionListener {
         externalHistory.add(excludedChannels, SettingsDialog.makeGbcSub2(0, 6, 2, 1, GridBagConstraints.WEST));
         
         SettingsUtil.addSubsettings(historyServiceEnabled, historyServiceLimit, excludedChannels);
+
+        JPanel outageBackfill = addTitledPanel("Outage Backfill", 3);
+
+        outageBackfill.add(new LinkLabel(SettingConstants.HTML_PREFIX
+                + "If Chatty detects it was disconnected for a while, it can try to recover the "
+                + "messages missed during that time from both the History Service above and a "
+                + "public chat log mirror (a rustlog-family service, e.g. "
+                + "[url:https://logs.zonian.dev logs.zonian.dev]), merging and de-duplicating "
+                + "the results. Recovered messages are written to the chat log with their real "
+                + "original timestamp, unlike the History Service catch-up above. Uses the same "
+                + "excluded channels list as the History Service.",
+                d.getLinkLabelListener()),
+                            SettingsDialog.makeGbc(0, 0, 2, 1, GridBagConstraints.NORTH));
+
+        JCheckBox outageBackfillEnabled = d.addSimpleBooleanSetting("outageBackfillEnabled",
+                                                      "Enable Outage Backfill",
+                                                      "Try to recover messages missed during a connection outage");
+        outageBackfill.add(outageBackfillEnabled,
+                            SettingsDialog.makeGbc(0, 1, 2, 1, GridBagConstraints.WEST));
+
+        JPanel mirrorUrlPanel = new JPanel();
+        ((FlowLayout)mirrorUrlPanel.getLayout()).setVgap(0);
+        mirrorUrlPanel.add(new JLabel("Mirror URL:"));
+        JTextField outageBackfillMirrorUrl = d.addSimpleStringSetting("outageBackfillMirrorUrl", 30, true);
+        mirrorUrlPanel.add(outageBackfillMirrorUrl);
+        outageBackfill.add(mirrorUrlPanel,
+                            SettingsDialog.makeGbcSub2(0, 2, 2, 1, GridBagConstraints.WEST));
+
+        JPanel minDowntimePanel = new JPanel();
+        ((FlowLayout)minDowntimePanel.getLayout()).setVgap(0);
+        minDowntimePanel.add(new JLabel("Minimum downtime to trigger (seconds):"));
+        JTextField outageBackfillMinDowntime = d.addSimpleLongSetting("outageBackfillMinDowntime", 5, true);
+        minDowntimePanel.add(outageBackfillMinDowntime);
+        outageBackfill.add(minDowntimePanel,
+                            SettingsDialog.makeGbcSub2(0, 3, 2, 1, GridBagConstraints.WEST));
+
+        SettingsUtil.addSubsettings(outageBackfillEnabled, outageBackfillMirrorUrl, outageBackfillMinDowntime);
     }
 
     @Override

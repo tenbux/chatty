@@ -50,8 +50,34 @@ public class HistoryManager {
     }
     
     public void setMessageSeen(String stream) {
+        setMessageSeen(stream, System.currentTimeMillis());
+    }
+
+    /**
+     * Advances the high-water mark used as the {@code after} bound for
+     * this stream's next history request, if {@code timestampMs} is newer
+     * than what's currently recorded. Monotonic so it's safe to call from
+     * multiple concurrent sources (e.g. the regular history-service pull
+     * and outage backfill both completing around the same time) without
+     * either one clobbering a newer mark the other already set.
+     */
+    public void setMessageSeen(String stream, long timestampMs) {
         synchronized (LOCK) {
-            latestMessageSeen.put(stream, System.currentTimeMillis());
+            Long current = latestMessageSeen.get(stream);
+            if (current == null || timestampMs > current) {
+                latestMessageSeen.put(stream, timestampMs);
+            }
+        }
+    }
+
+    /**
+     * @return The last known-seen message timestamp for this stream, or
+     * -1 if none is recorded.
+     */
+    public long getLatestMessageSeen(String stream) {
+        synchronized (LOCK) {
+            Long seen = latestMessageSeen.get(stream);
+            return seen != null ? seen : -1;
         }
     }
     
@@ -123,9 +149,13 @@ public class HistoryManager {
      * Executes the actual HTTP request for historical Data
      *
      * @param stream Channel to start the request for
+     * @param after Only messages after this time (ms), used as the "after"
+     * request parameter
+     * @param before Only messages before this time (ms), used as the
+     * "before" request parameter
      * @return A JSONObject with all messages requested accordingly to the parameters
      */
-    private void executeRequest(String stream, Consumer<List<HistoryMessage>> listener) {
+    private void executeRequest(String stream, long after, long before, Consumer<List<HistoryMessage>> listener) {
         String url = STRHISTORYURL + stream;
 
         long limit = settings.getLong("historyServiceLimit");
@@ -133,19 +163,10 @@ public class HistoryManager {
             limit = 30;
         }
 
-        // -24h until now.
-        long timestampBefore = System.currentTimeMillis();
-        long timestampAfter = System.currentTimeMillis() - 24 * 60 * 60 * 1000;
-        synchronized (LOCK) {
-            if (latestMessageSeen.containsKey(stream)) {
-                timestampAfter = latestMessageSeen.get(stream);
-            }
-        }
-
         url = Requests.makeUrl(url,
                                "limit", String.valueOf(limit),
-                               "before", String.valueOf(timestampBefore),
-                               "after", String.valueOf(timestampAfter));
+                               "before", String.valueOf(before),
+                               "after", String.valueOf(after));
 
         UrlRequest request = new UrlRequest(url);
         request.setLabel("ChatHistory/");
@@ -189,10 +210,33 @@ public class HistoryManager {
             requestPendingChannels.add(room.getStream());
             queuedMessages.remove(room.getStream());
         }
-        
-        this.executeRequest(room.getStream(), listener);
+
+        // -24h until now, or since the last message seen for this stream
+        long before = System.currentTimeMillis();
+        long after = System.currentTimeMillis() - 24 * 60 * 60 * 1000;
+        synchronized (LOCK) {
+            if (latestMessageSeen.containsKey(room.getStream())) {
+                after = latestMessageSeen.get(room.getStream());
+            }
+        }
+
+        this.executeRequest(room.getStream(), after, before, listener);
     }
-    
+
+    /**
+     * Fetches historic messages for an explicit time window, without the
+     * live-message-queuing side effects of {@link #getHistoricChatMessages}
+     * (used for outage backfill, which manages its own gap boundaries and
+     * request lifecycle independently of the join-time catch-up above).
+     *
+     * @param stream Channel to request for
+     * @param afterMs Only messages after this time (ms)
+     * @param beforeMs Only messages before this time (ms)
+     */
+    public void getMessagesForRange(String stream, long afterMs, long beforeMs, Consumer<List<HistoryMessage>> listener) {
+        executeRequest(stream, afterMs, beforeMs, listener);
+    }
+
     //-------
     // Queue
     //-------

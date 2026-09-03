@@ -42,10 +42,14 @@ import chatty.util.commands.CustomCommands;
 import chatty.util.commands.Parameters;
 import chatty.util.ffz.FrankerFaceZ;
 import chatty.util.ffz.FrankerFaceZListener;
+import chatty.gui.components.textpane.UserNotice;
 import chatty.util.history.HistoryManager;
 import chatty.util.history.HistoryMessage;
+import chatty.util.history.OutageBackfillManager;
+import chatty.util.history.OutageMessage;
 import chatty.util.history.QueuedMessage;
 import chatty.util.irc.MsgTags;
+import chatty.util.irc.UsernoticeInfo;
 import chatty.util.irc.UserTagsUtil;
 import chatty.util.settings.FileManager;
 import chatty.util.settings.Settings;
@@ -67,6 +71,7 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
@@ -145,7 +150,17 @@ public class TwitchClient {
     public final RoomManager roomManager;
 
     public final HistoryManager historyManager;
-    
+
+    public final OutageBackfillManager outageBackfillManager;
+
+    /**
+     * Per-channel downtime generation (see
+     * {@link TwitchConnection#getDowntimeGeneration()}) outage backfill has
+     * already run for, so a channel isn't re-backfilled for the same
+     * outage on every subsequent part/rejoin within the same connection.
+     */
+    private final Map<String, Long> outageBackfillGenerationByChannel = new ConcurrentHashMap<>();
+
     private final SendMessageManager sendMessageManager;
     
     /**
@@ -309,6 +324,7 @@ public class TwitchClient {
         channelFavorites = new ChannelFavorites(settings, roomManager);
 
         historyManager = new HistoryManager(settings);
+        outageBackfillManager = new OutageBackfillManager(settings);
         
         c = new TwitchConnection(new Messages(), settings, "main", roomManager);
         c.setUserSettings(new User.UserSettings(
@@ -3132,33 +3148,201 @@ public class TwitchClient {
      * @param stream The name of the channel
      */
     public void requestChannelHistory(String stream) {
-        // Check in Settings if active/channel in blacklist
-        //settings.
-        if (!historyManager.isEnabled()) {
+        boolean useHistoryService = historyManager.isEnabled() && !historyManager.isChannelExcluded(stream);
+        boolean hasValidGap = isOutageBackfillDue(stream);
+
+        if (!useHistoryService && !hasValidGap) {
             return;
         }
-        if (historyManager.isChannelExcluded(stream)) {
-            return;
-        }
+
         String channelName = Helper.toChannel(stream);
         Room room = Room.createRegular(channelName);
-        g.printSystem(room, "### Pulling information from history service. ###");
+        long gapEnd = c.getLastDowntimeGapEndMs();
+        long gapStart = gapEnd - c.getLastDowntimeDurationMs();
+        long finalGapStart = Math.max(gapStart, historyManager.getLatestMessageSeen(stream));
+        long finalGapEnd = gapEnd;
 
-        // Get the actual list of messages asynchronously
-        historyManager.getHistoricChatMessages(room, history -> {
-            for (HistoryMessage currentMsg : history) {
-                User user = c.getUser(channelName, currentMsg.userName);
-                UserTagsUtil.updateUserFromTags(user, currentMsg.tags);
-                g.printMessage(user, currentMsg.message, currentMsg.action, currentMsg.tags);
-            }
-            g.printSystem(room, "### Finished with history logs. ###");
-            historyManager.setMessageSeen(stream);
+        if (useHistoryService) {
+            // Get the actual list of messages asynchronously. Also the
+            // sole source of history-service coverage for outage backfill
+            // below -- requesting it a second time here would duplicate
+            // every message this call already prints to the GUI.
+            g.printSystem(room, "### Pulling information from history service. ###");
+            historyManager.getHistoricChatMessages(room, history -> {
+                List<OutageMessage> fromHistoryService = new ArrayList<>();
+                for (HistoryMessage currentMsg : history) {
+                    User user = c.getUser(channelName, currentMsg.userName);
+                    UserTagsUtil.updateUserFromTags(user, currentMsg.tags);
+                    g.printMessage(user, currentMsg.message, currentMsg.action, currentMsg.tags);
 
-            // Output messages that arrived live while loading the history
-            for (QueuedMessage msg : historyManager.getQueuedMessages(stream)) {
-                g.printMessage(msg.user(), msg.text(), msg.action(), msg.tags());
-            }
+                    if (hasValidGap) {
+                        long ts = currentMsg.tags.isHistoricMsg() ? currentMsg.tags.getHistoricTimeStamp() : -1;
+                        if (ts >= finalGapStart && ts <= finalGapEnd) {
+                            fromHistoryService.add(new OutageMessage("PRIVMSG", currentMsg.userName,
+                                    currentMsg.message, currentMsg.action, currentMsg.tags, ts));
+                        }
+                    }
+                }
+                g.printSystem(room, "### Finished with history logs. ###");
+                historyManager.setMessageSeen(stream);
+
+                // Output messages that arrived live while loading the history
+                for (QueuedMessage msg : historyManager.getQueuedMessages(stream)) {
+                    g.printMessage(msg.user(), msg.text(), msg.action(), msg.tags());
+                }
+
+                if (hasValidGap) {
+                    fetchMirrorAndRenderOutageBackfill(stream, channelName, room,
+                            fromHistoryService, finalGapStart, finalGapEnd);
+                }
+            });
+        } else {
+            // History service is globally disabled, but outage backfill
+            // still wants its coverage for this specific gap. Safe to
+            // request directly since the catch-up above didn't run and
+            // won't render anything to duplicate against.
+            historyManager.getMessagesForRange(stream, finalGapStart, finalGapEnd, history -> {
+                List<OutageMessage> fromHistoryService = new ArrayList<>();
+                for (HistoryMessage hm : history) {
+                    long ts = hm.tags.getLong("tmi-sent-ts", -1);
+                    if (ts < 0 && hm.tags.isHistoricMsg()) {
+                        ts = hm.tags.getHistoricTimeStamp();
+                    }
+                    if (ts >= finalGapStart && ts <= finalGapEnd) {
+                        fromHistoryService.add(new OutageMessage("PRIVMSG", hm.userName, hm.message, hm.action, hm.tags, ts));
+                    }
+                }
+                fetchMirrorAndRenderOutageBackfill(stream, channelName, room,
+                        fromHistoryService, finalGapStart, finalGapEnd);
+            });
+        }
+    }
+
+    /**
+     * Whether this channel just reconnected after real, not-yet-backfilled
+     * downtime that outage backfill is configured to act on. Marks the
+     * current downtime generation as handled as a side effect, so this is
+     * safe to call at most once per join.
+     */
+    private boolean isOutageBackfillDue(String stream) {
+        if (!outageBackfillManager.isEnabled()) {
+            return false;
+        }
+        if (historyManager.isChannelExcluded(stream)) {
+            return false;
+        }
+        long downtimeMs = c.getLastDowntimeDurationMs();
+        if (downtimeMs < outageBackfillManager.getMinDowntimeMs()) {
+            return false;
+        }
+        long generation = c.getDowntimeGeneration();
+        Long previouslyDone = outageBackfillGenerationByChannel.get(stream);
+        if (previouslyDone != null && previouslyDone == generation) {
+            // Already backfilled for this reconnect (e.g. a manual
+            // part/rejoin of this channel since, with no new outage)
+            return false;
+        }
+        long gapEnd = c.getLastDowntimeGapEndMs();
+        // Don't re-request messages already logged live (the uptime
+        // tracker's on-disk mark can lag the true reconnect time by up to
+        // its flush interval)
+        long gapStart = Math.max(gapEnd - downtimeMs, historyManager.getLatestMessageSeen(stream));
+        if (gapStart >= gapEnd) {
+            return false;
+        }
+        outageBackfillGenerationByChannel.put(stream, generation);
+        return true;
+    }
+
+    /**
+     * Fetches the mirror source and merges it with whatever the history
+     * service already found for the gap, then renders the combined,
+     * deduped result.
+     */
+    private void fetchMirrorAndRenderOutageBackfill(String stream, String channelName, Room room,
+            List<OutageMessage> fromHistoryService, long gapStart, long gapEnd) {
+        outageBackfillManager.getMirrorMessages(stream, gapStart, gapEnd, mirrorMessages -> {
+            List<OutageMessage> combined = new ArrayList<>(fromHistoryService);
+            combined.addAll(mirrorMessages);
+            printOutageBackfill(stream, channelName, room, combined, gapStart, gapEnd);
         });
+    }
+
+    private void printOutageBackfill(String stream, String channelName, Room room,
+            List<OutageMessage> messages, long gapStart, long gapEnd) {
+        if (messages.isEmpty()) {
+            historyManager.setMessageSeen(stream, gapEnd);
+            return;
+        }
+        List<OutageMessage> deduped = dedupOutageMessages(messages);
+        deduped.sort(Comparator.comparingLong(m -> m.timestampMs));
+
+        String markerBase = String.format("Recovered %d message%s via outage backfill "
+                + "(third-party source, not received from Twitch; gap %s to %s)",
+                deduped.size(), deduped.size() == 1 ? "" : "s",
+                DateTime.formatFullDatetime(gapStart), DateTime.formatFullDatetime(gapEnd));
+        g.printSystem(room, "### " + markerBase + ". ###");
+        chatLog.outageBackfillMarker(channelName, "--- " + markerBase + " ---");
+
+        for (OutageMessage m : deduped) {
+            User user = c.getUser(channelName, m.userName);
+            UserTagsUtil.updateUserFromTags(user, m.tags);
+            MsgTags historicTags = MsgTags.merge(m.tags,
+                    MsgTags.create("historic-timestamp", String.valueOf(m.timestampMs)));
+
+            if (m.command.equals("PRIVMSG")) {
+                g.printMessage(user, m.message, m.action, historicTags);
+                chatLog.outageBackfillMessage(channelName, user, m.message, m.action, m.timestampMs);
+                int bits = m.tags.getBits();
+                if (bits > 0) {
+                    chatLog.outageBackfillBits(channelName, user, bits, m.timestampMs);
+                }
+            } else if (m.command.equals("USERNOTICE")) {
+                String login = m.tags.get("login");
+                String initialText = TwitchConnection.makeInitialUsernoticeText(m.tags, login);
+                if (initialText == null) {
+                    continue;
+                }
+                UsernoticeInfo info = TwitchConnection.makeUsernoticeInfo(user, m.tags, initialText, m.message);
+                if (info == null) {
+                    continue;
+                }
+                String attachedMessage = info.dropAttachedMessage() ? null : m.message;
+                g.printUsernotice(info.type(), user, info.text(), attachedMessage, historicTags);
+                String fullText = UserNotice.makeFullText(info.type(), info.text(), attachedMessage, historicTags);
+                chatLog.outageBackfillInfo(channelName, fullText, m.timestampMs);
+            }
+        }
+        chatLog.outageBackfillMarker(channelName, "--- End recovered block ---");
+        g.printSystem(room, "### Outage backfill finished. ###");
+        historyManager.setMessageSeen(stream, gapEnd);
+    }
+
+    /**
+     * Removes duplicate messages across outage backfill sources, keyed by
+     * Twitch's per-message id tag where present (exact, source-independent
+     * identity), falling back to a user+time+text composite for the rare
+     * message that lacks one.
+     */
+    private List<OutageMessage> dedupOutageMessages(List<OutageMessage> messages) {
+        List<OutageMessage> result = new ArrayList<>();
+        Set<String> seenIds = new HashSet<>();
+        Set<String> seenComposite = new HashSet<>();
+        for (OutageMessage m : messages) {
+            String id = m.tags.getId();
+            if (id != null && !id.isEmpty()) {
+                if (!seenIds.add(id)) {
+                    continue;
+                }
+            } else {
+                String composite = m.userName + "|" + m.timestampMs + "|" + m.message;
+                if (!seenComposite.add(composite)) {
+                    continue;
+                }
+            }
+            result.add(m);
+        }
+        return result;
     }
 
     private class EmoteListener implements EmoticonListener {
