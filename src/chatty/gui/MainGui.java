@@ -3498,6 +3498,16 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
             }
 
             boolean isOwnMessage = client.isOwnUsername(user.getName()) || (whisper && action);
+            // When an own-message echo arrives from the IRC server, the
+            // optimistic line printed at send time was already tagged with
+            // this msg-id (see SendMessageManager/updateMsgIdForTempId). The
+            // duplicate must be skipped before the chat-log write below, not
+            // just before printing -- the log write used to run first,
+            // logging every own message twice.
+            boolean isDuplicateOwnEcho = isOwnMessage && tags.getId() != null && chan.hasMsgId(tags.getId());
+            if (isDuplicateOwnEcho) {
+                return;
+            }
             boolean ignoredUser = (userIgnored(user, whisper) && !isOwnMessage);
             // May be necessary to check even if ignoredUser, to get ignore matchings later on
             boolean ignored = checkMsg(ignoreList, "ignore", text, -2, -2, user, localUser, tags, isOwnMessage, false) || ignoredUser;
@@ -3600,14 +3610,6 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
                     printInfo(chan, InfoMessage.createInfo("Own message ignored."));
                 }
             } else {
-                // When an own-message echo arrives from the IRC server, the
-                // optimistic line printed at send time was already tagged with
-                // this msg-id (see SendMessageManager/updateMsgIdForTempId), so
-                // skip printing a duplicate instead of adding a new line.
-                if (isOwnMessage && tags.getId() != null && chan.hasMsgId(tags.getId())) {
-                    return;
-                }
-
                 boolean hasReplacements = checkMsg(filter, "filter", text, -2, -2, user, localUser, tags, isOwnMessage, false);
 
                 // Print message, but determine how exactly
