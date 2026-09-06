@@ -2049,6 +2049,19 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
                 client.command(user.getRoom(), "automod_deny", autoModMsgId);
             } else if (cmd.equals("delete_msg") && msgId != null) {
                 client.command(user.getRoom(), "delete", msgId);
+            } else if (cmd.equals("pinMessage") && msgId != null) {
+                User.TextMessage textMessage = user.getMessage(msgId);
+                String text = textMessage != null ? textMessage.text : null;
+                long pinDuration = ModerationPanel.showPinMessageDialog(MainGui.this, client.settings, text);
+                if (pinDuration != ModerationPanel.PIN_DIALOG_CANCEL) {
+                    client.api.pinMessage(user.getRoom(), msgId, pinDuration, r -> {
+                        if (r.error == null) {
+                            printLine(user.getRoom(), "Pinned message.");
+                        } else {
+                            printLine(user.getRoom(), "Error pinning message: " + r.error);
+                        }
+                    });
+                }
             } else {
                 nameBasedStuff(e, user.getName());
             }

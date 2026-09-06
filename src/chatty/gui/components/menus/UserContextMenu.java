@@ -81,6 +81,10 @@ public class UserContextMenu extends ContextMenu {
             addItem("delete_msg", "Delete message");
             addSeparator();
         }
+        if (msgId != null && localUser != null && localUser.hasModeratorRights()) {
+            addItem("pinMessage", "Pin Message");
+            addSeparator();
+        }
         
         // Misc Submenu
         addItem("copyNick", Language.getString("userCm.copyName"), MISC_MENU);
