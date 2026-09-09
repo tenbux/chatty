@@ -15,6 +15,7 @@ import chatty.gui.notifications.NotificationWindow;
 import chatty.lang.Language;
 import chatty.util.Sound;
 import chatty.util.StringUtil;
+import chatty.util.SystemSounds;
 import chatty.util.colors.HtmlColors;
 import chatty.util.commands.CustomCommand;
 import chatty.util.commands.Parameters;
@@ -479,6 +480,10 @@ class NotificationEditor extends TableEditor<Notification> {
                 try {
                     String file = soundFile.getSettingValue();
                     if (file != null && !file.isEmpty()) {
+                        if (SystemSounds.BEEP.equals(file)) {
+                            Toolkit.getDefaultToolkit().beep();
+                            return;
+                        }
                         long volume = volumeSlider.getSettingValue();
                         Sound.play(soundsPath.resolve(file), volume, "test", -1);
                     }
@@ -776,6 +781,10 @@ class NotificationEditor extends TableEditor<Notification> {
         public void setSoundFiles(Path path, String[] names) {
             soundFile.removeAllItems();
             soundFile.add((String)null, "<None>");
+            soundFile.add(SystemSounds.BEEP, "System Beep");
+            for (Map.Entry<String, Path> entry : SystemSounds.get().entrySet()) {
+                soundFile.add(entry.getValue().toString(), "System: " + entry.getKey());
+            }
             for (String name : names) {
                 soundFile.add(name);
             }
