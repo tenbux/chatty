@@ -10,6 +10,7 @@ import chatty.lang.Language;
 import chatty.util.Debugging;
 import chatty.util.Sound;
 import chatty.util.StringUtil;
+import chatty.util.SystemSounds;
 import chatty.util.commands.CustomCommand;
 import chatty.util.settings.Settings;
 
@@ -242,6 +243,10 @@ public class NotificationSettings extends SettingsPanel {
             try {
                 String file = soundFiles.getSettingValue();
                 if (file != null && !file.isEmpty()) {
+                    if (SystemSounds.BEEP.equals(file)) {
+                        Toolkit.getDefaultToolkit().beep();
+                        return;
+                    }
                     long volume = volumeSlider.getSettingValue();
                     Sound.play(soundsPath.getCurrentPath().resolve(file), volume, "test", -1);
                 }
@@ -298,7 +303,7 @@ public class NotificationSettings extends SettingsPanel {
                     String result = "No sound played, no file found";
 
                     String file = soundFiles.getSettingValue();
-                    if (file != null && !file.isEmpty()) {
+                    if (file != null && !file.isEmpty() && !SystemSounds.BEEP.equals(file)) {
                         CustomCommand command = CustomCommand.parse(value);
                         long volume = volumeSlider.getSettingValue();
                         result = Sound.get().runCommand(command, soundsPath.getCurrentPath().resolve(file), volume);
@@ -448,6 +453,10 @@ public class NotificationSettings extends SettingsPanel {
             Arrays.sort(fileNames);
             editor.setSoundFiles(path, fileNames);
             soundFiles.clear();
+            soundFiles.add(SystemSounds.BEEP, "System Beep");
+            for (Map.Entry<String, Path> entry : SystemSounds.get().entrySet()) {
+                soundFiles.add(entry.getValue().toString(), "System: " + entry.getKey());
+            }
             for (String fileName : fileNames) {
                 soundFiles.add(fileName);
             }
