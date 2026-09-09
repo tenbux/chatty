@@ -25,6 +25,7 @@ import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.awt.event.MouseWheelEvent;
 
 /**
  * A single channel window, combining styled text pane, userlist and input box.
@@ -83,6 +84,25 @@ public final class Channel extends JPanel {
         //System.out.println(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         west.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         west.getVerticalScrollBar().setUnitIncrement(40);
+        /**
+         * Default JScrollPane wheel scrolling uses MouseWheelEvent.getWheelRotation(),
+         * which is rounded to whole units. On macOS trackpads that reports 0 for most
+         * events during a slow scroll (so nothing moves) and then jumps by several
+         * units at once during a flick, making scrolling feel disconnected from the
+         * actual trackpad motion. Scrolling based on getPreciseWheelRotation() instead
+         * tracks the trackpad smoothly.
+         */
+        west.setWheelScrollingEnabled(false);
+        west.addMouseWheelListener(e -> {
+            JScrollBar bar = west.getVerticalScrollBar();
+            if (e.getScrollType() == MouseWheelEvent.WHEEL_UNIT_SCROLL) {
+                int amount = (int) Math.round(e.getPreciseWheelRotation() * bar.getUnitIncrement());
+                bar.setValue(bar.getValue() + amount);
+            } else {
+                int direction = e.getWheelRotation() < 0 ? -1 : 1;
+                bar.setValue(bar.getValue() + direction * bar.getBlockIncrement(direction));
+            }
+        });
 
         
         // User list
