@@ -11,6 +11,7 @@ import chatty.gui.notifications.Notification.TypeOption;
 import chatty.util.DateTime;
 import chatty.util.Sound;
 import chatty.util.StringUtil;
+import chatty.util.SystemSounds;
 import chatty.util.api.Follower;
 import chatty.util.api.FollowerInfo;
 import chatty.util.api.StreamInfo;
@@ -20,6 +21,7 @@ import chatty.util.irc.MsgTags;
 import chatty.util.settings.Settings;
 import chatty.util.tts.TextToSpeech;
 
+import java.awt.Toolkit;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -405,7 +407,12 @@ public class NotificationManager {
             return;
         }
         n.setSoundPlayed();
-        
+
+        if (SystemSounds.BEEP.equals(n.soundFile)) {
+            Toolkit.getDefaultToolkit().beep();
+            return;
+        }
+
         Chatty.updateCustomPathFromSettings(Chatty.PathType.SOUND);
         Path soundsPath = Chatty.getPath(Chatty.PathType.SOUND);
         Path path = soundsPath.resolve(n.soundFile);
