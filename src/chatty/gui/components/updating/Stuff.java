@@ -169,13 +169,16 @@ public class Stuff {
     
     /**
      * Get the full path to the executable with the given name in the system
-     * temp dir, with a timestamp added to ensure it's unique.
+     * temp dir, atomically created as a new, empty file with an
+     * unpredictable name so a downloaded (and later executed) installer
+     * can't be pre-staged or symlinked by another local process.
      *
      * @param name
-     * @return 
+     * @return
+     * @throws IOException if the file could not be created
      */
-    public static Path getTempFilePath(String name) {
-        return Stuff.getTempDir().resolve(name+"_"+System.currentTimeMillis()+".exe");
+    public static Path getTempFilePath(String name) throws IOException {
+        return Files.createTempFile(Stuff.getTempDir(), name+"_", ".exe");
     }
     
     /**

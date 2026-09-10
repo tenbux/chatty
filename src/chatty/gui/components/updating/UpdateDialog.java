@@ -311,8 +311,16 @@ public class UpdateDialog extends JDialog {
     
     private void download(Asset asset) {
         try {
+            URI downloadUri = URI.create(asset.getUrl());
+            if (!"https".equalsIgnoreCase(downloadUri.getScheme())) {
+                LOGGER.warning("Refusing to download update from non-https URL: "+downloadUri);
+                JOptionPane.showMessageDialog(this,
+                        "Refusing to download update: the asset URL is not https.",
+                        "Error downloading update", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             Path installerPath = Stuff.getTempFilePath(asset.getName());
-            URL downloadUrl = URI.create(asset.getUrl()).toURL();
+            URL downloadUrl = downloadUri.toURL();
             if (FileDownloaderDialog.downloadFile(this, downloadUrl, installerPath, "Download update")) {
 //                int result = JOptionPane.showConfirmDialog(this, "Running the installer will close Chatty, continue?", "Install Update", JOptionPane.YES_NO_OPTION);
 //                if (result == JOptionPane.YES_OPTION) {

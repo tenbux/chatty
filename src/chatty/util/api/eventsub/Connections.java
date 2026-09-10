@@ -378,6 +378,11 @@ public class Connections {
                 c.setConnectionTimeout(session.keepAliveTimeout + 4);
                 if (c.getReplacedConnection() != null) {
                     disconnect(c.getReplacedConnection());
+                    // Only relevant for the welcome right after this
+                    // connection replaced another one; a later reconnect of
+                    // this same connection object must re-register topics
+                    // instead of taking this branch again.
+                    c.setReplacedConnection(null);
                 } else {
                     for (Topic topic : c.getTopics()) {
                         registerTopic(c, topic);

@@ -387,7 +387,7 @@ public class UserInfoDialog extends JDialog {
     
     private void closeOnAction() {
         if (settings.getBoolean("closeUserDialogOnAction")
-                && !isPinned()) {
+                && isPinned()) {
             dispose();
         }
     }

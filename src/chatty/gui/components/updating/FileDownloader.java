@@ -2,14 +2,16 @@
 package chatty.gui.components.updating;
 
 import java.io.BufferedInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -74,7 +76,7 @@ public class FileDownloader implements Runnable {
             
             long totalBytes = 0;
             try (BufferedInputStream reader = new BufferedInputStream(connection.getInputStream());
-                    FileOutputStream output = new FileOutputStream(to.toFile())) {
+                    OutputStream output = Files.newOutputStream(to, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
                 final byte[] buffer = new byte[512];
                 int count;
                 while ((count = reader.read(buffer)) != -1) {
@@ -87,6 +89,13 @@ public class FileDownloader implements Runnable {
                         return;
                     }
                 }
+            }
+            if (contentLength >= 0 && totalBytes != contentLength) {
+                LOGGER.warning(String.format(Locale.ROOT,
+                        "Download incomplete (%d/%d): %s", totalBytes, contentLength, from));
+                listener.error(new IOException(String.format(Locale.ROOT,
+                        "Download incomplete (%d/%d bytes)", totalBytes, contentLength)));
+                return;
             }
             LOGGER.info(String.format(Locale.ROOT, "Download completed (%d/%d)", totalBytes, contentLength));
             listener.completed(totalBytes, contentLength);

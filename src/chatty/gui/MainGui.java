@@ -74,6 +74,7 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * The Main Hub for all GUI activity.
@@ -5583,9 +5584,17 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
     public void error(final LogRecord error, final LinkedList<LogRecord> previous) {
         SwingUtilities.invokeLater(() -> {
             String ignore = client.settings.getString("ignoreError");
-            if (!ignore.isEmpty()
-                    && Pattern.compile(ignore).matcher(ErrorMessage.makeErrorText(error, previous)).find()) {
-                return;
+            if (!ignore.isEmpty()) {
+                try {
+                    if (Pattern.compile(ignore).matcher(ErrorMessage.makeErrorText(error, previous)).find()) {
+                        return;
+                    }
+                } catch (PatternSyntaxException ex) {
+                    // Don't let an invalid "ignoreError" setting throw here:
+                    // this method is reached from the uncaught exception
+                    // handler, so an uncaught exception here loops forever.
+                    LOGGER.warning("Invalid ignoreError pattern, ignoring setting: "+ex.getMessage());
+                }
             }
             int result = errorMessage.show(error, previous, client.getOpenChannels().size());
             if (result == ErrorMessage.QUIT) {
