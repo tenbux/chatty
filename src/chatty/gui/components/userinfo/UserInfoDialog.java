@@ -88,8 +88,7 @@ public class UserInfoDialog extends JDialog {
         banReasons = new BanReasons(this, settings);
         
         buttons = new Buttons(this, e -> {
-            if (settings.getBoolean("closeUserDialogOnAction")
-                    && isPinned()) {
+            if (shouldCloseOnAction(settings.getBoolean("closeUserDialogOnAction"), pinnedDialog.isSelected())) {
                 dispose();
             }
             CustomCommand command = getCommand(e.getSource());
@@ -386,10 +385,26 @@ public class UserInfoDialog extends JDialog {
     }
     
     private void closeOnAction() {
-        if (settings.getBoolean("closeUserDialogOnAction")
-                && isPinned()) {
+        if (shouldCloseOnAction(settings.getBoolean("closeUserDialogOnAction"), pinnedDialog.isSelected())) {
             dispose();
         }
+    }
+
+    /**
+     * Whether the dialog should be closed after a moderation action, given
+     * the "closeUserDialogOnAction" setting and whether the "pin dialog"
+     * checkbox is currently checked. Takes the raw checkbox state (not
+     * isPinned(), which confusingly returns the opposite of what its name
+     * says) so the two call sites of this method can't drift apart again
+     * the way they did before. Package-private (rather than inlined) so it
+     * can be unit tested without instantiating this JDialog.
+     *
+     * @param closeUserDialogOnAction The "closeUserDialogOnAction" setting
+     * @param pinnedCheckboxSelected Whether the "pin dialog" checkbox is checked
+     * @return
+     */
+    static boolean shouldCloseOnAction(boolean closeUserDialogOnAction, boolean pinnedCheckboxSelected) {
+        return closeUserDialogOnAction && !pinnedCheckboxSelected;
     }
     
     private void setUser(User user, String msgId, String autoModMsgId, String localUsername, boolean opened) {

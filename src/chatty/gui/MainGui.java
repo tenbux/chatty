@@ -5584,17 +5584,8 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
     public void error(final LogRecord error, final LinkedList<LogRecord> previous) {
         SwingUtilities.invokeLater(() -> {
             String ignore = client.settings.getString("ignoreError");
-            if (!ignore.isEmpty()) {
-                try {
-                    if (Pattern.compile(ignore).matcher(ErrorMessage.makeErrorText(error, previous)).find()) {
-                        return;
-                    }
-                } catch (PatternSyntaxException ex) {
-                    // Don't let an invalid "ignoreError" setting throw here:
-                    // this method is reached from the uncaught exception
-                    // handler, so an uncaught exception here loops forever.
-                    LOGGER.warning("Invalid ignoreError pattern, ignoring setting: "+ex.getMessage());
-                }
+            if (matchesIgnoreError(ignore, ErrorMessage.makeErrorText(error, previous))) {
+                return;
             }
             int result = errorMessage.show(error, previous, client.getOpenChannels().size());
             if (result == ErrorMessage.QUIT) {
@@ -5602,7 +5593,30 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
             }
         });
     }
-    
+
+    /**
+     * Whether errorText matches the (possibly invalid) ignorePattern regex.
+     * An invalid pattern is treated as "no match" rather than thrown, since
+     * this is reached from the uncaught exception handler: letting an
+     * invalid pattern throw here loops forever. Package-private (rather
+     * than inlined) so it can be unit tested without instantiating MainGui.
+     *
+     * @param ignorePattern The "ignoreError" setting value, may be null/empty
+     * @param errorText The error text to match against
+     * @return
+     */
+    static boolean matchesIgnoreError(String ignorePattern, String errorText) {
+        if (ignorePattern == null || ignorePattern.isEmpty()) {
+            return false;
+        }
+        try {
+            return Pattern.compile(ignorePattern).matcher(errorText).find();
+        } catch (PatternSyntaxException ex) {
+            LOGGER.warning("Invalid ignoreError pattern, ignoring setting: "+ex.getMessage());
+            return false;
+        }
+    }
+
     /**
      * Exit the program.
      */

@@ -312,7 +312,7 @@ public class UpdateDialog extends JDialog {
     private void download(Asset asset) {
         try {
             URI downloadUri = URI.create(asset.getUrl());
-            if (!"https".equalsIgnoreCase(downloadUri.getScheme())) {
+            if (!isHttps(downloadUri)) {
                 LOGGER.warning("Refusing to download update from non-https URL: "+downloadUri);
                 JOptionPane.showMessageDialog(this,
                         "Refusing to download update: the asset URL is not https.",
@@ -333,6 +333,18 @@ public class UpdateDialog extends JDialog {
         }
     }
     
+    /**
+     * Whether the given URI uses the https scheme. Package-private (rather
+     * than inlined) so it can be unit tested without instantiating this
+     * JDialog.
+     *
+     * @param uri
+     * @return
+     */
+    static boolean isHttps(URI uri) {
+        return "https".equalsIgnoreCase(uri.getScheme());
+    }
+
     private void install(Path installerPath) {
         try {
             RunUpdater.run(installerPath, installDir, Stuff.getJarPath(),
