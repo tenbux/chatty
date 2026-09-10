@@ -45,6 +45,8 @@ public class InfoPanel extends JPanel {
     private User currentUser;
     private UserInfo currentUserInfo;
     private Follower currentFollower;
+
+    private final Timer updateTimer;
     
     public InfoPanel(UserInfoDialog owner, ContextMenuListener listener) {
         this.owner = owner;
@@ -70,7 +72,7 @@ public class InfoPanel extends JPanel {
         add(panel1, Util.makeGbc(0, 0, 1, 1));
         add(panel2, Util.makeGbc(0, 1, 1, 1));
         
-        Timer updateTimer = new Timer(60*1000, e -> updateTimes(false));
+        updateTimer = new Timer(60*1000, e -> updateTimes(false));
         updateTimer.setRepeats(true);
         updateTimer.start();
         
@@ -92,6 +94,15 @@ public class InfoPanel extends JPanel {
         infoLabelSize.register(numberOfLines);
     }
     
+    /**
+     * Stop the repeating update timer. Must be called when the owning
+     * dialog is closed, otherwise the running Timer holds this panel (and
+     * everything it references) reachable via Swing's TimerQueue forever.
+     */
+    public void cleanUp() {
+        updateTimer.stop();
+    }
+
     public void update(User user) {
         if (user != currentUser) {
             currentUser = user;

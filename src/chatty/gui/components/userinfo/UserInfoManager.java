@@ -200,6 +200,7 @@ public class UserInfoManager {
         if (canRemove(dialog)) {
             dialogs.remove(dialog);
             main.setWindowAttached(dialog, false);
+            dialog.cleanUp();
         } else {
             dialog.setPinned(false);
         }

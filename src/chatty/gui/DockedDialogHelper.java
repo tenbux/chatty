@@ -190,8 +190,9 @@ public class DockedDialogHelper {
             value = ((Number) o).intValue();
         }
         setDocked(MiscUtil.isBitEnabled(value, DOCKED));
-        setVisible(MiscUtil.isBitEnabled(value, AUTO_OPEN), false);
-        autoOpenActivity = MiscUtil.isBitEnabled(value, AUTO_OPEN);
+        autoOpen = MiscUtil.isBitEnabled(value, AUTO_OPEN);
+        setVisible(autoOpen, false);
+        autoOpenActivity = MiscUtil.isBitEnabled(value, AUTO_OPEN_ACTIVITY);
         fixedChannel = MiscUtil.isBitEnabled(value, FIXED_CHANNEL);
     }
     

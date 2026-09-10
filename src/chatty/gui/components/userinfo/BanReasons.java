@@ -129,7 +129,8 @@ public class BanReasons extends JPanel {
 
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    if (parent.getFocusOwner().getClass() == JTextField.class) {
+                    Component focusOwner = parent.getFocusOwner();
+                    if (focusOwner != null && focusOwner.getClass() == JTextField.class) {
                         return;
                     }
                     if (!combo.isPopupVisible() && combo.getSelectedIndex() != 0) {

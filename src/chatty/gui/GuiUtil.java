@@ -245,6 +245,7 @@ public class GuiUtil {
     public static void setLocationRelativeTo(Window w, Component source) {
         if (source == null || !source.isShowing()) {
             w.setLocationRelativeTo(source);
+            return;
         }
         Dimension wSize = w.getSize();
         Dimension sourceSize = source.getSize();

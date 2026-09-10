@@ -3369,7 +3369,7 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
             trayIcon.displayInfo(title, message);
         } else if (setting == NotificationSettings.NOTIFICATION_TYPE_COMMAND) {
             GuiUtil.showCommandNotification(client.settings.getString("nCommand"),
-                    title, message, data.channel());
+                    title, message, data != null ? data.channel() : null);
         }
         eventLog.add(new chatty.gui.components.eventlog.Event(
                 chatty.gui.components.eventlog.Event.Type.NOTIFICATION,
@@ -4215,30 +4215,36 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
 
     public void printLowTrustUserInfo(User user, final SuspiciousMessagePayload data) {
         String channel = Helper.toValidChannel(data.stream);
-        if (channels.isChannel(channel)) {
-            data.fetchUserInfoForBannedChannels(client.api, () -> SwingUtilities.invokeLater(() -> {
-                //--------------------------
-                // Restricted Message
-                //--------------------------
-                Channel chan = channels.getExistingChannel(channel);
-                if (data.treatment == SuspiciousMessagePayload.Treatment.RESTRICTED
-                        && client.settings.getBoolean("showRestrictedMessages")) {
-                    // Message is not being posted to actual chat, display it here anyway
-                    MsgTags tags = MsgTags.create(
-                            "id", data.aboutMessageId,
-                            "chatty-is-restricted", "1"
-                    );
-                    printMessage(user, data.text, false, tags);
-                }
+        // Don't gate on channels.isChannel(channel) here: this can be called
+        // from a non-EDT thread (EventSub results), and that map is EDT-owned
+        // and unsynchronized. Check for the channel still being open (via the
+        // null return of getExistingChannel) inside the invokeLater instead,
+        // where it's actually safe to read.
+        data.fetchUserInfoForBannedChannels(client.api, () -> SwingUtilities.invokeLater(() -> {
+            Channel chan = channels.getExistingChannel(channel);
+            if (chan == null) {
+                return;
+            }
+            //--------------------------
+            // Restricted Message
+            //--------------------------
+            if (data.treatment == SuspiciousMessagePayload.Treatment.RESTRICTED
+                    && client.settings.getBoolean("showRestrictedMessages")) {
+                // Message is not being posted to actual chat, display it here anyway
+                MsgTags tags = MsgTags.create(
+                        "id", data.aboutMessageId,
+                        "chatty-is-restricted", "1"
+                );
+                printMessage(user, data.text, false, tags);
+            }
 
-                //--------------------------
-                // Appended Info
-                //--------------------------
-                if (client.settings.getBoolean("showLowTrustInfo")) {
-                    chan.printLowTrustInfo(user, data);
-                }
-            }));
-        }
+            //--------------------------
+            // Appended Info
+            //--------------------------
+            if (client.settings.getBoolean("showLowTrustInfo")) {
+                chan.printLowTrustInfo(user, data);
+            }
+        }));
     }
 
     /**

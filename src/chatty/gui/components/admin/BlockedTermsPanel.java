@@ -228,14 +228,29 @@ public class BlockedTermsPanel extends JPanel {
             Editor editor = new Editor(SwingUtilities.getWindowAncestor(this));
             String result = editor.showDialog("Edit (Removes the term and adds the edited one)", selectedTerm.text(), null);
             if (result != null && !result.equals(selectedTerm.text())) {
-                api.removeBlockedTerm(selectedTerm, removed -> SwingUtilities.invokeLater(() -> {
-                    if (removed == null) {
-                        statusLabel.setText("An error occured removing term");
+                // Add the new term first, only remove the old one once the
+                // new one is confirmed added: if the add fails (network,
+                // rate limit, invalid text) after a remove-first order, the
+                // old term is already gone from Twitch with nothing put
+                // back in its place. Worst case here if the remove fails is
+                // both terms ending up blocked, which is safe to leave for
+                // the user to clean up manually.
+                api.addBlockedTerm(currentStream, result, term -> SwingUtilities.invokeLater(() -> {
+                    if (term == null) {
+                        statusLabel.setText("An error occured adding the edited term, old term was not removed");
                     }
-                    else if (removed.streamLogin().equals(currentStream)) {
-                        data.remove(removed);
-                        addEntry(result);
+                    else if (term.streamLogin().equals(currentStream)) {
+                        data.add(term);
                         setEdited(true);
+                        api.removeBlockedTerm(selectedTerm, removed -> SwingUtilities.invokeLater(() -> {
+                            if (removed == null) {
+                                statusLabel.setText("Added the edited term, but failed to remove the old one");
+                            }
+                            else if (removed.streamLogin().equals(currentStream)) {
+                                data.remove(removed);
+                                setEdited(true);
+                            }
+                        }));
                     }
                 }));
             }

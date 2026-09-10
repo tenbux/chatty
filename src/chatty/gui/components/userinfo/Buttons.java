@@ -228,7 +228,8 @@ public class Buttons {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (owner.getFocusOwner().getClass() == JTextField.class) {
+                Component focusOwner = owner.getFocusOwner();
+                if (focusOwner != null && focusOwner.getClass() == JTextField.class) {
                     return;
                 }
                 button.doClick();

@@ -140,7 +140,7 @@ public class UserInfoDialog extends JDialog {
         gbc.anchor = GridBagConstraints.EAST;
         GuiUtil.smallButtonInsets(pinMessageButton);
         pinMessageButton.addActionListener(e -> {
-            long pinDuration = ModerationPanel.showPinMessageDialog(this, settings, currentUser.getMessage(currentMsgId).text);
+            long pinDuration = ModerationPanel.showPinMessageDialog(this, settings, currentUser.getMessageText(currentMsgId));
             if (pinDuration != ModerationPanel.PIN_DIALOG_CANCEL && listener != null) {
                 listener.anonCustomCommand(currentUser.getRoom(), CustomCommand.parse(String.format("/pin -id $1 $2")), Parameters.create(currentMsgId+" "+pinDuration));
                 closeOnAction();
@@ -383,6 +383,19 @@ public class UserInfoDialog extends JDialog {
     protected void finishDialog() {
         setMinimumSize(getPreferredSize());
     }
+
+    /**
+     * Must be called once this dialog is actually being discarded (i.e.
+     * dropped from UserInfoManager's tracking, not just closed-but-retained
+     * for reuse - see UserInfoManager#handleClosed), otherwise InfoPanel's
+     * repeating update Timer keeps this whole dialog reachable via Swing's
+     * TimerQueue forever. Not hooked into dispose(): a dialog can be closed
+     * and later shown again without being recreated, and nothing would ever
+     * restart the timer.
+     */
+    public void cleanUp() {
+        infoPanel.cleanUp();
+    }
     
     private void closeOnAction() {
         if (shouldCloseOnAction(settings.getBoolean("closeUserDialogOnAction"), pinnedDialog.isSelected())) {
@@ -448,11 +461,14 @@ public class UserInfoDialog extends JDialog {
     private void updateStuff(User user) {
         updateTitle(user, null);
         if (settings.getBoolean("pronouns")) {
-            Pronouns.instance().getUser((username, pronoun) -> {
+            // Pronouns.getUser()'s callback can fire synchronously off-EDT
+            // (from CachedBulkManager), so marshal to the EDT here instead
+            // of assuming it's already there.
+            Pronouns.instance().getUser((username, pronoun) -> SwingUtilities.invokeLater(() -> {
                 if (currentUser.getName().equals(username)) {
                     updateTitle(user, pronoun);
                 }
-            }, user.getName());
+            }), user.getName());
         }
         notesButton.setText(UserNotes.instance().hasNotes(user) ? "Notes*" : "Notes");
     }
