@@ -423,6 +423,11 @@ public class NotificationSettings extends SettingsPanel {
     
     
     protected void scanFiles(boolean showMessage) {
+        soundFiles.clear();
+        soundFiles.add(SystemSounds.BEEP, SystemSounds.getDisplayName(SystemSounds.BEEP));
+        for (Map.Entry<String, Path> entry : SystemSounds.get().entrySet()) {
+            soundFiles.add(entry.getValue().toString(), SystemSounds.getDisplayName(entry.getValue().toString()));
+        }
         Path path = soundsPath.getCurrentPath();
         if (path == null) {
             if (showMessage) {
@@ -452,11 +457,6 @@ public class NotificationSettings extends SettingsPanel {
             }
             Arrays.sort(fileNames);
             editor.setSoundFiles(path, fileNames);
-            soundFiles.clear();
-            soundFiles.add(SystemSounds.BEEP, "System Beep");
-            for (Map.Entry<String, Path> entry : SystemSounds.get().entrySet()) {
-                soundFiles.add(entry.getValue().toString(), "System: " + entry.getKey());
-            }
             for (String fileName : fileNames) {
                 soundFiles.add(fileName);
             }

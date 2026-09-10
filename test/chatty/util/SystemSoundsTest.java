@@ -42,4 +42,23 @@ public class SystemSoundsTest {
         }
     }
 
+    @Test
+    public void testGetDisplayNameForBeepReturnsLabel() {
+        assertEquals("System Beep", SystemSounds.getDisplayName(SystemSounds.BEEP));
+    }
+
+    @Test
+    public void testGetDisplayNameForUnknownValueReturnsUnchanged() {
+        assertEquals("some-custom-file.wav", SystemSounds.getDisplayName("some-custom-file.wav"));
+    }
+
+    @Test
+    public void testGetDisplayNameForSystemSoundOnMacReturnsLabel() {
+        assumeTrue(System.getProperty("os.name", "").toLowerCase().contains("mac"));
+
+        Path glass = SystemSounds.get().get("Glass");
+
+        assertEquals("System: Glass", SystemSounds.getDisplayName(glass.toString()));
+    }
+
 }

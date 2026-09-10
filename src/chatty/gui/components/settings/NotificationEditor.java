@@ -191,7 +191,7 @@ class NotificationEditor extends TableEditor<Notification> {
                     text = String.format("%s\n%s %s",
                                              n.getSoundState(),
                                              cooldown,
-                                             n.soundFile == null || n.soundState == State.OFF ? "" : n.soundFile);
+                                             n.soundFile == null || n.soundState == State.OFF ? "" : SystemSounds.getDisplayName(n.soundFile));
                     break;
                 case 3:
                     text = String.format("%s%s\n%s",
@@ -781,9 +781,9 @@ class NotificationEditor extends TableEditor<Notification> {
         public void setSoundFiles(Path path, String[] names) {
             soundFile.removeAllItems();
             soundFile.add((String)null, "<None>");
-            soundFile.add(SystemSounds.BEEP, "System Beep");
+            soundFile.add(SystemSounds.BEEP, SystemSounds.getDisplayName(SystemSounds.BEEP));
             for (Map.Entry<String, Path> entry : SystemSounds.get().entrySet()) {
-                soundFile.add(entry.getValue().toString(), "System: " + entry.getKey());
+                soundFile.add(entry.getValue().toString(), SystemSounds.getDisplayName(entry.getValue().toString()));
             }
             for (String name : names) {
                 soundFile.add(name);

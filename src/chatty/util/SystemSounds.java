@@ -40,6 +40,23 @@ public class SystemSounds {
         return Collections.emptyMap();
     }
 
+    /**
+     * Returns the label to display for a stored sound file value, such as
+     * "System Beep" or "System: Glass" for OS-provided sounds, or the value
+     * unchanged if it's a custom sound file.
+     */
+    public static String getDisplayName(String soundFile) {
+        if (BEEP.equals(soundFile)) {
+            return "System Beep";
+        }
+        for (Map.Entry<String, Path> entry : get().entrySet()) {
+            if (entry.getValue().toString().equals(soundFile)) {
+                return "System: " + entry.getKey();
+            }
+        }
+        return soundFile;
+    }
+
     private static Map<String, Path> scan(Path dir, String extension) {
         File[] files = dir.toFile().listFiles((d, name) -> name.toLowerCase().endsWith(extension));
         if (files == null) {
