@@ -32,6 +32,14 @@ class Get implements Item {
         if (settings == null) {
             return isRequired ? null : "";
         }
+        if (Settings.isSensitiveSetting(value)) {
+            // Never expose a credential (token/password) through a custom
+            // command: $request() can send an arbitrary URL with arbitrary
+            // headers, so $get(token) combined with it would let a shared
+            // or copy-pasted custom command exfiltrate the user's OAuth
+            // token/IRC password.
+            return isRequired ? null : "";
+        }
         String result = null;
         if (settings.isStringSetting(value)) {
             result = settings.getString(value);

@@ -829,10 +829,22 @@ public class Settings {
     
     /**
      * Settings whose value must never be echoed back in a message (e.g. a
-     * log line or a printed chat system message), since they hold
-     * credentials.
+     * log line, a printed chat system message, or the custom-command
+     * $get() function), since they hold credentials.
      */
     private static final Set<String> SENSITIVE_SETTINGS = Set.of("token", "password");
+
+    /**
+     * Whether the given setting holds a credential whose value must never
+     * be echoed back to the user (e.g. in a log line, a chat message, or a
+     * custom command result).
+     *
+     * @param settingName
+     * @return
+     */
+    public static boolean isSensitiveSetting(String settingName) {
+        return SENSITIVE_SETTINGS.contains(settingName);
+    }
 
     public String setTextual(String text, boolean verbose) {
         if (text == null || text.isEmpty()) {

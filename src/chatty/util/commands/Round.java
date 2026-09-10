@@ -42,6 +42,12 @@ public class Round implements Item {
         catch (NumberFormatException ex) {
             return numString;
         }
+        if (Double.isNaN(num) || Double.isInfinite(num)) {
+            // Double.parseDouble("NaN"/"Infinity") succeeds (doesn't throw
+            // NumberFormatException above), but BigDecimal.valueOf() below
+            // throws NumberFormatException for either, uncaught here.
+            return numString;
+        }
         int decimals = getInt(decimalsItem, parameters);
         if (decimals == -1) {
             return null;

@@ -2,6 +2,7 @@
 package chatty.util.tts;
 
 import chatty.util.Debugging;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -48,8 +49,8 @@ public class WindowsTTSProvider implements TTSProvider {
                 + "</prosody>"
                 + "</voice>"
                 + "</speak>",
-                voice, ssmlRate, request.volume(), ssmlPitch, escapedText);
-        
+                escapeXml(voice), ssmlRate, request.volume(), ssmlPitch, escapedText);
+
         Debugging.println("tts", ssml);
 
         String script = "Add-Type -AssemblyName System.Speech; "
@@ -59,15 +60,22 @@ public class WindowsTTSProvider implements TTSProvider {
 
         ProcessBuilder pb = new ProcessBuilder("powershell", "-Command", script);
         pb.environment().put("tts_ssml", ssml);
+        // Merge stderr into stdout so there's only one stream to drain below.
+        pb.redirectErrorStream(true);
 
         forceStopped = false;
-        
+
         process = pb.start();
+        // Drain output fully (blocks until the process closes its stdout,
+        // i.e. until it's done writing) *before* waitFor(): otherwise, if
+        // PowerShell writes enough output to fill the OS pipe buffer while
+        // nothing is reading it, the child blocks on that write and
+        // waitFor() blocks forever waiting for an exit that never comes.
+        byte[] output = process.getInputStream().readAllBytes();
         process.waitFor();
 
         if (process.exitValue() != 0 && !forceStopped) {
-            java.io.InputStream errorStream = process.getErrorStream();
-            String error = new java.util.Scanner(errorStream).useDelimiter("\\\\A").next();
+            String error = new String(output, StandardCharsets.UTF_8);
             LOGGER.warning("PowerShell TTS error: " + error);
             throw new Exception("PowerShell TTS failed with exit code: " + process.exitValue() + ", error: " + error);
         }

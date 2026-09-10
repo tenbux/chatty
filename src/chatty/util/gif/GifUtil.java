@@ -149,11 +149,24 @@ public class GifUtil {
      * @return
      * @throws IOException 
      */
+    /**
+     * Generous upper bound for a single emote/badge image download; real
+     * ones are well under this. Without a cap, a misbehaving/malicious
+     * server (this reads from third-party emote CDNs) could make this
+     * buffer an unbounded amount of data in memory.
+     */
+    private static final long MAX_IMAGE_BYTES = 50L * 1024 * 1024;
+
     private static byte[] readAllBytes(InputStream input) throws IOException {
         ByteArrayOutputStream result = new ByteArrayOutputStream();
         byte[] buffer = new byte[1024];
         int length;
+        long total = 0;
         while ((length = input.read(buffer, 0, buffer.length)) != -1) {
+            total += length;
+            if (total > MAX_IMAGE_BYTES) {
+                throw new IOException("Image data exceeds maximum size of "+MAX_IMAGE_BYTES+" bytes");
+            }
             result.write(buffer, 0, length);
         }
         return result.toByteArray();

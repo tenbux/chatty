@@ -35,7 +35,10 @@ class Join implements Item {
         if (sep == null) {
             return null;
         }
-        return value.replaceAll(" ", sep);
+        // Plain replace(), not replaceAll(): sep is chat-derived text and
+        // replaceAll() treats "$"/"\" in the replacement specially
+        // (group references/escapes), throwing instead of joining.
+        return value.replace(" ", sep);
     }
 
     @Override

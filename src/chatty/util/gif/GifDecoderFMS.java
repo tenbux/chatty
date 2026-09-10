@@ -66,6 +66,18 @@ public class GifDecoderFMS {
 	 */
 	public static final int STATUS_OPEN_ERROR = 2;
 
+	/**
+	 * Maximum pixel count (width * height) accepted for the logical screen
+	 * or any single frame. GIF dimensions are 16-bit, so width*height can
+	 * be up to ~4.3 billion, overflowing int allocation sizes (e.g.
+	 * "new byte[npix]" with a negative npix) and/or requesting gigabytes
+	 * for a single frame - this is untrusted third-party emote/badge data,
+	 * so a crafted or corrupt header must not be able to do either.
+	 * Generous for any real emote/small animated image (4096x4096 is far
+	 * larger than anything legitimately used here).
+	 */
+	protected static final long MAX_PIXELS = 4096L * 4096L;
+
 	protected BufferedInputStream in;
 	protected int status;
 
@@ -678,6 +690,11 @@ public class GifDecoderFMS {
 		iw = readShort();
 		ih = readShort();
 
+		if (!validDimensions(iw, ih)) {
+			status = STATUS_FORMAT_ERROR;
+			return;
+		}
+
 		int packed = read();
 		lctFlag = (packed & 0x80) != 0; // 1 - local color table flag
 		interlace = (packed & 0x40) != 0; // 2 - interlace flag
@@ -736,6 +753,11 @@ public class GifDecoderFMS {
 		width = readShort();
 		height = readShort();
 
+		if (!validDimensions(width, height)) {
+			status = STATUS_FORMAT_ERROR;
+			return;
+		}
+
 		// packed fields
 		int packed = read();
 		gctFlag = (packed & 0x80) != 0; // 1   : global color table flag
@@ -745,6 +767,15 @@ public class GifDecoderFMS {
 
 		bgIndex = read(); // background color index
 		pixelAspect = read(); // pixel aspect ratio
+	}
+
+	/**
+	 * @param w
+	 * @param h
+	 * @return Whether w and h are positive and w*h doesn't exceed MAX_PIXELS
+	 */
+	private static boolean validDimensions(int w, int h) {
+		return w > 0 && h > 0 && (long) w * h <= MAX_PIXELS;
 	}
 
 	/**
