@@ -181,6 +181,12 @@ public class JWSClient implements MessageHandler {
                 catch (InterruptedException ex) {
                     return;
                 }
+                catch (RuntimeException ex) {
+                    // Don't let a bad message kill this thread: the socket
+                    // can still look open (isOpen() true) while nothing is
+                    // ever processed from the queue again.
+                    LOGGER.warning(debugPrefix+"Error handling received message: "+ex);
+                }
             }
         }, debugPrefix+"WS-Reader");
         readerThread.start();
@@ -200,6 +206,12 @@ public class JWSClient implements MessageHandler {
                 }
                 catch (InterruptedException ex) {
                     return;
+                }
+                catch (RuntimeException ex) {
+                    // Don't let a bad send/handleSent() call kill this
+                    // thread: queued messages would otherwise never be
+                    // sent again.
+                    LOGGER.warning(debugPrefix+"Error sending message: "+ex);
                 }
             }
         }, debugPrefix+"WS-Writer");

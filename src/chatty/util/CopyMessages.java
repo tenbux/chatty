@@ -4,6 +4,8 @@ package chatty.util;
 import chatty.User;
 import chatty.util.settings.Settings;
 
+import java.util.regex.Matcher;
+
 /**
  *
  * @author tduva
@@ -23,8 +25,12 @@ public class CopyMessages {
             return;
         }
         String text = settings.getString("cmTemplate");
-        text = text.replaceFirst("\\{user\\}", user.getDisplayNick());
-        text = text.replaceFirst("\\{message\\}", message);
+        // Quote the replacements: they're chat-derived text that can
+        // contain "$" or "\", which replaceFirst() treats specially in the
+        // replacement string (group references/escapes), throwing instead
+        // of copying the message.
+        text = text.replaceFirst("\\{user\\}", Matcher.quoteReplacement(user.getDisplayNick()));
+        text = text.replaceFirst("\\{message\\}", Matcher.quoteReplacement(message));
         MiscUtil.copyToClipboard(text);
     }
     

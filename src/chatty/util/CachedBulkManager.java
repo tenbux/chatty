@@ -16,6 +16,7 @@ import java.util.*;
 import java.util.Timer;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.logging.Logger;
@@ -603,35 +604,37 @@ public class CachedBulkManager<Key,Item> {
     // Perform requests
     //------------------
 
-    private volatile boolean requestingInProgress;
-    
+    private final AtomicBoolean requestingInProgress = new AtomicBoolean();
+
     public void doRequests() {
-        if (requestingInProgress) {
+        if (!requestingInProgress.compareAndSet(false, true)) {
             LOGGER.warning("Ignored doRequests");
             return;
         }
-        requestingInProgress = true;
-        Set<Key> asap = new HashSet<>();
-        Set<Key> normal = new HashSet<>();
-        Set<Key> backlog = new HashSet<>();
-        
-        synchronized(LOCK) {
-            for (Query<Key, Item> request : queries.values()) {
-                addKeys(request, asap, normal, backlog);
+        try {
+            Set<Key> asap = new HashSet<>();
+            Set<Key> normal = new HashSet<>();
+            Set<Key> backlog = new HashSet<>();
+
+            synchronized(LOCK) {
+                for (Query<Key, Item> request : queries.values()) {
+                    addKeys(request, asap, normal, backlog);
+                }
+                // Remove duplicates
+                for (Key key : asap) {
+                    normal.remove(key);
+                    backlog.remove(key);
+                }
+                for (Key key : normal) {
+                    backlog.remove(key);
+                }
             }
-            // Remove duplicates
-            for (Key key : asap) {
-                normal.remove(key);
-                backlog.remove(key);
+            if (!asap.isEmpty() || !normal.isEmpty()) {
+                requester.request(this, asap, normal, backlog);
             }
-            for (Key key : normal) {
-                backlog.remove(key);
-            }
+        } finally {
+            requestingInProgress.set(false);
         }
-        if (!asap.isEmpty() || !normal.isEmpty()) {
-            requester.request(this, asap, normal, backlog);
-        }
-        requestingInProgress = false;
     }
     
     private void addKeys(Query<Key, Item> query, Set<Key> asap, Set<Key> normal, Set<Key> backlog) {

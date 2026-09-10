@@ -181,13 +181,21 @@ public class HistoryManager {
                     JSONParser parser = new JSONParser();
                     JSONObject root = (JSONObject) parser.parse(resultText);
                     JSONArray jsArray = (JSONArray) root.get("messages");
-                    for (Object o : jsArray) {
-                        HistoryMessage historyMsg = this.transformStringToMessage((String) o);
-                        if (historyMsg != null) {
-                            result.add(historyMsg);
+                    if (jsArray != null) {
+                        for (Object o : jsArray) {
+                            HistoryMessage historyMsg = this.transformStringToMessage((String) o);
+                            if (historyMsg != null) {
+                                result.add(historyMsg);
+                            }
                         }
                     }
-                } catch (ParseException ex) {
+                } catch (ParseException | ClassCastException | NullPointerException ex) {
+                    // Malformed/unexpected JSON shape must not skip
+                    // listener.accept(result) below: the caller relies on
+                    // it firing to clear this channel from
+                    // requestPendingChannels, otherwise every later live
+                    // message for this channel gets silently queued forever
+                    // instead of displayed.
                     LOGGER.warning("Error requesting chat history: " + ex);
                 }
             }

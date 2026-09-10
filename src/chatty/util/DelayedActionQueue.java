@@ -83,7 +83,15 @@ public class DelayedActionQueue<E> {
             while (true) {
                 try {
                     E item = q.take();
-                    listener.actionPerformed(item);
+                    try {
+                        listener.actionPerformed(item);
+                    } catch (RuntimeException ex) {
+                        // Don't let a bad item's listener kill this thread:
+                        // nothing else ever calls q.take() again, so every
+                        // future add() would just accumulate forever with
+                        // nothing consuming it.
+                        LOGGER.warning("Error performing delayed action for "+item+": "+ex);
+                    }
                     sleep(delay);
                 } catch (InterruptedException ex) {
                     LOGGER.warning("Reader Thread interrupted.");

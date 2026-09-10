@@ -329,6 +329,11 @@ public class ImageCache {
             if (image != null) {
                 return image;
             }
+            // getCachedImage() may have called request.setCacheFile() on a
+            // cache file that turned out missing/unreadable/corrupt; clear
+            // it so the "fall back to requesting directly" below actually
+            // requests the original URL instead of the same bad cache file.
+            request.clearCacheFile();
         }
         return getImageDirectly(request);
     }
@@ -428,16 +433,30 @@ public class ImageCache {
     }
     
     private static boolean saveFile(URL url, Path file) {
+        // Write to a temp file first, then atomically move it over the
+        // real cache file. Copying directly into the destination truncates
+        // it up front, so a failed/interrupted download used to destroy a
+        // previously-good cached image, leaving a partial/corrupt file
+        // behind with a fresh mtime that hasExpired() would then treat as
+        // valid for another expireTime.
+        Path tmp = file.resolveSibling(file.getFileName()+".tmp-"+System.nanoTime());
         try {
             URLConnection c = url.openConnection();
             try (InputStream is = c.getInputStream()) {
-                long written = Files.copy(is, file, StandardCopyOption.REPLACE_EXISTING);
+                long written = Files.copy(is, tmp, StandardCopyOption.REPLACE_EXISTING);
                 if (written > 0) {
+                    Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
                     return true;
                 }
             }
         } catch (IOException ex) {
             LOGGER.warning("Error saving " + url + " to " + file + ": " + ex);
+        } finally {
+            try {
+                Files.deleteIfExists(tmp);
+            } catch (IOException ex) {
+                // Ignore, will be picked up by normal temp file cleanup if any
+            }
         }
         return false;
     }
@@ -585,6 +604,14 @@ public class ImageCache {
         
         public void setCacheFile(Path file) throws MalformedURLException {
             this.cacheURL = file.toUri().toURL();
+        }
+
+        /**
+         * Clear a previously set cache file, so getLoadFromURL() falls back
+         * to the originally requested URL again.
+         */
+        public void clearCacheFile() {
+            this.cacheURL = null;
         }
         
         /**
