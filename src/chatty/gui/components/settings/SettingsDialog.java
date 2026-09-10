@@ -679,16 +679,27 @@ public class SettingsDialog extends JDialog implements ActionListener {
      * it succeeds
      */
     private void saveIntegerSettings() {
+        List<String> invalid = new ArrayList<>();
         for (String settingName : longSettings.keySet()) {
             LongSetting setting = longSettings.get(settingName);
             Long value = setting.getSettingValue();
             if (value != null) {
-                if (settings.setLong(settingName, setting.getSettingValue()) == Setting.CHANGED) {
+                if (settings.setLong(settingName, value) == Setting.CHANGED) {
                     changed(settingName);
                 }
             } else {
                 LOGGER.warning("Invalid number format for setting "+settingName);
+                invalid.add(settingName);
             }
+        }
+        if (!invalid.isEmpty()) {
+            // Previously these were silently discarded with no feedback at
+            // all beyond a debug log line, so the user had no way to know
+            // their edit didn't take effect.
+            JOptionPane.showMessageDialog(this,
+                    "The following setting(s) had an invalid number and were not changed:\n"
+                            + String.join(", ", invalid),
+                    "Invalid Setting Value", JOptionPane.WARNING_MESSAGE);
         }
     }
     
@@ -705,10 +716,10 @@ public class SettingsDialog extends JDialog implements ActionListener {
     private void saveListSettings() {
         for (String settingName : listSettings.keySet()) {
             ListSetting setting = listSettings.get(settingName);
-            settings.putList(settingName, setting.getSettingValue());
-//            settingsgetList2t(settingName).clear();
-//            settinggetList2st(settingName).addAll(setting.getSettingValue());
-            settings.setSettingChanged(settingName);
+            boolean changed = settings.putList(settingName, setting.getSettingValue());
+            if (changed) {
+                settings.setSettingChanged(settingName);
+            }
         }
     }
     

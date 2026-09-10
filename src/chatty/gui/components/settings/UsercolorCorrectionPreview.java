@@ -24,6 +24,11 @@ public class UsercolorCorrectionPreview extends JDialog {
         super(parent);
         
         setTitle("Usercolor Correction Preview");
+        // A new instance is created on every "Preview" click with nothing
+        // holding a reference to dispose it later; without this, the
+        // default HIDE_ON_CLOSE leaves each one registered in AWT's window
+        // list forever once closed via the title bar.
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         
         boolean darkBg = ColorCorrection.isDarkColor(background);
         

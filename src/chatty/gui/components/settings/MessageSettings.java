@@ -137,6 +137,10 @@ public class MessageSettings extends SettingsPanel {
                 preset = "[HH:mm:ss]";
             }
             String result = editor.showDialog(preset);
+            // A new TimestampEditor is created on every click; without
+            // disposing it, each one stays registered in AWT's window list
+            // forever (setVisible(false) alone doesn't release it).
+            editor.dispose();
             if (result != null) {
                 combo.setSettingValue(result);
             }

@@ -20,21 +20,29 @@ public class HotkeyPanel extends JPanel {
     private final JButton removeButton = new JButton("Remove");
     
     private Hotkey currentHotkey;
-    
+
     private Map<String, String> actions;
-    
+
+    // Created lazily on first use and reused for every subsequent click,
+    // like HotkeyEditor itself does with the same class, instead of
+    // creating (and never disposing) a new one - with its own JDialog -
+    // every time "Edit" is clicked.
+    private HotkeyEditor.MyItemEditor editor;
+
     public HotkeyPanel(JDialog owner, String actionId, Hotkey.Type type, Function<KeyStroke, Hotkey> getExistingHotkey, HotkeyHelperListener listener) {
         this.currentHotkey = new Hotkey(actionId, null, type, null, 1);
-        
+
         add(hotkeyField);
         JButton editButton = new JButton("Edit");
         add(editButton);
         add(removeButton);
-        
+
         hotkeyField.setEditable(false);
-        
+
         editButton.addActionListener(e -> {
-            HotkeyEditor.MyItemEditor editor = new HotkeyEditor.MyItemEditor(owner, getExistingHotkey);
+            if (editor == null) {
+                editor = new HotkeyEditor.MyItemEditor(owner, getExistingHotkey);
+            }
             editor.setActions(actions);
             editor.setFixedAction();
             Hotkey edited = editor.showEditor(currentHotkey, hotkeyField, true, 0);

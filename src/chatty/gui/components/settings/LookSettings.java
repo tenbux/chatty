@@ -263,20 +263,15 @@ public class LookSettings extends SettingsPanel {
                     SettingsDialog.makeGbc(1, 1, 1, 1, GridBagConstraints.WEST));
             add(makeOption(FlatLafUtil.TAB_SEP_FULL, "separatorsFull"),
                     SettingsDialog.makeGbc(1, 2, 1, 1, GridBagConstraints.WEST));
-            update();
         }
-        
+
         private JCheckBox makeOption(int option, String labelKey) {
             String text = Language.getString("settings.tabs.flat."+labelKey);
             String tip = Language.getString("settings.tabs.flat."+labelKey + ".tip", false);
             JCheckBox check = new JCheckBox(text);
             check.setToolTipText(SettingsUtil.addTooltipLinebreaks(tip));
-            check.addItemListener(e -> update());
             options.put(option, check);
             return check;
-        }
-        
-        private void update() {
         }
 
         @Override

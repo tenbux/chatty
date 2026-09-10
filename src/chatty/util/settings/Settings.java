@@ -477,14 +477,26 @@ public class Settings {
      *
      * @param settingName
      * @param list
+     * @return Whether the setting's value actually changed
      * @throws SettingNotFoundException if a setting with this name doesn't
      * exist or isn't a List setting.
      */
-    public void putList(String settingName, Collection list) {
+    public boolean putList(String settingName, Collection list) {
         synchronized (LOCK) {
             Collection settingList = (Collection) get(settingName, Setting.LIST);
+            // Some List settings are backed by a Set rather than a List
+            // (e.g. "scopes"), and Set#equals() is specified to always
+            // return false when compared against something that isn't
+            // itself a Set, regardless of actual content - so a plain
+            // settingList.equals(new ArrayList<>(list)) would report
+            // "changed" unconditionally for those. List order matters for
+            // genuine list settings, so only ignore order for Set-backed ones.
+            boolean changed = settingList instanceof List
+                    ? !new ArrayList<>(settingList).equals(new ArrayList<>(list))
+                    : !new HashSet<>(settingList).equals(new HashSet<>(list));
             settingList.clear();
             settingList.addAll(list);
+            return changed;
         }
     }
     
