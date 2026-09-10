@@ -14,3 +14,5 @@ build.xml
 .windsurf/
 CLAUDE.md
 DECISIONS.md
+
+.DS_Store
