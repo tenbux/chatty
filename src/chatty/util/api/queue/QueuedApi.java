@@ -68,8 +68,14 @@ public class QueuedApi {
                         /**
                          * Executed in an executor thread.
                          */
-                        // Get some data from the response and forward to external listener
-                        QueuedApi.this.ratelimitRemaining = ratelimitRemaining;
+                        // Get some data from the response and forward to external listener.
+                        // Only update the cached value when it's actually known: a failed/
+                        // errored request reports -1, and letting that overwrite a
+                        // previously-known good value would disable the pre-emptive
+                        // throttle below exactly when the network is unreliable.
+                        if (ratelimitRemaining != -1) {
+                            QueuedApi.this.ratelimitRemaining = ratelimitRemaining;
+                        }
                         activeRequests.release();
                         if (Debugging.isEnabled("requestresponse")) {
                             if (result != null) {
@@ -151,7 +157,7 @@ public class QueuedApi {
         if (checkPending(entry)) {
             queue.add(entry);
         } else {
-            System.out.println("Duped "+request);
+            LOGGER.info("Duped "+request);
         }
     }
     

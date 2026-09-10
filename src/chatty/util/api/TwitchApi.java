@@ -683,8 +683,16 @@ public class TwitchApi {
         String streamId = room.getStreamId();
         if (streamId == null) {
             userIDs.getUserIDsAsap(r -> {
-                if (r.hasError() && listener != null) {
-                    listener.accept(SimpleRequestResult.error("Invalid username"));
+                if (r.hasError()) {
+                    // Don't fall through to run.accept(null) below when
+                    // there's no listener to report the error to: r.getId()
+                    // returns null on an error result, and run typically
+                    // builds a URL from it (e.g. via URLEncoder.encode),
+                    // which NPEs on null and would abort the rest of this
+                    // batch's callbacks.
+                    if (listener != null) {
+                        listener.accept(SimpleRequestResult.error("Invalid username"));
+                    }
                 }
                 else {
                     run.accept(r.getId(room.getStream()));

@@ -15,6 +15,7 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static chatty.Irc.SSL_ERROR;
@@ -182,6 +183,16 @@ public class Connection implements Runnable {
             } catch (IOException ex) {
                 info("Error reading from socket: "+ex);
                 break;
+            } catch (RuntimeException ex) {
+                // Don't let an unexpected error from handling a received
+                // line (e.g. in irc.received()) kill this thread without
+                // running close() below: the socket would stay open,
+                // "connected" would stay true, and no disconnect/reconnect
+                // would ever be triggered.
+                LOGGER.log(Level.SEVERE, idPrefix+"Error handling received line: "+ex, ex);
+                disconnectReason = Irc.ERROR_CONNECTION_CLOSED;
+                disconnectMessage = ex.toString();
+                break;
             }
         }
         
@@ -228,9 +239,14 @@ public class Connection implements Runnable {
         if (connected) {
             info("Closing socket.");
             try {
+                // Close the socket first so a reader thread currently
+                // blocked in a read on it is interrupted promptly, rather
+                // than only after out/in are closed, which doesn't reliably
+                // unblock a pending read (could otherwise stall a
+                // disconnect/exit for up to SOCKET_BLOCK_TIMEOUT).
+                socket.close();
                 out.close();
                 in.close();
-                socket.close();
             } catch (IOException ex) {
                 warning("Error closing socket: "+ex);
             }

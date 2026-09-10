@@ -24,6 +24,8 @@ import java.beans.VetoableChangeListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -827,24 +829,40 @@ public class GuiUtil {
         img.setRGB(0, 0, img.getWidth(), img.getHeight(), rgb, 0, img.getWidth());
     }
     
+    private static final long EDT_AND_WAIT_TIMEOUT_SECONDS = 5;
+
     /**
-     * Run in the EDT, either by running it directly if already in the EDT or
-     * by using {@link SwingUtilities#invokeAndWait(Runnable)}.
-     * 
-     * @param runnable What to execute
-     * @param description Used for logging when an error occurs
+     * Like {@link SwingUtilities#invokeAndWait(Runnable)}, but bounded: if
+     * the EDT doesn't run the given code within a few seconds (e.g. because
+     * it's blocked or already gone), this gives up and returns instead of
+     * blocking the calling thread forever. Notably reached from the JVM
+     * shutdown hook (Shutdown.java) on save, where hanging here would
+     * prevent the app from ever fully exiting.
+     *
+     * @param runnable
+     * @param description Used for the warning logged if this times out
      */
     public static void edtAndWait(Runnable runnable, String description) {
         if (SwingUtilities.isEventDispatchThread()) {
             runnable.run();
+            return;
         }
-        else {
+        CountDownLatch done = new CountDownLatch(1);
+        SwingUtilities.invokeLater(() -> {
             try {
-                SwingUtilities.invokeAndWait(runnable);
+                runnable.run();
+            } finally {
+                done.countDown();
             }
-            catch (Exception ex) {
-                LOGGER.warning("Failed to execute edtAndWait ("+description+"): "+ex);
+        });
+        try {
+            if (!done.await(EDT_AND_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                LOGGER.warning("Timed out waiting for EDT ("+description+")");
             }
+        }
+        catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            LOGGER.warning("Interrupted waiting for EDT ("+description+"): "+ex);
         }
     }
     

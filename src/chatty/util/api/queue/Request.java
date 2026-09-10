@@ -100,11 +100,26 @@ public class Request implements Runnable {
 
     @Override
     public void run() {
-        if (requestMethod.equals("PATCH")) {
-            apache();
+        try {
+            if (requestMethod.equals("PATCH")) {
+                apache();
+            }
+            else {
+                regular();
+            }
         }
-        else {
-            regular();
+        catch (RuntimeException ex) {
+            // Both regular() and apache() only catch IOException-family
+            // exceptions; a RuntimeException (e.g. IllegalArgumentException
+            // from URI.create() on a malformed url) would otherwise escape
+            // without ever calling listener.requestResult(), which is what
+            // QueuedApi relies on to release its semaphore permit and clear
+            // the pending-request entry for this request. Without this,
+            // enough such failures wedge the whole queue.
+            LOGGER.warning("Unexpected error performing request ["+url+"]: "+ex);
+            if (listener != null) {
+                listener.requestResult(null, -1, null, -1);
+            }
         }
     }
     

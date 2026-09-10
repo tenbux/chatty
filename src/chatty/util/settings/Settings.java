@@ -614,6 +614,9 @@ public class Settings {
             return "Setting '"+setting+"' is "+getLong(setting)+".";
         }
         if (isStringSetting(setting)) {
+            if (SENSITIVE_SETTINGS.contains(setting)) {
+                return "Setting '"+setting+"' is set (value hidden).";
+            }
             return "Setting '"+setting+"' is '"+getString(setting)+"'.";
         }
         if (isMapSetting(setting)) {
@@ -812,6 +815,13 @@ public class Settings {
         return setTextual(setting+key+" "+nextValue, verbose);
     }
     
+    /**
+     * Settings whose value must never be echoed back in a message (e.g. a
+     * log line or a printed chat system message), since they hold
+     * credentials.
+     */
+    private static final Set<String> SENSITIVE_SETTINGS = Set.of("token", "password");
+
     public String setTextual(String text, boolean verbose) {
         if (text == null || text.isEmpty()) {
             return "Usage: /set <setting> <value>";
@@ -834,6 +844,9 @@ public class Settings {
         }
         else if (isStringSetting(setting)) {
             setString(setting,parameter);
+            if (SENSITIVE_SETTINGS.contains(setting)) {
+                return "Setting '"+setting+"' set.";
+            }
             return "Setting '"+setting+"' set to '"+parameter+"'.";
         }
         else if (isLongSetting(setting)) {

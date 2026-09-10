@@ -918,7 +918,7 @@ public class Requests {
             LOGGER.info("GOT (" + responseCode + ", " + length + encodingText
                     + "): " + filterToken(url, token)
                     + (token != null ? " (using authorization)" : "")
-                    + (error != null ? " [" + error + "]" : ""));
+                    + (error != null ? " [" + filterToken(error, token) + "]" : ""));
 
             removeRequest(url);
 
