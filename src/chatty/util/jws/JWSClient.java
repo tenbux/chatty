@@ -159,7 +159,7 @@ public class JWSClient implements MessageHandler {
         this.debugPrefix = prefix;
     }
     
-    private void startConsumer() {
+    void startConsumer() {
         readerThread = new Thread(() -> {
             while (true) {
                 try {

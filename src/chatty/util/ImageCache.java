@@ -432,7 +432,7 @@ public class ImageCache {
         return GLOBAL_PREFIX+prefix+"__"+id;
     }
     
-    private static boolean saveFile(URL url, Path file) {
+    static boolean saveFile(URL url, Path file) {
         // Write to a temp file first, then atomically move it over the
         // real cache file. Copying directly into the destination truncates
         // it up front, so a failed/interrupted download used to destroy a

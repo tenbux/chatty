@@ -32,7 +32,7 @@ public class Version {
     private final VersionListener listener;
     private final Settings settings;
     
-    private Version(VersionListener listener, Settings settings) {
+    Version(VersionListener listener, Settings settings) {
         this.listener = listener;
         this.settings = settings;
         //versionReceived("0.3.1 Auto updater, Bugfixes");
@@ -86,7 +86,7 @@ public class Version {
      * 
      * @param versionChecked The version String as received from the server
      */
-    private void versionReceived(Releases releases) {
+    void versionReceived(Releases releases) {
         if (releases == null) {
             return;
         }
