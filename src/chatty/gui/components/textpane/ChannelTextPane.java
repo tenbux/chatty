@@ -2491,23 +2491,25 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         }
         int firstElementIndex = insertTop ? doc.getDefaultRootElement().getElementCount() - amount : 0;
         int lastElementIndex = insertTop ? doc.getDefaultRootElement().getElementCount() - 1 : amount - 1;
-        Element firstToRemove = doc.getDefaultRootElement().getElement(firstElementIndex);
-        Element lastToRemove = doc.getDefaultRootElement().getElement(lastElementIndex);
+        List<Element> elementsToRemove = new ArrayList<>();
         for (int i=firstElementIndex; i<=lastElementIndex; i++) {
-            clearImages(doc.getDefaultRootElement().getElement(i));
+            Element element = doc.getDefaultRootElement().getElement(i);
+            clearImages(element);
+            elementsToRemove.add(element);
         }
-        int startOffset = firstToRemove.getStartOffset() - 1;
-        if (startOffset < 0) {
-            startOffset = 0;
-        }
-        int endOffset = lastToRemove.getEndOffset();
-        if (endOffset > doc.getLength()) {
-            endOffset = doc.getLength();
-        }
-        try {
-            doc.remove(startOffset,endOffset - startOffset);
-        } catch (BadLocationException ex) {
-//            Logger.getLogger(ChannelTextPane.class.getName()).log(Level.SEVERE, ex.toString(), ex);
+        // Remove one paragraph element at a time via doc.removeElement(),
+        // rather than a single doc.remove() spanning the whole range:
+        // removing across a paragraph boundary with doc.remove() makes the
+        // oldest surviving line inherit the removed line's paragraph
+        // attributes (line id, highlight state, deleted flag, timestamp,
+        // custom background), which is the same issue already worked
+        // around in removeOldLines() below.
+        for (Element element : elementsToRemove) {
+            if (doc.getDefaultRootElement().getElementCount() <= 1) {
+                // Can't remove the last remaining element
+                break;
+            }
+            doc.removeElement(element);
         }
    }
     
@@ -4019,7 +4021,12 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             
             SimpleAttributeSet clearSearchResult = new SimpleAttributeSet();
             StyleConstants.setBackground(clearSearchResult, new Color(0,0,0,0));
-            StyleConstants.setItalic(clearSearchResult, false);
+            // Deliberately not touching italic here (unlike searchResult(),
+            // which explicitly preserves/restores it per-match): this style
+            // is applied to the entire document at once to clear search
+            // highlighting, and forcing italic off document-wide stripped
+            // italics from every legitimately-italic element (e.g.
+            // timestamps) until the next full style refresh.
             styles.put("clearSearchResult", clearSearchResult);
             
             setBackground(transparency(styleServer.getColor("background")));

@@ -94,6 +94,10 @@ public class Version {
         if (releases.getLatestBeta() != null && settings.getBoolean("checkNewBeta")) {
             release = releases.getLatestBeta();
         }
+        if (release == null) {
+            LOGGER.warning("[UpdateCheck] No release found");
+            return;
+        }
         boolean isNewVersion = compareVersions(VERSION, release.getVersion()) == 1;
         if (isNewVersion) {
             settings.setString("updateAvailable", release.getVersion());

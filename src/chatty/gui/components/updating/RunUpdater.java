@@ -9,9 +9,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -59,7 +59,7 @@ public class RunUpdater {
             restartArgs.add(jarPath.toString());
         }
         if (chattyArgs != null) {
-            restartArgs.addAll(Arrays.asList(chattyArgs));
+            restartArgs.addAll(stripCredentialArgs(chattyArgs));
         }
         // Common arguments
         command.add(makeParam("runChattyWdir", removeBackslashSuffix(Chatty.getPath(Chatty.PathType.WORKING).toString())));
@@ -74,6 +74,47 @@ public class RunUpdater {
         ProcessBuilder pb = new ProcessBuilder(command);
         LOGGER.info("Starting: "+Debugging.filterToken(command.toString()));
         pb.start();
+    }
+
+    private static final Set<String> CREDENTIAL_ARG_KEYS = Set.of("-token", "-password", "-set:token", "-set:password");
+
+    /**
+     * Remove -token/-password (and -set:token/-set:password) and the value
+     * that follows them from the given CLI args, so they don't end up
+     * embedded in the installer's command line, which is visible to any
+     * other local process (e.g. via the process list / Task Manager) for
+     * as long as the installer runs.
+     *
+     * MiscUtil.parseArgs (which produces these args) treats every token
+     * starting with "-" as a new key and appends every following non-"-"
+     * token to that key's value, so a single value can span multiple
+     * array entries (e.g. an unquoted multi-word password). Skipping
+     * exactly one token after a matched key would only strip part of
+     * such a value and leave the rest exposed, and would also wrongly
+     * eat the next flag if the credential key had no value at all - so
+     * this skips every following token up to (not including) the next
+     * "-" prefixed one, matching parseArgs' own key/value boundary rule.
+     *
+     * @param args
+     * @return
+     */
+    static List<String> stripCredentialArgs(String[] args) {
+        List<String> result = new ArrayList<>();
+        boolean inCredentialValue = false;
+        for (String arg : args) {
+            if (inCredentialValue) {
+                if (!arg.startsWith("-")) {
+                    continue;
+                }
+                inCredentialValue = false;
+            }
+            if (CREDENTIAL_ARG_KEYS.contains(arg)) {
+                inCredentialValue = true;
+                continue;
+            }
+            result.add(arg);
+        }
+        return result;
     }
 
     /**

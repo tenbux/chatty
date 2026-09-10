@@ -87,12 +87,16 @@ public class AutoCompletionWindow {
 
             @Override
             public void componentShown(ComponentEvent e) {
-                infoWindow.setVisible(false);
+                if (infoWindow != null) {
+                    infoWindow.setVisible(false);
+                }
             }
 
             @Override
             public void componentHidden(ComponentEvent e) {
-                infoWindow.setVisible(false);
+                if (infoWindow != null) {
+                    infoWindow.setVisible(false);
+                }
             }
         };
     }
@@ -247,6 +251,7 @@ public class AutoCompletionWindow {
         if (containingWindow != null) {
             containingWindow.removeComponentListener(componentListener);
         }
+        textField.removeComponentListener(componentListener);
         textField.removeFocusListener(focusListener);
         if (infoWindow != null) {
             infoWindow.dispose();
