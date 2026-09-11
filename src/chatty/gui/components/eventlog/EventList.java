@@ -57,7 +57,7 @@ public class EventList extends JList<Event> {
     public int getNewEvents() {
         int count = 0;
         for (Event event : data.items) {
-            if (event.id != null && main.isReadEvent(event.id)) {
+            if (event.id != null && main.isNewEvent(event.id)) {
                 count++;
             }
         }
@@ -201,7 +201,7 @@ public class EventList extends JList<Event> {
             }
             Event event = (Event)value;
             
-            if (event.id != null && main.isReadEvent(event.id)) {
+            if (event.id != null && main.isNewEvent(event.id)) {
                 title.setText(String.format("(%s) %s",
                         Language.getString("eventLog.new"),
                         event.title));

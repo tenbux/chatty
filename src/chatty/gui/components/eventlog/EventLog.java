@@ -102,7 +102,11 @@ public class EventLog extends JDialog {
 //        tabs.setSelectedIndex(tab);
     }
     
-    protected boolean isReadEvent(String id) {
+    /**
+     * Whether the event with the given id has not been marked read yet
+     * (neither persisted in settings nor read this session).
+     */
+    protected boolean isNewEvent(String id) {
         return id == null || (!g.getSettings().listContains("readEvents", id)
                 && !sessionReadEvents.contains(id));
     }
