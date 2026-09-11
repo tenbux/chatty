@@ -179,7 +179,7 @@ public class StreamInfoManager {
         // request was requested not too long ago. This ofc is also to actually
         // return the StreamInfo object.
         StreamInfo cached = getStreamInfo(stream);
-        if (cached.hasExpired() && cached.isRequested()) {
+        if (cached.hasExpired() && cached.isRequestPending()) {
             cached.setRequested();
             api.requests.requestStreamInfo(stream);
         }
@@ -263,7 +263,7 @@ public class StreamInfoManager {
             StreamInfo cached = getStreamInfo(stream);
             // Don't check for expired, so all open chans are
             // requested, meaning hopefully less requests
-            if (cached.isRequested() && (!special || cached.recheckOffline())) {
+            if (cached.isRequestPending() && (!special || cached.recheckOffline())) {
                 streamsForRequest.add(stream);
                 streamInfosForRequest.add(cached);
                 cached.setRequested();
