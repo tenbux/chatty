@@ -79,7 +79,11 @@ public class StyleManager implements StyleServer {
     private ColorCorrector colorCorrector;
     
     private final Settings settings;
-    private final Component dummyComponent = new JDialog();
+    // Only used for getFontMetrics(), so a plain JComponent works just as
+    // well as a JDialog and, unlike a JDialog, isn't a top-level Window that
+    // would need disposing and would otherwise be walked forever by every
+    // active-window check and LaF change.
+    private final Component dummyComponent = new JLabel();
     
     public StyleManager(Settings settings) {
         this.settings = settings;

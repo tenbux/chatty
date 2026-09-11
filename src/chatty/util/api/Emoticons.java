@@ -613,11 +613,16 @@ public class Emoticons {
      * @param emotesets
      */
     public void updateLocalEmotes(Set<String> emotesets) {
+        // Both blocks below used to individually gate on this same
+        // comparison, but the first block reassigned localEmotesets before
+        // the second block's check ran, making that check always false (the
+        // channel-specific refresh never ran). Compute it once up front.
+        boolean changed = !this.localEmotesets.equals(emotesets);
         /**
          * Global emotes use the "localEmotesets", which should more likely be
          * up-to-date in regards to non-channel-specific emotesets.
          */
-        if (!this.localEmotesets.equals(emotesets)) {
+        if (changed) {
             this.localEmotesets = emotesets;
             //--------------------------
             // By set
@@ -644,8 +649,7 @@ public class Emoticons {
          * channel-specific emotesets. Follower emotes are now handled
          * differently though, to allow them to be global in some cases.
          */
-        if (!localEmotesets.equals(emotesets)) {
-            localEmotesets = emotesets;
+        if (changed) {
             //--------------------------
             // By stream
             //--------------------------

@@ -471,12 +471,20 @@ public class Usericon implements Comparable {
         return images.getIcon(scale, maxHeight, customKey, CachedImage.ImageType.STATIC, imageModifier, user);
     }
     
-    private static Dimension toHeight(Dimension d, int targetHeight) {
+    // Package-private (rather than private) for direct unit testing
+    static Dimension toHeight(Dimension d, int targetHeight) {
         int width = d.width;
         int height = d.height;
-        width = width / (height / targetHeight);
-        height = targetHeight;
-        return new Dimension(width, height);
+        if (height <= 0) {
+            return new Dimension(width, targetHeight);
+        }
+        // Computed as a double ratio instead of the previous
+        // "width / (height / targetHeight)", which used integer division
+        // for the inner ratio and threw ArithmeticException (divide by
+        // zero) whenever height was smaller than targetHeight (as for a
+        // small custom badge image).
+        int newWidth = (int) Math.round(width * ((double) targetHeight / height));
+        return new Dimension(newWidth, targetHeight);
     }
     
     /**

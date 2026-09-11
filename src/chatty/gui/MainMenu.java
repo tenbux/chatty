@@ -15,10 +15,12 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -50,6 +52,15 @@ public class MainMenu extends JMenuBar {
      * Stores all the menu items associated with a key
      */
     private final HashMap<String,JMenuItem> menuItems = new HashMap<>();
+
+    /**
+     * Keys added to menuItems by the last updateSrlStreams/updateLayouts/
+     * updateCustomTabs call, so they can be pruned from menuItems before the
+     * next rebuild instead of accumulating there forever.
+     */
+    private final Set<String> srlStreamsKeys = new HashSet<>();
+    private final Set<String> layoutsKeys = new HashSet<>();
+    private final Set<String> customTabsKeys = new HashSet<>();
     
     public MainMenu(ActionListener actionListener, ItemListener itemListener) {
         this.itemListener = itemListener;
@@ -371,16 +382,21 @@ public class MainMenu extends JMenuBar {
      * @param popout Current streams in popout dialogs
      */
     public void updateSrlStreams(String active, List<String> popout) {
+        srlStreamsKeys.forEach(menuItems::remove);
+        srlStreamsKeys.clear();
         srlStreams.removeAll();
         if (active == null || active.isEmpty()) {
             addItem(srlStreams, "", "No channel joined");
         } else {
             addItem(srlStreams, "srlRaceActive", active);
+            srlStreamsKeys.add("srlRaceActive");
         }
         if (!popout.isEmpty()) {
             srlStreams.addSeparator();
             for (String chan : popout) {
-                addItem(srlStreams, "srlRace4"+chan, chan);
+                String key = "srlRace4"+chan;
+                addItem(srlStreams, key, chan);
+                srlStreamsKeys.add(key);
             }
         }
     }
@@ -388,23 +404,33 @@ public class MainMenu extends JMenuBar {
     public void updateLayouts(Map<String, DockLayout> layouts) {
         // Remove last session layout
         layouts.remove("");
-        
+
+        layoutsKeys.forEach(menuItems::remove);
+        layoutsKeys.clear();
         layoutsMenu.removeAll();
         if (!layouts.isEmpty()) {
             for (Map.Entry<String, DockLayout> entry : layouts.entrySet()) {
                 JMenu submenu = new JMenu(entry.getKey());
-                addItem(submenu, "layouts.load."+entry.getKey(), "Load").setToolTipText("Load this layout (you'll still have the chance to cancel loading)");
+                String loadKey = "layouts.load."+entry.getKey();
+                String removeKey = "layouts.remove."+entry.getKey();
+                String saveKey = "layouts.save."+entry.getKey();
+                addItem(submenu, loadKey, "Load").setToolTipText("Load this layout (you'll still have the chance to cancel loading)");
                 submenu.addSeparator();
-                addItem(submenu, "layouts.remove."+entry.getKey(), "Remove");
-                addItem(submenu, "layouts.save."+entry.getKey(), "Overwrite").setToolTipText("");
+                addItem(submenu, removeKey, "Remove");
+                addItem(submenu, saveKey, "Overwrite").setToolTipText("");
+                layoutsKeys.add(loadKey);
+                layoutsKeys.add(removeKey);
+                layoutsKeys.add(saveKey);
                 layoutsMenu.add(submenu);
             }
             layoutsMenu.addSeparator();
         }
         addItem(layoutsMenu, "layouts.add", "Add");
     }
-    
+
     public void updateCustomTabs(List<RoutingTargetInfo> infos) {
+        customTabsKeys.forEach(menuItems::remove);
+        customTabsKeys.clear();
         customTabsMenu.removeAll();
         if (infos.isEmpty()) {
             addItem(customTabsMenu, "", "No custom tabs").setEnabled(false);
@@ -416,7 +442,9 @@ public class MainMenu extends JMenuBar {
                     label = String.format("%s (%d)",
                             info.name(), info.messages());
                 }
-                addItem(customTabsMenu, "customTab." + info.name(), label);
+                String key = "customTab." + info.name();
+                addItem(customTabsMenu, key, label);
+                customTabsKeys.add(key);
             }
         }
     }
@@ -426,10 +454,15 @@ public class MainMenu extends JMenuBar {
     //==========================
     
     public void setUpdateNotification(boolean enabled) {
-        notifyIcons.addItem("update", 1, "Update", "download.png", unused -> {
-            String id = "dialog.updates";
-            menuItems.get(id).getAction().actionPerformed(new ActionEvent(this, ActionEvent.ACTION_FIRST, id));
-        });
+        if (enabled) {
+            notifyIcons.addItem("update", 1, "Update", "download.png", unused -> {
+                String id = "dialog.updates";
+                menuItems.get(id).getAction().actionPerformed(new ActionEvent(this, ActionEvent.ACTION_FIRST, id));
+            });
+        }
+        else {
+            notifyIcons.removeItem("update");
+        }
     }
     
     public void setSystemEventCount(int count) {

@@ -115,18 +115,23 @@ public class UrlOpener {
     }
     
     private static boolean openUrlNative(String url) {
+        // Proc.split() re-tokenizes this whole String on whitespace (quoted
+        // sections aside), so the URL must be quoted here or a URL
+        // containing a space would be split across several arguments to the
+        // external command instead of passed as one.
+        String quotedUrl = "\""+url.replace("\"", "\\\"")+"\"";
         String command = null;
         if (customCommandEnabled && customCommand != null && !customCommand.isEmpty()) {
-            command = customCommand+" "+url;
+            command = customCommand+" "+quotedUrl;
         }
         else if (MiscUtil.OS_WINDOWS) {
-            command = "explorer "+url;
+            command = "explorer "+quotedUrl;
         }
         else if (MiscUtil.OS_LINUX) {
-            command = "xdg-open "+url;
+            command = "xdg-open "+quotedUrl;
         }
         else if (MiscUtil.OS_MAC) {
-            command = "open "+url;
+            command = "open "+quotedUrl;
         }
         if (command != null) {
             ProcessManager.execute(command, "URL", null);
@@ -247,6 +252,9 @@ public class UrlOpener {
      * @return The url with added spaces if it exceeded max length
      */
     private static String splitUrl(String url) {
+        if (url == null) {
+            return "";
+        }
         if (url.length() > MAX_URL_LENGTH) {
             return url.substring(0, MAX_URL_LENGTH)+" "+splitUrl(url.substring(MAX_URL_LENGTH));
         }

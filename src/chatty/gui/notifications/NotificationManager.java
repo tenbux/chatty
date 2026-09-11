@@ -316,7 +316,7 @@ public class NotificationManager {
      * @param matchedItem The item that e.g. caused the highlight (may be {@code null})
      * @param c 
      */
-    private void check(Type type, String channel, User user, User localUser,
+    private synchronized void check(Type type, String channel, User user, User localUser,
             String message, MsgTags tags, HighlightItem matchedItem,
             NotificationChecker c) {
         boolean shown = false;

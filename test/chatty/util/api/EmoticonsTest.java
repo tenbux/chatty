@@ -47,5 +47,29 @@ public class EmoticonsTest {
         Set<String> resultSet = new HashSet<>(Arrays.asList(result));
         Assert.assertEquals(Emoticons.parseEmotesets(input), resultSet);
     }
-    
+
+    /**
+     * Regression test: updateLocalEmotes() has two blocks (global emotes,
+     * then channel-specific/stream emotes) that used to each individually
+     * check "!localEmotesets.equals(emotesets)", but the first block
+     * reassigned the field before the second block's check ran, making that
+     * check always false - so the channel-specific refresh never ran, not
+     * even on the very first call.
+     */
+    @Test
+    public void testUpdateLocalEmotes_refreshesChannelSpecificEmotes() {
+        Emoticons emoticons = new Emoticons();
+        Emoticon channelEmote = new Emoticon.Builder(Emoticon.Type.TWITCH, "test")
+                .setEmoteset("123")
+                .addStreamRestriction("somechannel")
+                .build();
+        emoticons.addEmoticons(new HashSet<>(java.util.List.of(channelEmote)));
+
+        emoticons.updateLocalEmotes(new HashSet<>(java.util.List.of("123")));
+
+        Assert.assertTrue("channel-specific emote must become usable once its "
+                        + "emoteset is in the local emotesets",
+                emoticons.getUsableEmotesByStream("somechannel").contains(channelEmote));
+    }
+
 }

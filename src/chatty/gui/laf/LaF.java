@@ -144,6 +144,7 @@ public class LaF {
     public static String setLookAndFeel(LaFSettings settings) {
         LaFUtil.resetDefaults();
         inputBorder = null;
+        defaultButtonInsets = false;
         LaF.settings = settings;
         String lafCode = settings.lafCode;
         String theme = settings.theme;
