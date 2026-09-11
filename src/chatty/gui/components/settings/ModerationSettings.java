@@ -14,7 +14,6 @@ import javax.swing.event.DocumentListener;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.DocumentFilter;
 import java.awt.*;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -304,10 +303,8 @@ public class ModerationSettings extends SettingsPanel {
         
     }
     
-    private static class HighlightOptions extends JPanel implements LongSetting {
-        
-        private final Map<Integer, JCheckBox> options = new HashMap<>();
-        
+    private static class HighlightOptions extends BitFlagCheckboxSetting {
+
         HighlightOptions(String settingName, SettingsDialog settings) {
             settings.addLongSetting(settingName, this);
             setLayout(new GridBagLayout());
@@ -322,37 +319,11 @@ public class ModerationSettings extends SettingsPanel {
             add(makeOption(PastMessages.LOW_TRUST, "lowTrust"),
                     SettingsDialog.makeNoGapGbc(0, 3, 2, 1, GridBagConstraints.WEST));
         }
-        
+
         private JCheckBox makeOption(int option, String labelKey) {
             String text = Language.getString("settings.userMessagesHighlight."+labelKey);
             String tip = Language.getString("settings.userMessagesHighlight."+labelKey + ".tip", false);
-            JCheckBox check = new JCheckBox(text);
-            check.setToolTipText(SettingsUtil.addTooltipLinebreaks(tip));
-            options.put(option, check);
-            return check;
-        }
-
-        @Override
-        public Long getSettingValue() {
-            long result = 0;
-            for (Map.Entry<Integer, JCheckBox> entry : options.entrySet()) {
-                if (entry.getValue().isSelected()) {
-                    result = result | entry.getKey();
-                }
-            }
-            return result;
-        }
-
-        @Override
-        public Long getSettingValue(Long def) {
-            return getSettingValue();
-        }
-
-        @Override
-        public void setSettingValue(Long setting) {
-            for (Map.Entry<Integer, JCheckBox> entry : options.entrySet()) {
-                entry.getValue().setSelected((setting & entry.getKey()) != 0);
-            }
+            return addOption(option, text, tip);
         }
 
     }

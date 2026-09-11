@@ -202,9 +202,8 @@ public class TabSettings extends SettingsPanel {
                 SettingsDialog.makeGbc(0, 3, 2, 1, GridBagConstraints.WEST));
     }
     
-    private static class TabInfoOptions extends JPanel implements LongSetting {
-        
-        private final Map<Integer, JCheckBox> options = new HashMap<>();
+    private static class TabInfoOptions extends BitFlagCheckboxSetting {
+
         private final ColorSetting customColor;
         
         TabInfoOptions(String settingName, SettingsDialog settings) {
@@ -238,19 +237,20 @@ public class TabSettings extends SettingsPanel {
         private JCheckBox makeOption(int option, String labelKey) {
             String text = Language.getString("settings.tabs."+labelKey);
             String tip = Language.getString("settings.tabs."+labelKey + ".tip", false);
-            JCheckBox check = new JCheckBox(text);
-            check.setToolTipText(SettingsUtil.addTooltipLinebreaks(tip));
-            check.addItemListener(e -> update());
-            options.put(option, check);
-            return check;
+            return addOption(option, text, tip);
         }
-        
+
+        @Override
+        protected void onOptionChanged() {
+            update();
+        }
+
         private final Set<Integer> COLOR_OPTIONS = new HashSet<>(Arrays.asList(Channels.DockChannelContainer.COLOR1,
                 Channels.DockChannelContainer.COLOR2,
                 Channels.DockChannelContainer.DOT1,
                 Channels.DockChannelContainer.DOT2,
                 Channels.DockChannelContainer.LINE));
-        
+
         private void update() {
             boolean colorSettingSelected = false;
             String colorLabel = null;
@@ -276,12 +276,7 @@ public class TabSettings extends SettingsPanel {
 
         @Override
         public Long getSettingValue() {
-            long result = 0;
-            for (Map.Entry<Integer, JCheckBox> entry : options.entrySet()) {
-                if (entry.getValue().isSelected()) {
-                    result = result | entry.getKey();
-                }
-            }
+            long result = super.getSettingValue();
             result = Channels.DockChannelContainer.encodeColor(
                     customColor.getSettingValueAsColor(),
                     result,
@@ -290,15 +285,8 @@ public class TabSettings extends SettingsPanel {
         }
 
         @Override
-        public Long getSettingValue(Long def) {
-            return getSettingValue();
-        }
-
-        @Override
         public void setSettingValue(Long setting) {
-            for (Map.Entry<Integer, JCheckBox> entry : options.entrySet()) {
-                entry.getValue().setSelected((setting & entry.getKey()) != 0);
-            }
+            super.setSettingValue(setting);
             Color color = Channels.DockChannelContainer.decodeColor(
                     setting,
                     Channels.DockChannelContainer.CUSTOM_COLOR_START_BIT);

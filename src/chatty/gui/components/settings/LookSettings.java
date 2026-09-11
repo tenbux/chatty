@@ -9,7 +9,6 @@ import chatty.lang.Language;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -250,10 +249,8 @@ public class LookSettings extends SettingsPanel {
         label.setText(text);
     }
     
-    private static class FlatTabOptions extends JPanel implements LongSetting {
-        
-        private final Map<Integer, JCheckBox> options = new HashMap<>();
-        
+    private static class FlatTabOptions extends BitFlagCheckboxSetting {
+
         FlatTabOptions(String settingName, SettingsDialog settings) {
             settings.addLongSetting(settingName, this);
             setLayout(new GridBagLayout());
@@ -268,33 +265,7 @@ public class LookSettings extends SettingsPanel {
         private JCheckBox makeOption(int option, String labelKey) {
             String text = Language.getString("settings.tabs.flat."+labelKey);
             String tip = Language.getString("settings.tabs.flat."+labelKey + ".tip", false);
-            JCheckBox check = new JCheckBox(text);
-            check.setToolTipText(SettingsUtil.addTooltipLinebreaks(tip));
-            options.put(option, check);
-            return check;
-        }
-
-        @Override
-        public Long getSettingValue() {
-            long result = 0;
-            for (Map.Entry<Integer, JCheckBox> entry : options.entrySet()) {
-                if (entry.getValue().isSelected()) {
-                    result = result | entry.getKey();
-                }
-            }
-            return result;
-        }
-
-        @Override
-        public Long getSettingValue(Long def) {
-            return getSettingValue();
-        }
-
-        @Override
-        public void setSettingValue(Long setting) {
-            for (Map.Entry<Integer, JCheckBox> entry : options.entrySet()) {
-                entry.getValue().setSelected((setting & entry.getKey()) != 0);
-            }
+            return addOption(option, text, tip);
         }
 
     }
