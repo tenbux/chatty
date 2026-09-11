@@ -144,18 +144,5 @@ public class ColorCorrectionNew {
         return toLightness(toModify, lightness);
     }
     
-    public static void main(String[] args) {
-//        Color c = Color.BLACK;
-//        System.out.println(makeBrighter(Color.BLACK, 0.2f));
-//        System.out.println(makeDarker(Color.WHITE, 0.2f));
-        
-//        Color result = toLightness(Color.BLACK, 6);
-//        System.out.println(result);
-//        System.out.println(getLightness(result));
-//        System.out.println("---");
-//        Color c = new Color(140, 140, 140);
-//        System.out.println(getLightness(c)+" "+getLightness(makeDarker(c, 0.5f)));
-//        System.out.println(getLightness(c)+" "+getLightness(makeBrighter(c, 0.24f)));
-    }
-    
+
 }

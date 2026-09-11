@@ -403,34 +403,5 @@ public class ModerationPanel extends JPanel {
         return PIN_DIALOG_CANCEL;
     }
     
-    /**
-     * For testing.
-     */
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            Settings settings = new Settings("", null);
-            settings.addString("slowmodeDurations", "1\n2\n3");
-            settings.addString("followeronlyDurations", "1\n2\n3");
-            settings.addString("pinnedMsgDurations", "5m\n10m\n15m\n20m\n30m");
-            
-            JFrame frame = new JFrame();
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            ModerationPanel panel = new ModerationPanel(frame, settings);
-            panel.addCommandListener(System.out::println);
-            frame.add(panel);
-            frame.pack();
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
-            
-            Timer timer = new Timer(1000, e -> {
-                ChannelState state = new ChannelState("test");
-                state.setSubMode(true);
-                state.setSlowMode(10);
-                panel.updateState(state);
-            });
-            timer.setRepeats(false);
-            timer.start();
-        });
-    }
-    
+
 }

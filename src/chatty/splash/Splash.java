@@ -160,11 +160,5 @@ public class Splash {
         Rectangle r = new Rectangle(coords.a(), coords.b(), size.a(), size.b());
         return new Point((int)r.getCenterX() - SPLASH_WIDTH/2, (int)r.getCenterY() - SPLASH_HEIGHT/2);
     }
-    
-    public static void main(String[] args) throws InterruptedException {
-        initSplashScreen(null);
-        Thread.sleep(10*1000);
-        closeSplashScreen();
-    }
-    
+
 }

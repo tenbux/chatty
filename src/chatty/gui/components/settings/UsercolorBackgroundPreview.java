@@ -82,18 +82,5 @@ public class UsercolorBackgroundPreview extends JDialog {
         label.setOpaque(true);
         return label;
     }
-    
-    //=========
-    // Testing
-    //=========
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new UsercolorBackgroundPreview(null).addComponentListener(new ComponentAdapter() {
 
-            @Override
-            public void componentHidden(ComponentEvent e) {
-                System.exit(0);
-            }
-        }));
-    }
-    
 }

@@ -280,10 +280,5 @@ public class Debugging {
                 StringUtil.join(thread.getStackTrace());
         return b;
     }
-    
-    // For testing
-    public static void main(String[] args) {
-        System.out.println(filterToken("-d \"G:\\chatty settings\" -set:token abc -token abc -password -password abc -connect"));
-    }
-    
+
 }

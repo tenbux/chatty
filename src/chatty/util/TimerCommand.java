@@ -467,28 +467,5 @@ public class TimerCommand {
             return -1;
         }
     }
-    
-    //==========================
-    // Testing
-    //==========================
-    public static void main(String[] args) {
-        String input = "2022-08-01 21:17:10";
-        String[] split = input.split(" ", 2);
-        LocalDate date = null;
-        String timeText = split[0];
-        if (split.length == 2) {
-            date = LocalDate.parse(split[0], DateTimeFormatter.ISO_DATE);
-            timeText = split[1];
-        }
-        
-        LocalTime time = LocalTime.parse(timeText, DateTimeFormatter.ISO_LOCAL_TIME);
-        LocalDateTime datetime = time.atDate(date != null ? date : LocalDate.now());
-        if (datetime.isBefore(LocalDateTime.now())) {
-            datetime = datetime.plusDays(1);
-        }
-        System.out.println(datetime);
-        System.out.println(datetime.toInstant(ZoneOffset.systemDefault().getRules().getOffset(datetime)));
-        System.out.println(LocalDateTime.now().plusDays(1).truncatedTo(ChronoUnit.DAYS));
-    }
-    
+
 }

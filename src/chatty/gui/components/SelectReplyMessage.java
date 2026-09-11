@@ -171,16 +171,5 @@ public class SelectReplyMessage {
 
     }
     
-    public static void main(String[] args) {
-        User user = new User("sbc", Room.EMPTY);
-        user.addMessage("abc", true, "1");
-        user.addMessage("abc2", true, "2");
-        user.addMessage("abc2", true, null);
-        for (int i=0;i<30;i++) {
-            user.addMessage("blah"+i, false, i+"msg-id");
-        }
-        System.out.println(SelectReplyMessage.show(user));
-        System.exit(0);
-    }
-    
+
 }

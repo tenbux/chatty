@@ -356,9 +356,5 @@ public class ModerationSettings extends SettingsPanel {
         }
 
     }
-        
-    public static void main(String[] args) {
-        new TestSimilarity(null, "?").setVisible(true);
-    }
-    
+
 }

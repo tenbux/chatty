@@ -124,10 +124,5 @@ public class CheersUtil {
         }
         return b.toString();
     }
-    
-    // For testing
-    public static void main(String[] args) {
-        System.out.println(getLuma(Color.DARK_GRAY));
-    }
-    
+
 }

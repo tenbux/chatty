@@ -150,33 +150,5 @@ public class Overlay {
         WritableRaster raster = WritableRaster.createWritableRaster(sampleModel, db, null);
         return new BufferedImage(colorModel, raster, false, new Hashtable<>());
     }
-    
-    // For testing
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> WebPUtil.runIfWebPAvailable(() -> {
-            try {
-                JFrame dialog = new JFrame();
-                dialog.setSize(100, 100);
-                dialog.setLocationRelativeTo(null);
-                dialog.setVisible(true);
-                LinkedHashMap<ImageIcon, Integer> map = new LinkedHashMap<>();
 
-                ImageResult r1 = GifUtil.getGifFromUrl(new ImageRequest(URI.create("<url>").toURL()));
-                if (r1 != null) { map.put(r1.icon(), 0); }
-                ImageResult r2 = GifUtil.getGifFromUrl(new ImageRequest(URI.create("<url>").toURL()));
-                if (r2 != null) { map.put(r2.icon(), 0); }
-
-                Debugging.command("overlayframe");
-                dialog.add(new JLabel("text", overlayNew(map), 0), BorderLayout.CENTER);
-                dialog.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-//                    AnimatedImage.setAnimationPause(0);
-                Timer timer = new Timer(100, e -> dialog.revalidate());
-                timer.start();
-            } catch (Exception ex) {
-                Logger.getLogger(GuiUtil.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }));
-        
-    }
-    
 }

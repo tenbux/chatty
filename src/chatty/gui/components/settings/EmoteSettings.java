@@ -522,16 +522,6 @@ public class EmoteSettings extends SettingsPanel {
         
     }
     
-    public static void main(String[] args) {
-        List<IgnoredEmotes.Item> matches = new ArrayList<>();
-        matches.add(IgnoredEmotes.Item.parse("Kappa for:c"));
-        matches.add(IgnoredEmotes.Item.parse("Kappa for:t"));
-        Emoticon.Builder b = new Emoticon.Builder(Emoticon.Type.TWITCH, "Kappa");
-//        b.setStringId("123abc");
-        System.out.println(new EditIgnoredEmote(null).showDialog(null, b.build(), matches));
-        System.exit(0);
-    }
-    
     private static class LocalEmotesDialog extends LazyDialog {
         
 

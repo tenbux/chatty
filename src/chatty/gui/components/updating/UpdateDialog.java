@@ -363,26 +363,6 @@ public class UpdateDialog extends JDialog {
         void installing();
     }
     
-    public static void main(String[] args) {
-        Debugging.command("+update");
-        Stuff.init(Paths.get("H:\\chatty_install\\Param Test.jar"));
-        
-        Settings settings = new Settings("", null);
-        settings.addBoolean("checkNewBeta", true);
-        settings.addBoolean("updateJar", false);
-        settings.addLong("versionLastChecked", 0L);
-        
-        LinkLabelListener linkLabelListener = (type, ref) -> System.out.println("Link clicked: " + type + ":" + ref);
-        
-        Releases data = testReleases();
-        //data = GitHub.getReleases();
-        
-        UpdateDialog d = new UpdateDialog(null, linkLabelListener, settings, () -> System.exit(0));
-        d.setLocationRelativeTo(null);
-        d.showDialog(data);
-        System.exit(0);
-    }
-    
     private static Releases testReleases() {
         List<Release> releases = new ArrayList<>();
         releases.add(testRelease("0.9.1-beta2", true, DateTime.parseDatetime("2018-04-04T00:31:11Z")));

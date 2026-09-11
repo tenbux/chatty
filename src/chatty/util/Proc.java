@@ -165,11 +165,4 @@ public class Proc extends Thread {
         return result.toArray(new String[0]);
     }
     
-    public static void main(String[] args) {
-        String message = "Is there even anything over \"here\"?".replace("\"", "\\\"");
-        String test = "notify-send \\\"Title\\\" \""+message+"\"";
-        String[] split = split(test);
-        System.out.println(test);
-        System.out.println(Arrays.asList(split));
-    }
 }

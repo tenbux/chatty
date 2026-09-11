@@ -433,16 +433,5 @@ public class HighlightSettings extends SettingsPanel {
         }
         
     }
-    
-    
-    //==========================
-    // Test
-    //==========================
-    
-    public static void main(String[] args) {
-        SubstitutesEditor editor = new SubstitutesEditor(new JDialog());
-        editor.showDialog("abc", "o # o о ο օ", null);
-        System.exit(0);
-    }
-    
+
 }

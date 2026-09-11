@@ -181,49 +181,5 @@ public class LineNumbers extends JPanel {
             setSize(d);
         }
     }
-    
-    /**
-     * For testing
-     * 
-     * @param args 
-     */
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame();
-            frame.setLocationRelativeTo(null);
-            
-            JTextArea text = new JTextArea();
-            frame.setLayout(new GridBagLayout());
-            text.setLineWrap(true);
-            text.setWrapStyleWord(true);
-            text.setMargin(new Insets(2, 2, 2, 2));
-            text.setFont(Font.decode(Font.MONOSPACED));
-            StringBuilder b = new StringBuilder();
-            for (int i=0; i<100; i++) {
-                b.append("test text").append(i);
-                if (ThreadLocalRandom.current().nextInt(4) == 0) {
-                    b.append("\n");
-                }
-            }
-            text.setText(b.toString());
-            text.setMargin(new Insets(1, 3, 1, 3));
-            JScrollPane scroll = new JScrollPane(text);
-            scroll.setRowHeaderView(new LineNumbers(text));
-//            text.setBackground(Color.BLACK);
-//            text.setForeground(Color.WHITE);
-//            text.setFont(Font.decode("Verdana 14"));
-            GridBagConstraints gbc;
-            gbc = GuiUtil.makeGbc(0, 1, 3, 1);
-            gbc.fill = GridBagConstraints.BOTH;
-            gbc.weightx = 1;
-            gbc.weighty = 1;
-            gbc.insets = new Insets(5, 7, 5, 7);
-            frame.add(scroll, gbc);
-            
-            frame.setSize(400, 300);
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setVisible(true);
-        });
-    }
-    
+
 }

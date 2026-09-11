@@ -219,21 +219,5 @@ public class RunUpdater {
         b.append('"');
         return b.toString();
     }
-    
-    
-    public static void main(String[] args) {
-        String[] args2 = new String[]{"-token", "abc"};
-        Path installerPath = Paths.get("J:\\Chatty_0.16-b2_win_setup.exe");
-        Path jarPath = Paths.get("J:\\chatty install\\ParamTest.jar");
-        Path chattyExe = null;
-        Path javawExe = Paths.get("C:\\Program Files (x86)\\Java\\jre1.8.0_201\\bin\\javaw.exe");
-        try {
-            run(installerPath, jarPath.getParent(), jarPath, chattyExe, javawExe, args2, true);
-        } catch (IOException ex) {
-            Logger.getLogger(RunUpdater.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-    
-    
-    
+
 }

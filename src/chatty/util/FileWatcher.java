@@ -113,15 +113,5 @@ public class FileWatcher implements Runnable {
          */
         void fileChanged();
     }
-    
-    /**
-     * Test/Example.
-     * 
-     * @param args 
-     */
-    public static void main(String[] args) {
-        final Path file = Paths.get("test/test.txt");
-        createFileWatcher(file, () -> System.out.println(file+" changed"));
-    }
-    
+
 }

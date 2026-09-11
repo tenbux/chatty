@@ -216,13 +216,5 @@ public class GitHub {
             return name+"/"+download_url;
         }
     }
-    
-    public static void main(String[] args) {
-        Releases result = getReleases();
-        System.out.println(result);
-        for (Release r : result.releases) {
-            System.out.println(r);
-        }
-    }
-    
+
 }

@@ -179,9 +179,5 @@ public class TokenInfo {
     public boolean hasChatAccess() {
         return hasScope(Scope.CHAT_READ) && hasScope(Scope.CHAT_EDIT);
     }
-    
-    public static void main(String[] args) {
-        System.out.println(ScopeCategory.getUncategorized());
-    }
-    
+
 }

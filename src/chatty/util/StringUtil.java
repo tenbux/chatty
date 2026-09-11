@@ -825,9 +825,5 @@ public class StringUtil {
         return input.substring(correctedStart, correctedEnd);
     }
     
-    public static void main(String[] args) {
-        System.out.println(shortenTo("abcdefghi", 8, 5));
-        System.out.println(concats("a", null, "b", null));
-    }
-    
+
 }

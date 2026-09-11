@@ -97,19 +97,5 @@ public class RegexDocumentFilter extends DocumentFilter {
                                       Language.getString("dialog.error.invalidInput"),
                                       StringUtil.shortenTo(latestFiltered, 100)));
     }
-    
-    // For testing
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame();
-            JTextField text = new JTextField();
-            ((AbstractDocument) text.getDocument()).setDocumentFilter(new RegexDocumentFilter("[^0-9.]", text));
-            frame.add(text, BorderLayout.SOUTH);
-            frame.pack();
-            frame.setLocationRelativeTo(null);
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setVisible(true);
-        });
-    }
 
 }

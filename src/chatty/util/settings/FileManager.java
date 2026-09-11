@@ -566,38 +566,5 @@ public class FileManager {
 
     }
     
-    public static void main(String[] args) throws IOException {
-        FileManager m = new FileManager(Paths.get("H:\\test123"), Paths.get("H:\\test123\\backupp"));
-        String content = "content\nabc\rblah\r\n";
-        m.add("test", "filename", true, content1 -> {
-            if (content1 != null && !content1.isEmpty()) {
-                return new FileContentInfo(true, content1.length()+" characters");
-            }
-            return new FileContentInfo(false, "Empty file");
-        });
-//        m.save("test", content);
-//        
-//        String read = m.loadFromFile(Paths.get("H:\\test123\\filename"));
-//        System.out.println(read.equals(content));
-        
-//        for (FileInfo info : m.getFileInfo()) {
-//            System.out.println(info);
-//        }
-//        
-//        System.out.println(getTimestamp("abc"));
-//        System.out.println(getTimestamp("auto_123456__"));
-//        System.out.println(getTimestamp("auto_123456__abc"));
-//        long a = -1;
-//        long b = 3232323232323L;
-//        System.out.println((a - System.currentTimeMillis()));
-        
-//        m.backup((int)DateTime.HOUR, 5);
-        
-//        BackupManager mg = new BackupManager(m);
-//        mg.setModal(true);
-//        mg.setLocationRelativeTo(null);
-//        mg.open();
-//        System.exit(0);
-    }
-    
+
 }

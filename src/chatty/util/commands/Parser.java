@@ -704,18 +704,5 @@ public class Parser {
     private Item peekParam() throws ParseException {
         return peek("$") ? param() : identifier();
     }
-    
 
-    
-    public static void main(String[] args) {
-        Identifier id = new Identifier("abc");
-        Literal lit = new Literal("abcd");
-        Items items = new Items();
-        items.add(id);
-        items.add(new Identifier("aijofwe"));
-        items.add("_ffweffabc");
-        items.add(new Join(new Identifier("cheese"), null, true));
-        System.out.println(Item.getIdentifiersWithPrefix("_", id, lit, items));
-    }
-    
 }

@@ -580,33 +580,6 @@ public class Helper {
     
     
     
-    public static void main(String[] args) {
-//        System.out.println(htmlspecialchars_encode("< >"));
-//        System.out.println(shortenTo("abcd", 0));
-//        System.out.println(shortenTo("abcd", 1));
-//        System.out.println(shortenTo("abcd", 2));
-//        System.out.println(shortenTo("abcd", 3));
-//        System.out.println(shortenTo("abcd", 4));
-//        System.out.println(shortenTo("abcd", 5));
-//        System.out.println(shortenTo("abcd", -2));
-//        System.out.println(shortenTo("abcd", -3));
-//        System.out.println(shortenTo("abcd", -4));
-//        long start = System.currentTimeMillis();
-//        for (int i=0;i<100000;i++) {
-//            htmlspecialchars_encode("&");
-//        }
-//        System.out.println(System.currentTimeMillis() - start);
-        
-        System.out.println(Arrays.asList(parseChannels("b,a,b,c")));
-        
-        System.out.println(getServer("server"));
-        System.out.println(getPort("server"));
-        
-        NumberFormat nf = NumberFormat.getInstance(Locale.ENGLISH);
-        nf.setMaximumFractionDigits(1);
-        System.out.println(nf.format(Math.round(74/30.0)*30/60.0));
-    }
-    
     /**
      * Checks if the id matches the given User. The id can be one of: $mod,
      * $sub, $turbo, $admin, $broadcaster, $staff, $bot. If the user has the

@@ -390,14 +390,5 @@ public class NotificationWindowManager<T> {
         bounds.height -= (insets.top + insets.bottom);
         return bounds;
     }
-    
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            NotificationWindowManager m = new NotificationWindowManager(null);
-            m.setPosition(0);
-            m.setScreen(1);
-            m.showMessage("Test", "Test message with some text.", Color.WHITE, Color.BLACK);
 
-        });
-    }
 }

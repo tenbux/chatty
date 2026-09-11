@@ -169,18 +169,6 @@ public class CommandMenuItems {
         return null;
     }
     
-    public static void main(String[] args) {
-        List<CommandMenuItem> items = parse("""
-                /slap
-                [Joshimuz]
-                 FAQ=FAQ: http://blahblah
-                Message=/openUrl http://twitch.tv/inbox/compose?target=$$1""");
-        for (CommandMenuItem item : items) {
-            System.out.println(item);
-        }
-        System.out.println(true);
-    }
-    
     private static final Pattern PATTERN = Pattern.compile("([^\\[{=]+)"+POS_KEY_PATTERN+"=(.+)");
     
     private static CommandMenuItem parseCommand(String line, int lineNumber, String currentSubmenu, Collection<CustomCommand> restrictions) {

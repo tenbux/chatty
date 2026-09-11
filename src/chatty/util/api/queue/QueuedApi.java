@@ -177,22 +177,5 @@ public class QueuedApi {
         }
     }
     
-    public static void main(String[] args) {
-        QueuedApi api = new QueuedApi();
-        ResultListener listener = r -> System.out.println("Result: "+ r.responseCode() +" "+ r.text());
-//        api.add("https://api.twitch.tv/helix/streams", null, null, listener);
-//        api.add("https://api.twitch.tv/helix/streams", null, null, listener);
-//        api.add("https://api.twitch.tv/helix/streams", null, null, listener);
-//        api.add("https://api.twitch.tv/helix/streams", null, null, listener);
-//        api.add("https://api.twitch.tv/helix/streams", null, null, listener);
-//        api.add("https://api.twitch.tv/helix/streams", null, null, listener);
-//        api.add("https://api.twitch.tv/helix/streams", null, null, listener);
-//        api.add("https://api.twitch.tv/helix/streams", null, null, listener);
-//        api.add("https://api.twitch.tv/helix/streams", null, null, listener);
-//        api.add("https://api.twitch.tv/helix/streams", null, null, listener);
-//        api.add("https://api.twitch.tv/helix/streams", null, null, listener);
-//        api.add("https://api.twitch.tv/helix/streams", null, null, listener);
-//        api.add("https://api.twitch.tv/helix/streams", null, null, listener);
-    }
 
 }

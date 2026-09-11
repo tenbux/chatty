@@ -86,13 +86,5 @@ public class StringReader {
         return index;
     }
     
-    public static void main(String[] args) {
-        StringReader reader = new StringReader("abc");
-        System.out.println(reader.next());
-        System.out.println(reader.peek());
-        System.out.println(reader.next());
-        System.out.println(reader.next());
-        System.out.println(reader.next());
-    }
-    
+
 }

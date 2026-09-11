@@ -519,45 +519,5 @@ public class Replacer2 {
             "y # y 𝜰 𝒴 𝐲 ᶌ 𝞬 𑣜 ʏ 𝘠 𝖞 𖽃 𝞤 𝚢 𝐘 𝔜 𝒚 𝕐 𝓎 𝙔 𝗒 ⲩ Ꭹ 𐊲 𝑌 ү γ 𝛄 𝜸 𝖸 𝔶 𝚼 ℽ Ꮍ 𝘺 𝙮 у υ 𑢤 𝝲 𝓨 𝑦 𝗬 𝕪 𝝪 ϒ ｙ ꭚ ɣ ყ 𝚈 𝘆 ꓬ 𝒀 𝛾 𝖄 𝔂 𝛶 ỿ",
             "z # z 𝙯 𝗭 𝚭 Ꮓ 𑣥 𝐳 𝑧 𝛧 𝕫 𝓩 𝖟 ꮓ 𝚣 𝘡 𝜡 ｚ 𝙕 𝞕 ꓜ 𝒛 𝝛 𝐙 𝓏 ᴢ 𝑍 ℤ 𝗓 𑣄 ℨ 𝘇 𝖅 𐋵 𝚉 𝔃 ζ 𝒁 𑢩 𝔷 𝒵 𝘻 𝖹");
     
-    //==========================
-    // Test
-    //==========================
 
-    public static void main(String[] args) {
-        Replacer2 item = create(Arrays.asList("a @ 𝒜 а", "t 𝒯", "t test", "hattrick hhat hat", "o ()"));
-        String message = "hh𝒜t testi𝒜bc bac𝒜 hat Аbc";
-        System.out.println("'"+message+"'");
-        Result result = item.replace(message);
-        System.out.println(result);
-//        System.out.println("###"+result.changedText+"### "+result.offsets);
-        Pattern testPattern = Pattern.compile("testi𝒜bc");
-        Matcher m = testPattern.matcher(message);
-        if (m.find()) {
-            int start = m.start();
-            int end = m.end();
-            System.out.println("Range: "+start+"-"+end);
-            System.out.println("'" + message.substring(start, end) + "'");
-            int start2 = result.indexToChanged(start);
-            int end2 = result.indexToChanged(end);
-            System.out.println("'" + result.changedText.substring(start2, end2) + "' Converted Range: " + start2 + "-" + end2);
-        }
-        
-        List<String> data = LOOKALIKES;
-        Replacer2 fullItem = create(data);
-        long startTime = System.currentTimeMillis();
-        for (int i=0;i<1000;i++) {
-            for (String line : data) {
-                Result testResult = fullItem.replace("ab ewf waef awef weafℤ awef awe fawef awe fawe fawef");
-                fullItem.replace(line);
-//                if (result != null) {
-//                    System.out.println(result.changedText);
-//                }
-            }
-        }
-        System.out.println(System.currentTimeMillis() - startTime);
-        
-//        System.out.println("S".replaceAll("(?iu)ſ", "abc"));
-    }
-    
-    
 }

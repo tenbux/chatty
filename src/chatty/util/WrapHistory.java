@@ -199,53 +199,5 @@ public class WrapHistory<E> {
     public String debug() {
         return "Pos: "+pos+" First/Last: "+start+"/"+end+" Data: "+data;
     }
-    
-    /**
-     * For easier testing.
-     * 
-     * @param args 
-     */
-    public static void main(String[] args) {
-        WrapHistory<String> h = new WrapHistory<>(3);
-        System.out.println("peekForward:"+h.peekForward());
-        System.out.println("peekBackwards:"+h.peekBackwards());
-        
-        h.add("test1");
-        System.out.println(h.debug());
-        System.out.println("peekForward:"+h.peekForward());
-        System.out.println("peekBackwards:"+h.peekBackwards());
-        System.out.println(h.hasPrevious());
-        h.add("test2");
-        System.out.println(h.debug());
-        System.out.println("peekForward:"+h.peekForward());
-        System.out.println("forward:"+h.forward());
-        System.out.println("peekBackwards:"+h.peekBackwards());
-        h.add("test3");
-        System.out.println(h.debug());
-        h.add("test4");
-        System.out.println(h.debug());
-        System.out.println("peekBackwards:"+h.peekBackwards());
-        System.out.println("backwards:"+h.backward());
-        System.out.println("backwards:"+h.backward());
-        //System.out.println("forward:"+h.forward());
-        h.add("test5");
-        System.out.println(h.debug());
-        System.out.println("peekForward:"+h.peekForward());
-        System.out.println("backwards:"+h.backward());
-        System.out.println(h.debug());
-        System.out.println("peekForward:"+h.peekForward());
-        System.out.println("forward:"+h.forward());
-        System.out.println("forward:"+h.forward());
-        System.out.println("backwards:"+h.backward());
-        System.out.println(h.debug());
-        System.out.println("backwards:"+h.backward());
-        System.out.println(h.debug());
-        System.out.println("backwards:"+h.backward());
-        System.out.println(h.debug());
-        System.out.println("forward:"+h.forward());
-        System.out.println(h.debug());
-        System.out.println("backwards:"+h.backward());
-        System.out.println(h.debug());
-    }
-    
+
 }

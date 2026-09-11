@@ -1192,16 +1192,6 @@ public class Emoticons {
         return new TagEmotes(result);
     }
     
-    public static void main(String[] args) {
-        System.out.println(parseEmotesTag("131:1-2,4-5/43:1-7"));
-        Set<Emoticon> a = new HashSet<>();
-        Set<Emoticon> b = new HashSet<>();
-        a.add(testBuild("abc"));
-        b.add(testBuild("abc"));
-        b.add(testBuild("abcd"));
-        System.out.println(equalsByCode(a, b));
-    }
-    
     private static Emoticon testBuild(String code) {
        Emoticon.Builder b = new Emoticon.Builder(Emoticon.Type.TWITCH, code);
        return b.build();

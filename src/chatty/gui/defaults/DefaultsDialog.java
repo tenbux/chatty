@@ -100,11 +100,4 @@ public class DefaultsDialog extends JFrame {
         });
     }
 
-    public static void main(String[] args) {
-        Settings settings = new Settings("", null);
-        showAndWait(settings);
-        System.out.println("continue");
-        System.exit(0);
-    }
-    
 }

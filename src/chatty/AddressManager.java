@@ -117,20 +117,5 @@ public class AddressManager {
         }
         return parsedPorts;
     }
-    
-    // Testing stuff
-    public static void main(String[] args) {
-        AddressManager m = new AddressManager();
-        try {
-            for (int i=0;i<60;i++) {
-                InetSocketAddress addr = m.getAddress("irc.chat.twitch.tv", "6697,6667,443,80");
-                System.out.println(addr);
-                m.addError(addr);
-            }
-            
-        } catch (UnknownHostException ex) {
-            Logger.getLogger(AddressManager.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-    
+
 }

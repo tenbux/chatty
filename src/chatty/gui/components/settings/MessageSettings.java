@@ -475,12 +475,5 @@ public class MessageSettings extends SettingsPanel {
         
     }
     
-    public static void main(String[] args) {
-        TimestampEditor s = new TimestampEditor(null, (type, ref) -> {
 
-        });
-        s.showDialog("[yyyy-MM-dd HH:mm]");
-        System.exit(0);
-    }
-    
 }

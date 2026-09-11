@@ -140,15 +140,5 @@ public class SingleInstance {
         void newInstance(String message);
     }
     
-    public static void main(String[] args) {
-        // For testing
-        
-        int port = 12345;
-        registerInstance(port);
-        notifyRunningInstance(port, "{\"channel\":\"test\"}");
-        
-        NewInstanceListener listener = message -> System.out.println(message);
-        setNewInstanceListener(listener);
-    }
-    
+
 }

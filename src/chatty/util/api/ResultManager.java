@@ -89,21 +89,5 @@ public class ResultManager {
         public void result(String stream, PinnedMessage msg);
     }
     
-    public static void main(String[] args) {
-        ResultManager m = new ResultManager();
-        m.subscribe(Type.CATEGORY_RESULT, (CategoryResult) System.out::println);
-        m.subscribe(Type.CATEGORY_RESULT, (CategoryResult) categories -> System.out.println("b"+categories));
-//        m.subscribe(Type.CATEGORY_SEARCH_RESULT, new Consumer<Object> () {
-//            @Override
-//            public void accept(Object t) {
-//                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-//            }
-//        });
-        m.inform(Type.CATEGORY_RESULT, (CategoryResult result) -> result.result(null));
-        
-        Object o = (CategoryResult) categories -> {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        };
-    }
-    
+
 }

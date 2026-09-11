@@ -170,10 +170,4 @@ public class SpeedrunsLive {
             super(URL);
         }
     }
-    
-    
-    public static void main(String[] args) {
-        SpeedrunsLive srl = new SpeedrunsLive();
-        srl.requestRaces();
-    }
 }

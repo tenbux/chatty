@@ -218,16 +218,5 @@ public abstract class SyntaxHighlighter {
         }
 
     }
-    
-    public static void main(String[] args) {
-        JFrame frame = new JFrame();
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//        frame.add(create(new CommandSyntaxHighlighter()));
-        Editor editor = new Editor(frame);
-        editor.setSyntaxHighlighter(new CommandSyntaxHighlighter());
-        frame.pack();
-        frame.setVisible(true);
-        editor.showDialog("abc", "", "abc");
-    }
-    
+
 }

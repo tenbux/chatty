@@ -998,18 +998,5 @@ public class HighlighterTester extends JDialog implements StringEditor {
             + "<li><code>cat:vip</code> - Restrict to users in category 'vip'</li>"
             + "<li><code>config:info</code> - Match info messages</li>"
             + "</ul>";
-    
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            HighlighterTester.testPresets = Highlighter.HighlightItem.makePresets(List.of("_test $replace($1-,$\"\\\\!\",$\"[\\W_]*?\",reg)"));
-            HighlighterTester tester = new HighlighterTester(null, true, "highlight");
-            tester.setAddToBlacklistListener(System.out::println);
-            //tester.setDefaultCloseOperation(EXIT_ON_CLOSE);
-            //tester.setEditingBlacklistItem(true);
-            tester.setEditingBlacklistItem(false);
-            System.out.println(tester.showDialog("Highlight Item", "!start:abc", TEST_INFO));
-            System.exit(0);
-        });
-    }
-    
+
 }

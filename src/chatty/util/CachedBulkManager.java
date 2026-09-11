@@ -1085,40 +1085,5 @@ v4/channels/<stream_id> -> set[]
     
     static int test = 0;
     
-    public static void main(String[] args) throws Exception {
-        CachedBulkManager<String, String> m = new CachedBulkManager<>((manager, asap, normal, backlog) -> {
-            System.out.println("request");
-            manager.setRequested(asap);
-            SwingUtilities.invokeLater(() -> {
-                for (String key : asap) {
-                    if (test < 1) {
-                        manager.setResult(key, key + "result" + System.currentTimeMillis());
-                    }
-                    else {
-                        System.out.println("setError");
-                        manager.setError(asap);
-                    }
-                    test++;
-                }
-            });
-        }, DAEMON);
-        m.setCacheTimes(100, 200, TimeUnit.MILLISECONDS);
-        
-        Collection<String> keys = new ArrayList<>();
-        keys.add("a");
-        m.query(null, System.out::println, ASAP, keys);
-        Thread.sleep(150);
-        System.out.println("----");
-//        System.out.println("Get:"+m.get("a"));
-//        System.out.println("Get:"+m.getOrQuerySingle((result) -> {
-//            System.out.println(result);
-//        }, ASAP, "a"));
 
-        m.query(null, System.out::println, ASAP, "a");
-        
-        m.query(null, System.out::println, ASAP, "a");
-        
-        System.out.println(m.debugVerbose());
-    }
-    
 }

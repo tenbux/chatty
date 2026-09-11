@@ -392,13 +392,4 @@ public class ChannelEditBox extends JTextArea implements KeyListener,
         autoCompletion.cleanUp();
     }
 
-    public static void main(String[] args) {
-        List<String> l = new ArrayList<>();
-        
-        l.add("joshimuz");
-        l.add("joshua");
-        l.add("josh");
-        l.add("jo");
-        //System.out.println(findStartCommonToAll(l));
-    }
 }

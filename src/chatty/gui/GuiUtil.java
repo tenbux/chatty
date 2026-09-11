@@ -319,26 +319,6 @@ public class GuiUtil {
         }
     }
     
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            try {
-                JFrame dialog = new JFrame();
-                dialog.setSize(100, 100);
-                dialog.setLocationRelativeTo(null);
-                dialog.setVisible(true);
-                JButton button = new JButton("Shake");
-                button.addActionListener(e -> shake(dialog, 2, 2));
-                dialog.add(button, BorderLayout.NORTH);
-                JTextArea input = new JTextArea();
-                installLengthLimitDocumentFilter(input, 5, false);
-                dialog.add(input, BorderLayout.SOUTH);
-                dialog.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-            } catch (Exception ex) {
-                Logger.getLogger(GuiUtil.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        });
-    }
-    
     public static GridBagConstraints makeGbc(int x, int y, int w, int h) {
         return makeGbc(x, y, w, h, GridBagConstraints.EAST);
     }

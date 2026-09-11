@@ -343,15 +343,6 @@ public class UserIDs {
         }
     }
     
-    public static void main(String[] args) {
-//        UserIDs2 u = new UserIDs2();
-//        u.setUserId("a", null);
-//        u.setUserId("b", "bid");
-//        u.getUserIDs(r -> {
-//            System.out.println(r.hasError()+" "+r.getValidIDs());
-//        }, "a", "b");
-    }
-    
     private static class Request {
         
         private final Set<String> usernames;

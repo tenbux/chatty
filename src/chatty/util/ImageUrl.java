@@ -82,14 +82,6 @@ public abstract class ImageUrl {
         
     }
     
-    public static void main(String[] args) {
-        ImageUrl url = ImageUrl.builder("382581").addUrl(1, "https://cdn.frankerfacez.com/emote/382581/1").addUrl(2, "https://cdn.frankerfacez.com/emote/382581/2").build();
-        ImageUrl url2 = ImageUrl.builder("382582").addUrl(1, "https://cdn.frankerfacez.com/emote/382582/1").addUrl(2, "https://cdn.frankerfacez.com/emote/382582/2").build();
-        System.out.println(url == url2);
-        
-        System.out.println(ImageUrl.builder("382581").addUrl(1, "https://cdn.frankerfacez.com/emote/382581/2").addUrl(2, "https://cdn.frankerfacez.com/emote/382581/2").build().getClass());
-    }
-    
     public static ImageUrl.Builder builder(String id) {
         return new ImageUrl.Builder(id);
     }

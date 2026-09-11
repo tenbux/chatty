@@ -37,39 +37,6 @@ public class Webserver implements Runnable {
             Collections.synchronizedList(new ArrayList<>());
     
     /**
-     * Main method for testing the server on it's own.
-     * 
-     * @param args 
-     */
-    public static void main(String[] args) {
-        Webserver s = new Webserver(new WebserverListener() {
-
-            @Override
-            public void webserverStarted() {
-                System.out.println("Display a message that it's ready or whatever");
-            }
-
-            @Override
-            public void webserverStopped() {
-                System.out.println("Do whatever you want to do when the server was stopped");
-            }
-
-            @Override
-            public void webserverError(String error) {
-                System.out.println("Display a message that an error occured");
-            }
-
-            @Override
-            public void webserverTokenReceived(String token) {
-                System.out.println("Save token and stuff");
-            }
-        }, "test-state");
-        Thread serverThread = new Thread(s, "Webserver");
-        serverThread.setDaemon(true);
-        serverThread.start();
-    }
-
-    /**
      * Construct a new webserver with the given client where data is sent. Still
      * has to be started in a new Thread.
      *

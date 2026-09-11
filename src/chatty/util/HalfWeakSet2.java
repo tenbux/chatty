@@ -176,36 +176,5 @@ public class HalfWeakSet2<T> implements Iterable<T> {
         
     }
     
-    public static void main(String[] args) {
-        Object a = "a";
-        Object b = "b";
-        Object c = "c";
-        
-        HalfWeakSet2<Object> test = new HalfWeakSet2<>();
-//        test.add(a);
-        test.add(b);
-//        test.add(c);
-        test.markWeak(a);
-        test.markStrong(a);
-        test.markStrong(a);
-        test.markWeak(b);
-//        test.add(b);
-        
-        for (Object item : test) {
-            System.out.println(item);
-        }
 
-        for (Object item : test) {
-            System.out.println(item);
-        }
-        
-        System.gc();
-//        Thread.sleep(5*1000);
-        System.out.println("--");
-        
-        for (Object item : test) {
-            System.out.println(item);
-        }
-    }
-    
 }

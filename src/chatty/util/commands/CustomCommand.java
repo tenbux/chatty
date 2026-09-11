@@ -256,10 +256,4 @@ public class CustomCommand {
         return hash;
     }
 
-    public static void main(String[] args) {
-        CustomCommand command = CustomCommand.parse("$lower(abc) $$1- $$(blah) fewaf $afwe");
-        System.out.println(command.error);
-        System.out.println(command.getRequiredIdentifiers());
-    }
-    
 }

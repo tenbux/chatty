@@ -141,17 +141,7 @@ public class EmojiUtil {
         return result;
     }
     
-    
-    /**
-     * For testing.
-     * 
-     * @param args 
-     */
-    public static void main(String[] args) {
-        Set<Emoticon> emotes = makeEmoticons("twemoji");
-        System.out.println("#"+emotes.size());
-    }
-    
+
     private static void twemoji(EmojiSet set, Set<Emoticon> result) {
         // Split up since the functions were too long
         twemoji_a(set, result);

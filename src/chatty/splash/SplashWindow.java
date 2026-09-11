@@ -81,16 +81,5 @@ public class SplashWindow extends JFrame {
         GraphicsDevice gd = ge.getDefaultScreenDevice();
         return gd.isWindowTranslucencySupported(PERPIXEL_TRANSLUCENT);
     }
-    
-    public static void main(String[] args) {
-        try {
-            createSplashWindow(new JComponent() {
-                
-            }, null);
-            Thread.sleep(3000);
-            System.exit(0);
-        } catch (InterruptedException ignored) {
-        }
-    }
-    
+
 }

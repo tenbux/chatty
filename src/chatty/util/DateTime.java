@@ -559,40 +559,5 @@ public class DateTime {
         return TimeUnit.SECONDS;
     }
     
-    public static void main(String[] args) {
-//        System.out.println("'"+dur(HOUR*2+1, Formatting.COMPACT, 0, -2, 2, 2, 2)+"'");
-//        System.out.println("'"+duration(1000*MINUTE*1+1000, Formatting.COMPACT, N, 0, 0, 0, 2)+"'");
-        //System.out.println(agoSingleVerbose(System.currentTimeMillis() ));
-        //System.out.println(ago(System.currentTimeMillis() - 1000*60*60*25));
-//        System.out.println(duration(1000*(HOUR*2), 0, 0, 0, 1, Formatting.LAST_ONE_EXACT));
-//        System.out.println(agoUptimeCompact(System.currentTimeMillis() - 1000*(MINUTE*110)));
-        int a = 1 << 4;
-        int b = 1 << 5;
-        int c = 1 << 1;
-        int v = a | b;
-        //System.out.println(v ^ c);
-//        System.out.println("'"+duration(1000*1, 1, 2)+"'");
-//        System.out.println((long)1000*DAY*3000+1);
-//        System.out.println(durationFull(269467, false));
-//        System.out.println(formatFullDatetime((long)1427846400*1000));
-//        System.out.println(System.currentTimeMillis());
-//        try {
-//            long time = chatty.util.api.Util.parseTime("2015-04-01T00:00:00Z");
-//            System.out.println(time);
-//            System.out.println(formatFullDatetime(time));
-//            System.out.println(time / 1000);
-//        } catch (ParseException ex) {
-//            Logger.getLogger(DateTime.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//        System.out.println(TimeUnit.HOURS.toMillis(1));
-//        
-//        System.out.println(formatAccountAgeCompact(System.currentTimeMillis() - 2500*1000));
-//        System.out.println(formatAccountAgeCompact(System.currentTimeMillis() - DAY*3*1000));
-        System.out.println(formatAccountAgeCompact(System.currentTimeMillis() - YEAR * 1000, true));
-//        System.out.println(formatAccountAgeCompact(System.currentTimeMillis() - 12500*1000));
-//        System.out.println(formatAccountAgeVerbose(System.currentTimeMillis() - 300*DAY*1000));
-        
-        System.out.println(duration(60*11170*1000, N, 0, N, 0, Formatting.NO_ZERO_VALUES));
-    }
-    
+
 }

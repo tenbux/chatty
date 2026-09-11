@@ -286,36 +286,5 @@ public class PresetsComboSetting<E> extends JPanel {
             listeners.add(listener);
         }
     }
-    
-    /**
-     * For testing.
-     */
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            Settings settings = new Settings("", null);
-            settings.addString("testSetting", "1\n2\n3");
-            
-            JFrame frame = new JFrame();
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            PresetsComboSetting<Long> settingPanel = new PresetsComboSetting<>(frame, settings, "testSetting",
-                                                                               s -> {
-                                                                                   if (s == null) {
-                                                                                       return -2L;
-                                                                                   }
-                                                                                   if (s.isEmpty()) {
-                                                                                       return -1L;
-                                                                                   }
-                                                                                   return Long.valueOf(s);
-                                                                               },
-                    String::valueOf,
-                "Relatively wide default label", "Custom value", false);
-            settingPanel.init();
-            
-            frame.add(settingPanel, BorderLayout.CENTER);
-            frame.pack();
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
-        });
-    }
 
 }

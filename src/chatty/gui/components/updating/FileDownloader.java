@@ -113,41 +113,5 @@ public class FileDownloader implements Runnable {
         
     }
     
-    public static void main(String[] args) throws IOException {
-        URL from = URI.create("https://github.com/chatty/chatty/releases/download/v0.9.1/Chatty_0.9.1.zip").toURL();
-        Path to = Paths.get("G:\\testi.zip");
-        FileDownloader downloader = new FileDownloader(from, to, new FileDownloaderListener() {
 
-            @Override
-            public void completed(long totalBytes, long contentLenght) {
-                System.out.println("completed "+totalBytes+" "+contentLenght);
-            }
-
-            @Override
-            public void error(IOException ex) {
-                System.out.println("error "+ex);
-            }
-
-            @Override
-            public void progress(long totalBytes, long contentLenght) {
-                //System.out.println("progress "+totalBytes+" "+contentLenght+" "+(totalBytes/(double)contentLenght));
-            }
-
-            @Override
-            public void cancelled(long totalBytes, long contentLength) {
-                System.out.println("cancelled "+totalBytes+" "+contentLength);
-            }
-        });
-        long start = System.currentTimeMillis();
-        downloader.startAsync();
-        try {
-            System.out.println("abc");
-            Thread.sleep(3000);
-            downloader.cancel();
-        } catch (InterruptedException ex) {
-            Logger.getLogger(FileDownloader.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        System.out.println(System.currentTimeMillis() - start);
-    }
-    
 }

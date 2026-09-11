@@ -93,18 +93,5 @@ public class UsercolorCorrectionPreview extends JDialog {
         label.setForeground(foreground);
         return label;
     }
-    
-    //=========
-    // Testing
-    //=========
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new UsercolorCorrectionPreview(null, new Color(250, 250, 250)).addComponentListener(new ComponentAdapter() {
 
-            @Override
-            public void componentHidden(ComponentEvent e) {
-                System.exit(0);
-            }
-        }));
-    }
-    
 }

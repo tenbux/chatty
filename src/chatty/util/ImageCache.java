@@ -90,24 +90,6 @@ public class ImageCache {
     }
     
     /**
-     * Some testing stuff.
-     * 
-     * @param args 
-     */
-    public static void main(String[] args) {
-        try {
-            //clearCache("test");
-            //saveFile("http://static-cdn.jtvnw.net/jtv_user_pictures/chansub-global-emoticon-7ba1fb012fce74a9-30x30.png");
-            setDefaultPath(Paths.get("cache"));
-            URL testUrl = new URL("http://127.0.0.1");
-            //testUrl = new URL("http://static-cdn.jtvnw.net/jtv_user_pictures/chansub-global-emoticon-7ba1fb012fce74a9-30x30.png");
-//            System.out.println(getImage(testUrl, "test", 30));
-        } catch (MalformedURLException ex) {
-            Logger.getLogger(ImageCache.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-    
-    /**
      * Deletes all image cache files with the given prefix, or all image cache
      * files if the prefix is null. Uses the default path.
      * 

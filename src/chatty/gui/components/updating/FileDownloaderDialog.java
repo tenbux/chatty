@@ -121,12 +121,5 @@ public class FileDownloaderDialog extends JDialog {
         pack();
         setLocationRelativeTo(getOwner());
     }
-    
-    public static void main(String[] args) throws Exception {
-        System.out.println(downloadFile(null,
-                URI.create("https://github.com/chatty/chatty/releases/download/v0.9.1/Chatty_0.9.1.zip").toURL(),
-                Paths.get("G:\\test2.zip"), "Downloading update"));
-        System.exit(0);
-    }
-    
+
 }

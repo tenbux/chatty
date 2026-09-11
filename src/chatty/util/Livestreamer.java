@@ -144,10 +144,5 @@ public class Livestreamer extends Thread {
     public static String filterToken(String input) {
         return input.replaceAll("--twitch-oauth-token \\w+", "--twitch-oauth-token <token>");
     }
-    
-    public static void main(String[] args) {
-        //split("\"a b c\" -h   test");
-        System.out.println(filterToken("--twitch-oauth-token abcfwf --fwaf"));
-    }
-    
+
 }
