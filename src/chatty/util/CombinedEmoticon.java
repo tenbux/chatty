@@ -123,7 +123,7 @@ public class CombinedEmoticon extends Emoticon {
                 Debugging.println("combinedemotes", "iconLoaded: %s [%s]", emotes, System.identityHashCode(CombinedEmoticon.this));
                 SwingUtilities.invokeLater(() -> makeImage(scaleFactor, maxHeight, user));
             });
-            if (image.isLoaded()) {
+            if (image.isPending()) {
                 allLoaded = false;
                 image.getImageIcon();
             }
@@ -152,7 +152,7 @@ public class CombinedEmoticon extends Emoticon {
         // Build list images and offsets
         for (Emoticon emote : emotes) {
             CachedImage<Emoticon> image = emote.getIcon(scaleFactor, maxHeight, imageType, null);
-            if (image.isLoaded()) {
+            if (image.isPending()) {
                 LOGGER.warning(image.getObject()+" not loaded for "+emotes);
                 return;
             }

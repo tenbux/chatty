@@ -286,7 +286,10 @@ public class CachedImage<T> {
         isLoaded = true;
     }
 
-    public boolean isLoaded() {
+    /**
+     * Whether this image has not (yet) finished loading successfully.
+     */
+    public boolean isPending() {
         return !isLoaded;
     }
 
