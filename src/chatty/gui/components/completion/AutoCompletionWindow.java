@@ -16,14 +16,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
+import java.util.logging.Logger;
 
 /**
  * Provides the window for auto completion.
- * 
+ *
  * @author tduva
  */
 public class AutoCompletionWindow {
-    
+
+    private static final Logger LOGGER = Logger.getLogger(AutoCompletionWindow.class.getName());
+
     private boolean show;
     private int maxResultsShown = 5;
     private Color backgroundColor = new Color(230, 230, 230);
@@ -198,7 +201,7 @@ public class AutoCompletionWindow {
         try {
             r = textField.modelToView2D(index);
         } catch (BadLocationException ex) {
-            System.out.println("null lol");
+            LOGGER.warning("Error getting location for auto-completion window: "+ex);
             return;
         }
 

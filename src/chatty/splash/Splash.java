@@ -1,7 +1,6 @@
 
 package chatty.splash;
 
-import chatty.Chatty;
 import chatty.Helper;
 import chatty.Helper.IntegerPair;
 
@@ -104,7 +103,6 @@ public class Splash {
     }
     
     private static void drawOnSplashscreen(final Point location) {
-        System.out.println(Chatty.uptimeMillis());
         final SplashScreen splash = SplashScreen.getSplashScreen();
         if (splash != null) {
             // Native

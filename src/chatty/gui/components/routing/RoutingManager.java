@@ -55,7 +55,6 @@ public class RoutingManager {
             byId.put(entry.getKey(), new RoutingTargetInfo(
                     entry.getValue().getContent().getTitle(),
                     entry.getValue().getNumMessages()));
-            System.out.println(entry.getValue().getNumMessages()+" "+entry.getKey());
         }
         for (Map.Entry<String, RoutingTargetSettings> entry : entries.entrySet()) {
             if (!byId.containsKey(entry.getKey())) {

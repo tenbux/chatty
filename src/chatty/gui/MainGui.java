@@ -5413,7 +5413,7 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
         @Override
         public void aboutToSaveSettings(Settings settings) {
             GuiUtil.edtAndWait(() -> {
-                System.out.println("Saving GUI settings.");
+                LOGGER.info("Saving GUI settings.");
                 client.settings.setLong("favoritesSorting", favoritesDialog.getSorting());
                 emoticons.saveFavoritesToSettings(settings);
                 client.settings.setString("statusHistorySorting", adminDialog.getStatusHistorySorting());

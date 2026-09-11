@@ -51,7 +51,6 @@ public class FileDownloader implements Runnable {
     }
     
     public void cancel() {
-        System.out.println("Cancel");
         this.cancelled = true;
     }
     

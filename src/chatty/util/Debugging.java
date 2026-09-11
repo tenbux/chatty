@@ -4,11 +4,6 @@ package chatty.util;
 import chatty.Chatty;
 
 import javax.swing.*;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.Timer;
 import java.util.logging.Logger;
@@ -211,14 +206,6 @@ public class Debugging {
      */
     public static String filterToken(String input) {
         return input.replaceAll("(-set:token|-token|-password) \\w+", "$1 <token>");
-    }
-    
-    public static void writeToFile(String output) {
-        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get("E:\\abcdtest"), StandardCharsets.UTF_8)) {
-            writer.append(output);
-        } catch (IOException ex) {
-            System.out.println(ex);
-        }
     }
     
     public static String getStacktrace(Exception ex) {
