@@ -253,7 +253,7 @@ public class SelectGameDialog extends JDialog {
      */
     private void update() {
         listData.clear();
-        if (presetCategory != null && presetCategory.isEmpty() && !favorites.contains(presetCategory)) {
+        if (presetCategory != null && presetCategory.hasName() && !favorites.contains(presetCategory)) {
             searchResult.add(presetCategory);
         }
         for (StreamCategory game : searchResult) {

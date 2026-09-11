@@ -145,7 +145,11 @@ public class StreamInfo {
         this.requested = true;
     }
     
-    public synchronized boolean isRequested() {
+    /**
+     * Whether this stream info has not been requested from the server yet
+     * (or its request state was reset), i.e. a request for it is still due.
+     */
+    public synchronized boolean isRequestPending() {
         return !requested;
     }
 
@@ -424,7 +428,7 @@ public class StreamInfo {
                 fullStatus = "No stream title set";
             }
             fullStatus = getStreamTypeString()+fullStatus;
-            if (game != null && game.isEmpty()) {
+            if (game != null && game.hasName()) {
                 fullStatus += " ("+game+")";
             }
             return fullStatus;

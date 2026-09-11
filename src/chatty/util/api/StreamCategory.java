@@ -38,7 +38,13 @@ public record StreamCategory(String id, String name) implements Comparable<Strea
         return id != null;
     }
 
-    public boolean isEmpty() {
+    /**
+     * Check if this entry has an actual category name set, as opposed to
+     * being the "no category" placeholder (empty name).
+     *
+     * @return
+     */
+    public boolean hasName() {
         return !name.isEmpty();
     }
 
