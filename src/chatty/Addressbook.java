@@ -716,7 +716,7 @@ public class Addressbook {
     }
     
     public synchronized boolean loadFromSettings() {
-        if (settings.isValueSet(SETTING_NAME)) {
+        if (settings.isValueUnset(SETTING_NAME)) {
             LOGGER.info("Didn't load addressbook from settings");
             return false;
         }

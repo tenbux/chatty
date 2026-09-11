@@ -1053,7 +1053,7 @@ public class SettingsManager {
         // Turn off Highlight Background if using dark background (if not loaded
         // from the settings yet)
         Color bgColor = HtmlColors.decode(settings.getString("backgroundColor"));
-        if (ColorCorrection.isDarkColor(bgColor) && settings.isValueSet("highlightBackground")) {
+        if (ColorCorrection.isDarkColor(bgColor) && settings.isValueUnset("highlightBackground")) {
             settings.setBoolean("highlightBackground", false);
         }
         

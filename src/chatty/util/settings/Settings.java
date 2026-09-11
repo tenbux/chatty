@@ -279,7 +279,12 @@ public class Settings {
         }
     }
     
-    public boolean isValueSet(String settingName) {
+    /**
+     * Whether the given setting is still at its unset/default state, i.e. it
+     * has not been explicitly loaded from a settings file or changed by the
+     * user yet.
+     */
+    public boolean isValueUnset(String settingName) {
         synchronized(LOCK) {
             return !getSetting(settingName).isValueSet();
         }
