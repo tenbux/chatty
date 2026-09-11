@@ -93,7 +93,6 @@ class MyParagraphView extends ParagraphView {
     
     @Override
     public float getAlignment(int axis) {
-        System.out.println("ALIGNMENT"+super.getAlignment(Y_AXIS));
         return super.getAlignment(axis);
     }
     

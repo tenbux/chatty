@@ -13,6 +13,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.*;
 
@@ -44,6 +46,31 @@ public class FrankerFaceZTest {
         testParseEmoteError("FFZ_emote_id_string");
     }
     
+    /**
+     * Regression test: parseGlobalEmotes() had a "return" inside the
+     * for-loop over "default_sets", so only the first default set was ever
+     * parsed; a global-emotes response listing more than one default set
+     * silently lost every set after the first.
+     */
+    @Test
+    public void testParseGlobalEmotes_allDefaultSetsParsed() {
+        String json = "{"
+                + "\"default_sets\": [1, 2],"
+                + "\"sets\": {"
+                + "  \"1\": {\"emoticons\": [" + emoteJson(101, "setOneEmote") + "]},"
+                + "  \"2\": {\"emoticons\": [" + emoteJson(102, "setTwoEmote") + "]}"
+                + "}"
+                + "}";
+        Set<Emoticon> result = FrankerFaceZParsing.parseGlobalEmotes(json);
+        Set<String> codes = result.stream().map(e -> e.code).collect(Collectors.toSet());
+        assertEquals(Set.of("setOneEmote", "setTwoEmote"), codes);
+    }
+
+    private static String emoteJson(int id, String name) {
+        return "{\"id\": " + id + ", \"name\": \"" + name + "\", "
+                + "\"urls\": {\"1\": \"//cdn.frankerfacez.com/emoticon/" + id + "/1\"}}";
+    }
+
     private void testParseEmoteError(String fileName) throws Exception {
         JSONParser parser = new JSONParser();
         JSONObject obj = (JSONObject) parser.parse(loadJSON(fileName));

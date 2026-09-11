@@ -1,6 +1,7 @@
 
 package chatty.util;
 
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -13,15 +14,20 @@ import java.util.WeakHashMap;
  */
 public abstract class ImageUrl {
 
-    private static final Map<TemplateImageUrl, TemplateImageUrl> cache = new WeakHashMap<>();
-    
+    // The value used to just be the same object as the key, so the map's
+    // own (strong) value reference kept every key permanently reachable,
+    // meaning nothing was ever actually collected despite the WeakHashMap.
+    // Wrapping the value in its own WeakReference breaks that cycle.
+    private static final Map<TemplateImageUrl, WeakReference<TemplateImageUrl>> cache = new WeakHashMap<>();
+
     private static ImageUrl cache(TemplateImageUrl object) {
         synchronized (cache) {
-            ImageUrl cached = cache.get(object);
+            WeakReference<TemplateImageUrl> ref = cache.get(object);
+            TemplateImageUrl cached = ref != null ? ref.get() : null;
             if (cached != null) {
                 return cached;
             }
-            cache.put(object, object);
+            cache.put(object, new WeakReference<>(object));
             return object;
         }
     }

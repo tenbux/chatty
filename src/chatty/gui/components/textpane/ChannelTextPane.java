@@ -111,6 +111,15 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
     private final StyleServer styleServer;
     
     private final RingBuffer<MentionCheck> lastUsers = new RingBuffer<>(300);
+
+    /**
+     * Reuses a user's compiled mention-detection Pattern across their
+     * repeated messages instead of recompiling it every time (findMentions()
+     * can already scan up to 300 entries per printed message). A
+     * WeakHashMap ties cache entry lifetime to the User object itself,
+     * rather than growing unbounded for the life of the session.
+     */
+    private final Map<User, MentionCheck> mentionCheckCache = new WeakHashMap<>();
     
     protected static User hoveredUser;
 
@@ -531,7 +540,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
              */
             userStyle = styles.user(message.user, style);
             userStyle.addAttribute(Attribute.IS_USER_MESSAGE, true);
-            lastUsers.add(new MentionCheck(message.user));
+            lastUsers.add(getMentionCheck(message.user));
         }
         
         boolean isAnnouncement = message.tags != null && message.tags.isValue("msg-id", "announcement");
@@ -662,7 +671,11 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             printLowTrustInfo(user, pendingLowTrust);
         }
 
-        lastUsers.add(new MentionCheck(user));
+        lastUsers.add(getMentionCheck(user));
+    }
+
+    private MentionCheck getMentionCheck(User user) {
+        return mentionCheckCache.computeIfAbsent(user, MentionCheck::new);
     }
 
     public void printInfoMessage(InfoMessage message) {
