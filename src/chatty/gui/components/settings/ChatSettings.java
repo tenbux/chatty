@@ -74,15 +74,10 @@ public class ChatSettings extends SettingsPanel {
         final JCheckBox pause = d.addSimpleBooleanSetting("pauseChatOnMouseMove",
                 "Pause chat when moving the mouse over it",
                 "Stop scrolling while moving the mouse over chat (only if the scrollbar is active)");
-        /**
-         * Select by default so loading the settings will trigger the
-         * ItemListener to disable the other setting if set to false.
-         */
-        pause.setSelected(true);
         pauseChat.add(pause,
                 SettingsDialog.makeGbc(0, 1, 3, 1, GridBagConstraints.WEST));
-        
-        
+
+
         final JCheckBox ctrl = d.addSimpleBooleanSetting("pauseChatOnMouseMoveCtrlRequired",
                 "Require Ctrl being pressed to start pausing chat",
                 "Requires you to have Ctrl pressed when moving the mouse over that to pause chat");
@@ -91,12 +86,20 @@ public class ChatSettings extends SettingsPanel {
         gbc.insets.top -= 4;
         pauseChat.add(ctrl,
                 gbc);
-        
+
         /**
          * Enable/disable Ctrl Required setting based on whether pausing on
          * mouseover is enabled at all.
          */
-        pause.addItemListener(e -> ctrl.setEnabled(pause.isSelected()));
+        SettingsUtil.addSubsettings(pause, ctrl);
+        /**
+         * Select by default so loading the settings will trigger the
+         * ItemListener to enable/disable the other setting based on the
+         * actually loaded value. Must happen after addSubsettings(), which
+         * starts ctrl out disabled to match pause's initial unselected
+         * state.
+         */
+        pause.setSelected(true);
         
         JPanel commandPanel = new JPanel(new GridBagLayout());
         

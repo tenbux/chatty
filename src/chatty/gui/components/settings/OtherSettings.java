@@ -89,8 +89,7 @@ public class OtherSettings extends SettingsPanel {
         updates.add(versionCheckBeta,
                 SettingsDialog.makeGbcSub(0, 2, 1, 1, GridBagConstraints.WEST));
         
-        versionCheckBeta.setEnabled(false);
-        versionCheck.addItemListener(e -> versionCheckBeta.setEnabled(versionCheck.isEnabled() && versionCheck.isSelected()));
+        SettingsUtil.addSubsettings(versionCheck, versionCheckBeta);
         if (!Chatty.VERSION_CHECK_ENABLED) {
             versionCheck.setEnabled(false);
             versionCheck.setToolTipText("Feature disabled in this distributed version.");
