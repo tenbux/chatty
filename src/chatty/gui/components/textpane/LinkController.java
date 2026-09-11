@@ -917,12 +917,12 @@ public class LinkController extends MouseAdapter {
         Usericon usericon = usericonImage.getObject();
         String info;
         if (!usericon.metaTitle.isEmpty()) {
-            info = POPUP_HTML_PREFIX+"Badge: "+usericon.metaTitle;
+            info = POPUP_HTML_PREFIX+"Badge: "+Helper.htmlspecialchars_encode(usericon.metaTitle);
         } else if (usericon.type == Usericon.Type.HL || usericon.type == Usericon.Type.FIRSTMSG) {
             // Customize text since not really a badge
             info = POPUP_HTML_PREFIX+usericon.type.label;
         } else if (usericon.type == Usericon.Type.CHANNEL_LOGO) {
-            info = POPUP_HTML_PREFIX+"Channel Logo: "+usericon.channel;
+            info = POPUP_HTML_PREFIX+"Channel Logo: "+Helper.htmlspecialchars_encode(usericon.channel);
         } else {
             info = POPUP_HTML_PREFIX+"Badge: "+usericon.type.label;
         }
@@ -936,14 +936,14 @@ public class LinkController extends MouseAdapter {
             info += " ["+usericonImage.getImageIcon().getDescription()+"]";
         }
         if (usericon.metaDescription != null && !usericon.metaDescription.isEmpty()) {
-            info += "<br />"+usericon.metaDescription;
+            info += "<br />"+Helper.htmlspecialchars_encode(usericon.metaDescription);
         }
         if (!StringUtil.isNullOrEmpty(moreInfo)) {
-            info += "<br />("+moreInfo+")";
+            info += "<br />("+Helper.htmlspecialchars_encode(moreInfo)+")";
         }
         if (sharedInfo != null && !sharedInfo.isEmpty()) {
             if (usericon.type == Usericon.Type.CHANNEL_LOGO) {
-                info += "<br />Shared Chat: "+StringUtil.join(sharedInfo, ", ");
+                info += "<br />Shared Chat: "+Helper.htmlspecialchars_encode(StringUtil.join(sharedInfo, ", "));
             }
             else {
                 String activeChannel = "";
@@ -952,7 +952,7 @@ public class LinkController extends MouseAdapter {
                 if (chans.remove(channel.getName())) {
                     activeChannel += " and here";
                 }
-                info += "<br />Badge from: "+StringUtil.join(chans, ", ")+activeChannel;
+                info += "<br />Badge from: "+Helper.htmlspecialchars_encode(StringUtil.join(chans, ", "))+activeChannel;
             }
         }
         p.setText(info);

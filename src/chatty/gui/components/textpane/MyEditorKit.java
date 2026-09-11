@@ -10,17 +10,14 @@ import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.logging.Logger;
 
 /**
  * Replaces some Views by custom ones to change display behaviour.
- * 
+ *
  * @author tduva
  */
 class MyEditorKit extends StyledEditorKit {
 
-    private static final Logger LOGGER = Logger.getLogger(MyEditorKit.class.getName());
-    
     private final StyledViewFactory factory;
     
     public MyEditorKit(boolean startAtBottom) {
@@ -89,8 +86,8 @@ class MyEditorKit extends StyledEditorKit {
                         Entry<Long, WeakReference<MyIconView>> entry = it.next();
                         MyIconView v = entry.getValue().get();
                         if (v == null) {
+                            // Already reclaimed by ordinary GC, not an error
                             it.remove();
-                            LOGGER.warning("Removed reference for image "+entry.getKey());
                         } else {
                             result.add(v);
                         }
@@ -120,13 +117,10 @@ class MyEditorKit extends StyledEditorKit {
                                     imageId, d));
                         }
                     }
-                    Iterator<WeakReference<MyIconView>> it2 = d.values().iterator();
-                    while (it2.hasNext()) {
-                        if (it2.next().get() == null) {
-                            it2.remove();
-                            LOGGER.warning("Removed reference for image");
-                        }
-                    }
+                    // A cleared WeakReference here just means the view was
+                    // already reclaimed by ordinary GC, not an error - so
+                    // this isn't logged at warning level.
+                    d.values().removeIf(ref -> ref.get() == null);
                     if (d.isEmpty()) {
                         it.remove();
                     }

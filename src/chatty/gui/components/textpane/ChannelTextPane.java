@@ -199,7 +199,11 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
     
     public final Type type;
     
-    private final Map<User, SuspiciousMessagePayload> pendingLowTrustInfoCache = new HashMap<>();
+    // A WeakHashMap rather than a plain HashMap, since an entry is only
+    // ever removed when the flagged message actually gets printed - if it
+    // never does (ignored/filtered/routed elsewhere), the entry (and the
+    // User it pins) would otherwise stay here for the app's lifetime.
+    private final Map<User, SuspiciousMessagePayload> pendingLowTrustInfoCache = new WeakHashMap<>();
 
     public ChannelTextPane(MainGui main, StyleServer styleServer, Type type, boolean startAtBottom, boolean insertTop) {
         getAccessibleContext().setAccessibleName("Chat Output");
