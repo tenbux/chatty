@@ -9,6 +9,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 /**
  *
@@ -48,7 +49,7 @@ public class IgnoreSettings extends SettingsPanel {
                 "Only show if ignored messages dialog is not open",
                 "");
         
-        HashMap<Long, String> modeDef = new HashMap<>();
+        HashMap<Long, String> modeDef = new LinkedHashMap<>();
         modeDef.put((long)IgnoredMessages.MODE_HIDE, "Hide");
         modeDef.put((long)IgnoredMessages.MODE_COUNT, "Show count");
         modeDef.put((long)IgnoredMessages.MODE_COMPACT, "Show names");

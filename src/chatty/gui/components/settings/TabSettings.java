@@ -50,7 +50,7 @@ public class TabSettings extends SettingsPanel {
         // Tabs Order
         //--------------------------
         orderPanel.add(new JLabel(Language.getString("settings.tabs.order")), SettingsDialog.makeGbc(0, 0, 1, 1, GridBagConstraints.WEST));
-        Map<String, String> options = new HashMap<>();
+        Map<String, String> options = new LinkedHashMap<>();
         options.put("normal", Language.getString("settings.tabs.option.normal"));
         options.put("alphabetical", Language.getString("settings.tabs.option.alphabetical"));
         orderPanel.add(
@@ -108,7 +108,7 @@ public class TabSettings extends SettingsPanel {
         //--------------------------
         // Tabs Location
         //--------------------------
-        Map<String, String> tabPlacementOptions = new HashMap<>();
+        Map<String, String> tabPlacementOptions = new LinkedHashMap<>();
         tabPlacementOptions.put("top", Language.getString("settings.tabs.option.top"));
         tabPlacementOptions.put("left", Language.getString("settings.tabs.option.left"));
         tabPlacementOptions.put("bottom", Language.getString("settings.tabs.option.bottom"));
@@ -124,7 +124,7 @@ public class TabSettings extends SettingsPanel {
         //-------------
         // Tabs Layout
         //-------------
-        Map<String, String> tabLayoutOptions = new HashMap<>();
+        Map<String, String> tabLayoutOptions = new LinkedHashMap<>();
         tabLayoutOptions.put("wrap", Language.getString("settings.tabs.option.wrap"));
         tabLayoutOptions.put("scroll",  Language.getString("settings.tabs.option.scroll"));
         ComboStringSetting tabLayoutSetting = new ComboStringSetting(tabLayoutOptions);
@@ -315,7 +315,7 @@ public class TabSettings extends SettingsPanel {
         private TabsPrefixPos(SettingsDialog d, String prefix, MapSetting<String, Long> mapSetting) {
             setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
             this.prefix = prefix;
-            Map<Long, String> items = new HashMap<>();
+            Map<Long, String> items = new LinkedHashMap<>();
             items.put((long)-1, "Before Default Location (-1)");
             items.put((long)0, "Default Location (0)");
             items.put((long)1, "After Default Location (1)");

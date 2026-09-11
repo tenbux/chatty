@@ -41,7 +41,7 @@ public class LogSettings extends SettingsPanel {
         gbc.weightx = 0.4;
         modePanel.add(new JLabel(Language.getString("settings.log.loggingMode")), gbc);
         
-        Map<String, String> logModeOptions = new HashMap<>();
+        Map<String, String> logModeOptions = new LinkedHashMap<>();
         logModeOptions.put("always", Language.getString("settings.option.logMode.always"));
         logModeOptions.put("blacklist", Language.getString("settings.option.logMode.blacklist"));
         logModeOptions.put("whitelist", Language.getString("settings.option.logMode.whitelist"));

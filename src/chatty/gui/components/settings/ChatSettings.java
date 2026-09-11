@@ -110,7 +110,7 @@ public class ChatSettings extends SettingsPanel {
             commandPanel.add(new JLabel(entry.getValue()),
                     SettingsDialog.makeGbc(0, commandY, 1, 1, GridBagConstraints.WEST));
 
-            Map<String, String> commandChoices = new HashMap<>();
+            Map<String, String> commandChoices = new LinkedHashMap<>();
             commandChoices.put("", "Off");
             commandChoices.put("/timeout", "Timeout");
             commandChoices.put("/ban", "Ban");

@@ -108,7 +108,7 @@ public class FontSettings extends SettingsPanel {
         gbc = SettingsDialog.makeGbc(0, 3, 1, 1, GridBagConstraints.EAST);
         chatMarginsPanel.add(new JLabel(Language.getString("settings.chatFont.lineSpacing")), gbc);
         
-        Map<Long, String> lineSpacingDef = new HashMap<>();
+        Map<Long, String> lineSpacingDef = new LinkedHashMap<>();
         lineSpacingDef.put((long)0, Language.getString("settings.chatFont.option.smallest"));
         lineSpacingDef.put((long)1, Language.getString("settings.chatFont.option.smaller"));
         lineSpacingDef.put((long)2, Language.getString("settings.chatFont.option.small"));

@@ -205,7 +205,7 @@ public class NotificationSettings extends SettingsPanel {
         devicePanel.add(new JLabel("Output Device: "));
         DialogComboSetting device = new DialogComboSetting(d,
                 () -> {
-                    Map<String, String> devicePresets = new HashMap<>();
+                    Map<String, String> devicePresets = new LinkedHashMap<>();
                     devicePresets.put("", "<default>");
                     for (String dev : Sound.getDeviceNames()) {
                         devicePresets.put(dev, dev);

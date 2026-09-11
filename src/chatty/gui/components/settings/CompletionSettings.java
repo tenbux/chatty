@@ -142,7 +142,7 @@ public class CompletionSettings extends SettingsPanel {
         appearance.add(new JLabel(Language.getString("settings.completion.nameSorting")),
                 SettingsDialog.makeGbc(0, 2, 1, 1, GridBagConstraints.WEST));
         
-        Map<String, String> choices = new HashMap<>();
+        Map<String, String> choices = new LinkedHashMap<>();
         choices.put("predictive", Language.getString("settings.completion.option.predictive"));
         choices.put("alphabetical", Language.getString("settings.completion.option.alphabetical"));
         choices.put("userlist", Language.getString("settings.completion.option.userlist"));
