@@ -215,7 +215,7 @@ public class RoutingManager {
         for (HighlightItem item : routing) {
             if (item.matches(HighlightItem.Type.REGULAR, message.text, message.user, localUser, message.tags)) {
                 targets.add(item);
-                if (isRoutingMulti()) {
+                if (isRoutingSingle()) {
                     return;
                 }
             }
@@ -226,7 +226,7 @@ public class RoutingManager {
         for (HighlightItem item : routing) {
             if (item.matches(HighlightItem.Type.INFO, message.text, user, localUser, message.tags)) {
                 targets.add(item);
-                if (isRoutingMulti()) {
+                if (isRoutingSingle()) {
                     return;
                 }
             }
@@ -241,7 +241,11 @@ public class RoutingManager {
         return false;
     }
     
-    private boolean isRoutingMulti() {
+    /**
+     * Whether routing is restricted to a single (the first matching) target,
+     * i.e. the "routingMulti" setting is off.
+     */
+    private boolean isRoutingSingle() {
         return !main.getSettings().getBoolean("routingMulti");
     }
     
