@@ -6,6 +6,7 @@ import chatty.Chatty.PathType;
 import chatty.gui.GuiUtil;
 import chatty.gui.components.LinkLabel;
 import chatty.gui.components.LinkLabelListener;
+import chatty.util.Debugging;
 import chatty.util.MiscUtil;
 import chatty.util.api.usericons.Usericon;
 import chatty.util.api.usericons.Usericon.Type;
@@ -280,7 +281,15 @@ class UsericonEditor extends TableEditor<Usericon> {
         private final JButton cancelButton = new JButton("Cancel");
         private final JButton openDir = new JButton("Open dir");
         private final JButton scanDir = new JButton("Rescan");
-        
+
+        /**
+         * Incremented on every scanFiles() call so an in-flight scan can
+         * tell, once it finishes, whether a newer scan has since superseded
+         * it and skip applying its now-stale results (same purpose as
+         * NotificationSettings.scanGeneration).
+         */
+        private int scanGeneration = 0;
+
         private final JPanel folderPanel;
         
         private final JLabel scanResult = new JLabel(ERROR_LOADING_IMAGE);
@@ -518,12 +527,16 @@ class UsericonEditor extends TableEditor<Usericon> {
         
         @Override
         public Usericon showEditor(Usericon preset, Component c, boolean edit, int column) {
-            scanFiles();
             if (edit) {
                 dialog.setTitle("Edit item");
             } else {
                 dialog.setTitle("Add item");
             }
+            // Must contain items before fileName's selection is set below
+            // (both branches select something), which on the very first
+            // call ever it otherwise wouldn't, since fileName only gets
+            // populated by scanFiles().
+            resetFileList();
             if (preset != null) {
                 restriction.setText(preset.restriction);
                 type.setSettingValue(preset.type);
@@ -536,60 +549,105 @@ class UsericonEditor extends TableEditor<Usericon> {
                 restriction.setText(null);
                 type.setSelectedIndex(0);
                 idVersion.setSettingValue(null);
-                // Must contain items to set to index 0, which it always should
-                // due to <no image> and stuff
                 fileName.setSelectedIndex(0);
                 stream.setText(null);
                 position.setText(null);
                 currentIcon = null;
             }
+            // Scan after the desired fileName selection above is set, since
+            // scanFiles() snapshots the current selection and re-applies it
+            // once the (asynchronous) scan finishes - scanning first would
+            // snapshot the stale selection from the previous time the
+            // dialog was used instead.
+            scanFiles();
             update();
-            
+
             save = false;
-            
-            
+
+
             dialog.setLocationRelativeTo(c);
             dialog.setVisible(true);
             // Modal dialog, so blocks here and stuff can be changed via the GUI
             // until the dialog is closed
-            
+
             if (save) {
                 createIcon(false);
                 return currentIcon;
             }
             return null;
         }
-        
-        private void scanFiles() {
-            File file = Chatty.getPath(PathType.IMAGE).toFile();
-            File[] files = file.listFiles(new ImageFilenameFilter());
-            String resultText;
-            
-            Object selected = fileName.getSelectedItem();
+
+        /**
+         * Resets fileName to just the two static, non-scanned entries.
+         */
+        private void resetFileList() {
             fileName.removeAllItems();
             fileName.add("", "<no image>");
             fileName.add("$default", "$default");
-            
-            if (files == null) {
-                resultText = "Error scanning folder.";
-            }
-            else {
-                if (files.length == 0) {
-                    resultText = "No files found.";
-                } else {
-                    resultText = files.length + " files found.";
+        }
+
+        /**
+         * Rescans the image folder and repopulates fileName, preserving
+         * whatever is selected at the time this is called (callers that want
+         * a specific selection after the scan must set it before calling
+         * this, not after).
+         */
+        private void scanFiles() {
+            Object selected = fileName.getSelectedItem();
+
+            // Scan for files on a background thread, since this dialog is
+            // opened on the EDT and the image folder could be large or on
+            // slow storage.
+            int thisGeneration = ++scanGeneration;
+            new SwingWorker<File[], Object>() {
+                @Override
+                protected File[] doInBackground() {
+                    File file = Chatty.getPath(PathType.IMAGE).toFile();
+                    return file.listFiles(new ImageFilenameFilter());
                 }
-                String[] fileNames = new String[files.length];
-                for (int i = 0; i < files.length; i++) {
-                    fileNames[i] = files[i].getName();
+
+                @Override
+                protected void done() {
+                    if (thisGeneration != scanGeneration) {
+                        // A newer scan has since started - don't clobber its
+                        // results with ours.
+                        return;
+                    }
+                    File[] files;
+                    try {
+                        files = get();
+                    } catch (Exception ex) {
+                        Debugging.println("Error scanning usericon files: "+ex);
+                        files = null;
+                    }
+                    // Reset here (rather than up-front in scanFiles()) so a
+                    // rescan's previous file entries are cleared instead of
+                    // accumulating duplicates, and so the generation check
+                    // above can skip this entirely when superseded.
+                    resetFileList();
+                    String resultText;
+                    if (files == null) {
+                        resultText = "Error scanning folder.";
+                    }
+                    else {
+                        if (files.length == 0) {
+                            resultText = "No files found.";
+                        } else {
+                            resultText = files.length + " files found.";
+                        }
+                        String[] fileNames = new String[files.length];
+                        for (int i = 0; i < files.length; i++) {
+                            fileNames[i] = files[i].getName();
+                        }
+                        Arrays.sort(fileNames);
+                        for (String item : fileNames) {
+                            fileName.add(item);
+                        }
+                    }
+                    fileName.setSelectedItem(selected);
+                    scanResult.setText(resultText);
                 }
-                Arrays.sort(fileNames);
-                for (String item : fileNames) {
-                    fileName.add(item);
-                }
-            }
-            fileName.setSelectedItem(selected);
-            scanResult.setText(resultText);
+            }.execute();
         }
         
         public void setTwitchBadgeTypes(Set<String> types) {

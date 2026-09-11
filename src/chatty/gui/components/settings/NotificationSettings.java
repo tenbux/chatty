@@ -47,7 +47,16 @@ public class NotificationSettings extends SettingsPanel {
     private final ComboStringSetting soundFiles;
     
     private final JLabel filesResult = new JLabel();
-    
+
+    /**
+     * Incremented on every scanFiles() call so an in-flight scan can tell,
+     * once it finishes, whether a newer scan has since superseded it (e.g.
+     * the path was changed again, or "Rescan folder" was clicked again
+     * before the previous scan finished) and skip applying its now-stale
+     * results.
+     */
+    private int scanGeneration = 0;
+
     private final NotificationEditor editor;
     
     public NotificationSettings(SettingsDialog d, Settings settings) {
@@ -438,33 +447,58 @@ public class NotificationSettings extends SettingsPanel {
             return;
         }
         Debugging.println("scan Files "+path);
-        File file = path.toFile();
-        File[] files = file.listFiles(new WavFilenameFilter());
-        String resultText;
-        String warningText = "";
-        if (files == null) {
-            resultText = "Error scanning folder.";
-            editor.setSoundFiles(path, new String[0]);
-        } else {
-            if (files.length == 0) {
-                resultText = "No sound files found.";
-            } else {
-                resultText = files.length+" sound files found.";
+        // Scan for files on a background thread, since this dialog is opened
+        // on the EDT and the sound folder could be large or on slow storage.
+        int thisGeneration = ++scanGeneration;
+        new SwingWorker<File[], Object>() {
+            @Override
+            protected File[] doInBackground() {
+                return path.toFile().listFiles(new WavFilenameFilter());
             }
-            String[] fileNames = new String[files.length];
-            for (int i=0;i<files.length;i++) {
-                fileNames[i] = files[i].getName();
+
+            @Override
+            protected void done() {
+                if (thisGeneration != scanGeneration) {
+                    // A newer scan has since started (e.g. the path changed
+                    // again, or "Rescan folder" was clicked again) before
+                    // this one finished - don't clobber its results with
+                    // ours.
+                    return;
+                }
+                File[] files;
+                try {
+                    files = get();
+                } catch (Exception ex) {
+                    Debugging.println("Error scanning sound files: "+ex);
+                    files = null;
+                }
+                String resultText;
+                String warningText = "";
+                if (files == null) {
+                    resultText = "Error scanning folder.";
+                    editor.setSoundFiles(path, new String[0]);
+                } else {
+                    if (files.length == 0) {
+                        resultText = "No sound files found.";
+                    } else {
+                        resultText = files.length+" sound files found.";
+                    }
+                    String[] fileNames = new String[files.length];
+                    for (int i=0;i<files.length;i++) {
+                        fileNames[i] = files[i].getName();
+                    }
+                    Arrays.sort(fileNames);
+                    editor.setSoundFiles(path, fileNames);
+                    for (String fileName : fileNames) {
+                        soundFiles.add(fileName);
+                    }
+                }
+                if (showMessage) {
+                    JOptionPane.showMessageDialog(NotificationSettings.this, resultText+warningText);
+                }
+                filesResult.setText(resultText);
             }
-            Arrays.sort(fileNames);
-            editor.setSoundFiles(path, fileNames);
-            for (String fileName : fileNames) {
-                soundFiles.add(fileName);
-            }
-        }
-        if (showMessage) {
-            JOptionPane.showMessageDialog(this, resultText+warningText);
-        }
-        filesResult.setText(resultText);
+        }.execute();
     }
 
     public void selectItem(long id) {
