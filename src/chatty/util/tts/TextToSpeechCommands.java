@@ -13,7 +13,7 @@ public class TextToSpeechCommands {
     public static Settings settings;
 
     public static String command(Commands.CommandParameters p) {
-        if (TextToSpeech.get(settings).hasProvider()) {
+        if (TextToSpeech.get(settings).isProviderMissing()) {
             return "TTS not available on this system.";
         }
         switch (p.getArgs()) {

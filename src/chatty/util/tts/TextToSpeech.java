@@ -130,12 +130,15 @@ public class TextToSpeech {
         speak(String.format("%s says: %s", user.getName(), text));
     }
     
-    public boolean hasProvider() {
+    /**
+     * Whether no TTS provider is configured/available.
+     */
+    public boolean isProviderMissing() {
         return ttsProvider.getProviderId().isEmpty();
     }
-    
+
     public boolean checkProvider() {
-        if (hasProvider()) {
+        if (isProviderMissing()) {
             playSound(SOUND_ERROR);
             return true;
         }
@@ -156,7 +159,7 @@ public class TextToSpeech {
     public boolean speak(String text, String voice, int volume, int rate, int pitch, SpeakRequest.Mode mode) {
         if (settings == null
                 || !settings.getBoolean("ttsEnabled")
-                || hasProvider()
+                || isProviderMissing()
                 || text == null
                 || text.trim().isEmpty()) {
             return false;
@@ -491,50 +494,6 @@ public class TextToSpeech {
 //                settings.getInt("ttsPitch"),
 //                getCurrentVoice());
 //    }
-    
-    public static void main(String[] args) {
-        Settings settings = new Settings("", null);
-        settings.addBoolean("ttsEnabled", true);
-        settings.addLong("ttsMaxLength", 2000);
-        settings.addLong("ttsRate", 100);
-        settings.addLong("ttsVolume", 100);
-        settings.addLong("ttsPitch", 0);
-        settings.addMap("ttsVoice", new HashMap<>(), Setting.STRING);
-        
-        TextToSpeech speech = new TextToSpeech(settings);
-        speech.getSize(new LinkedList());
-        System.out.println("after");
-//        Timer timer = new Timer();
-//        timer.schedule(new TimerTask() {
-//            @Override
-//            public void run() {
-//                speech.stop();
-//                speech.start();
-//                speech.skipBackwards();
-////                speech.skipBackwards();
-//            }
-//            
-//        }, 5000);
-//        timer.schedule(new TimerTask() {
-//            @Override
-//            public void run() {
-//                speech.skipForwards();
-//            }
-//            
-//        }, 8000);
-////        timer.schedule(new TimerTask() {
-////            @Override
-////            public void run() {
-////                speech.speak("test again");
-////            }
-////            
-////        }, 12000);
-////        
-//        speech.speak("abc");
-//        System.out.println(speech.speak("test 123 123 '1 2 3' ‛); $speak.Speak(‛blah"));
-//        System.out.println(speech.speak("test a b c"));
-    }
-    
     
     private static final String SOUND_ERROR = "error.wav";
     private static final String SOUND_MUTE = "mute.wav";
