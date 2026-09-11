@@ -112,6 +112,8 @@ public class Buttons {
         commands.clear();
         rows.clear();
         modUnmodButton = null;
+        approveButton = null;
+        denyButton = null;
     }
     
     private void addButtons(Parameters parameters) {

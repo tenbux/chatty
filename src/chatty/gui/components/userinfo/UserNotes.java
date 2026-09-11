@@ -1,14 +1,12 @@
 
 package chatty.gui.components.userinfo;
 
-import chatty.Room;
 import chatty.User;
 import chatty.gui.GuiUtil;
 import chatty.gui.components.menus.TextSelectionMenu;
 import chatty.lang.Language;
 import chatty.util.Pronouns;
 import chatty.util.StringUtil;
-import chatty.util.api.TwitchApi;
 import chatty.util.settings.Settings;
 
 import javax.swing.*;
@@ -30,21 +28,20 @@ public class UserNotes {
     
     /**
      * Must only be called once.
-     * 
-     * @param api
-     * @param settings 
+     *
+     * @param settings
      */
-    public static void init(TwitchApi api, Settings settings) {
-        instance = new UserNotes(api, settings);
+    public static void init(Settings settings) {
+        instance = new UserNotes(settings);
     }
-    
+
     public static UserNotes instance() {
         return instance;
     }
 
     private final Settings settings;
-    
-    private UserNotes(TwitchApi api, Settings settings) {
+
+    private UserNotes(Settings settings) {
         this.settings = settings;
     }
     
@@ -194,12 +191,5 @@ public class UserNotes {
         }
         
     }
-    
-    public static void main(String[] args) {
-        User user = new User("abc", Room.EMPTY);
-        
-        UserNotesDialog d = new UserNotesDialog(user, null, "chat notes", "regular notes");
-        d.showDialog(e -> System.out.println("Save"));
-    }
-    
+
 }

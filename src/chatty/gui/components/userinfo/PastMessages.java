@@ -28,9 +28,7 @@ import java.util.Map;
 public class PastMessages extends JTextArea {
     
     private Timestamp timestampFormat = new Timestamp("[HH:mm:ss]", "");
-    
-    private String currentMessageIdMessage;
-    
+
     private final RepeatMsgHelper repeatHelper;
     private final Settings settings;
     
@@ -54,16 +52,12 @@ public class PastMessages extends JTextArea {
         highlightPainter = new DefaultHighlighter.DefaultHighlightPainter(ColorCorrectionNew.offset(getBackground(), 0.8f));
     }
     
-    public String getCurrentMessage() {
-        return currentMessageIdMessage;
-    }
-    
     public void update(User user, String currentMessageId) {
         setText(null);
         if (user != null) {
             highlights.clear();
             setText(makeLines(user, currentMessageId));
-            
+
             for (Map.Entry<Integer, Integer> entry : highlights.entrySet()) {
                 try {
                     getHighlighter().addHighlight(entry.getKey(), entry.getValue(), highlightPainter);
@@ -74,21 +68,24 @@ public class PastMessages extends JTextArea {
             }
         }
     }
-    
-    private void startHighlight(int pos, int type) {
-        if (MiscUtil.isBitEnabled((int)settings.getLong("userMessagesHighlight"), type)) {
+
+    private void startHighlight(int highlightMask, int pos, int type) {
+        if (MiscUtil.isBitEnabled(highlightMask, type)) {
             highlightStart = pos;
         }
     }
-    
-    private void endHighlight(int pos, int type) {
-        if (MiscUtil.isBitEnabled((int)settings.getLong("userMessagesHighlight"), type)
+
+    private void endHighlight(int highlightMask, int pos, int type) {
+        if (MiscUtil.isBitEnabled(highlightMask, type)
                 && pos > highlightStart) {
             highlights.put(highlightStart, pos);
         }
     }
-    
+
     private String makeLines(User user, String currentMessageId) {
+        // Looked up once per rebuild rather than on every highlight segment
+        // (there can be several per message across a whole scrollback).
+        int highlightMask = (int) settings.getLong("userMessagesHighlight");
         StringBuilder b = new StringBuilder();
         if (user.linesCleared()) {
             b.append("<some lines cleared due to user inactivity>\n");
@@ -124,9 +121,9 @@ public class PastMessages extends JTextArea {
                                 || messageCountSinceLowTrustInfo > 4) {
                             lowTrustInfo = tm.lowTrust.makeInfo();
                             b.append(timestampFormat.make(m.getTime(), user.getRoom())).append("I ");
-                            startHighlight(b.length(), LOW_TRUST);
+                            startHighlight(highlightMask, b.length(), LOW_TRUST);
                             b.append(lowTrustInfo);
-                            endHighlight(b.length(), LOW_TRUST);
+                            endHighlight(highlightMask, b.length(), LOW_TRUST);
                             b.append("\n");
                             messageCountSinceLowTrustInfo = 0;
                         }
@@ -135,17 +132,15 @@ public class PastMessages extends JTextArea {
                     int simPercentage = 0;
                     if (!StringUtil.isNullOrEmpty(currentMessageId)
                             && currentMessageId.equals(tm.id)) {
-                        startHighlight(b.length(), CURRENT_MSG);
+                        startHighlight(highlightMask, b.length(), CURRENT_MSG);
                         b.append(">");
-                        endHighlight(b.length(), CURRENT_MSG);
-                        //singleMessage.setText(SINGLE_MESSAGE_CHECK+" ("+StringUtil.shortenTo(tm.text, 14)+")");
-                        currentMessageIdMessage = tm.text;
+                        endHighlight(highlightMask, b.length(), CURRENT_MSG);
                     } else if (currentMsgText != null) {
                         simPercentage = repeatHelper.getPercentage(user, tm.text, currentMsgText);
                     }
                     b.append(timestampFormat.make(m.getTime(), user.getRoom()));
                     if (tm.lowTrust != null) {
-                        startHighlight(b.length(), LOW_TRUST);
+                        startHighlight(highlightMask, b.length(), LOW_TRUST);
                         switch (tm.lowTrust.treatment) {
                             case ACTIVE_MONITORING:
                                 b.append("[M]");
@@ -154,12 +149,12 @@ public class PastMessages extends JTextArea {
                                 b.append("[R]");
                                 break;
                         }
-                        endHighlight(b.length(), LOW_TRUST);
+                        endHighlight(highlightMask, b.length(), LOW_TRUST);
                     }
                     if (simPercentage > 0) {
-                        startHighlight(b.length() + 1, REPEATED_MSG);
+                        startHighlight(highlightMask, b.length() + 1, REPEATED_MSG);
                         b.append(" [").append(simPercentage).append("%]");
-                        endHighlight(b.length(), REPEATED_MSG);
+                        endHighlight(highlightMask, b.length(), REPEATED_MSG);
                     }
                     addSourceChannel(tm, b);
                     if (tm.action) {
@@ -175,13 +170,13 @@ public class PastMessages extends JTextArea {
                     addSourceChannel(m, b);
                     b.append(">");
 
-                    startHighlight(b.length(), MOD_ACTION);
+                    startHighlight(highlightMask, b.length(), MOD_ACTION);
                     if (bm.duration > 0) {
                         b.append("Timed out (").append(bm.duration).append("s)");
                     } else {
                         b.append("Banned permanently");
                     }
-                    endHighlight(b.length(), MOD_ACTION);
+                    endHighlight(highlightMask, b.length(), MOD_ACTION);
                     if (bm.id != null) {
                         b.append(" (single message)");
                     }
@@ -198,13 +193,13 @@ public class PastMessages extends JTextArea {
                     addSourceChannel(m, b);
                     b.append(">");
 
-                    startHighlight(b.length(), MOD_ACTION);
+                    startHighlight(highlightMask, b.length(), MOD_ACTION);
                     if (ubm.type == User.UnbanMessage.TYPE_UNBAN) {
                         b.append("Unbanned");
                     } else if (ubm.type == User.UnbanMessage.TYPE_UNTIMEOUT) {
                         b.append("Timeout removed");
                     }
-                    endHighlight(b.length(), MOD_ACTION);
+                    endHighlight(highlightMask, b.length(), MOD_ACTION);
                     b.append(" (@").append(ubm.by).append(")");
                     b.append("\n");
                 }
@@ -213,9 +208,9 @@ public class PastMessages extends JTextArea {
                     addSourceChannel(m, b);
                     b.append(">");
 
-                    startHighlight(b.length(), MOD_ACTION);
+                    startHighlight(highlightMask, b.length(), MOD_ACTION);
                     b.append("Message deleted:");
-                    endHighlight(b.length(), MOD_ACTION);
+                    endHighlight(highlightMask, b.length(), MOD_ACTION);
                     b.append(" ").append(md.msg);
                     if (md.by != null) {
                         b.append(" (@").append(md.by).append(")");
@@ -227,11 +222,9 @@ public class PastMessages extends JTextArea {
                     int simPercentage = 0;
                     if (!StringUtil.isNullOrEmpty(currentMessageId)
                             && currentMessageId.equals(sm.id)) {
-                        startHighlight(b.length(), CURRENT_MSG);
+                        startHighlight(highlightMask, b.length(), CURRENT_MSG);
                         b.append(">");
-                        endHighlight(b.length(), CURRENT_MSG);
-                        //singleMessage.setText(SINGLE_MESSAGE_CHECK+" ("+StringUtil.shortenTo(tm.text, 14)+")");
-                        currentMessageIdMessage = sm.attached_message;
+                        endHighlight(highlightMask, b.length(), CURRENT_MSG);
                     } else if (currentMsgText != null) {
                         simPercentage = repeatHelper.getPercentage(user, sm.attached_message, currentMsgText);
                     }
@@ -239,9 +232,9 @@ public class PastMessages extends JTextArea {
                     b.append(timestampFormat.make(m.getTime(), user.getRoom()));
 
                     if (simPercentage > 0) {
-                        startHighlight(b.length() + 1, REPEATED_MSG);
+                        startHighlight(highlightMask, b.length() + 1, REPEATED_MSG);
                         b.append(" [").append(simPercentage).append("%]");
-                        endHighlight(b.length(), REPEATED_MSG);
+                        endHighlight(highlightMask, b.length(), REPEATED_MSG);
                     }
 
                     addSourceChannel(sm, b);
@@ -284,7 +277,7 @@ public class PastMessages extends JTextArea {
                         b.append(">");
                     }
                     b.append(timestampFormat.make(m.getTime(), user.getRoom())).append(">");
-                    startHighlight(b.length(), AUTO_MOD);
+                    startHighlight(highlightMask, b.length(), AUTO_MOD);
                     b.append("Filtered by AutoMod");
                     switch (ma.status) {
                         case AUTOMOD_APPROVED:
@@ -294,7 +287,7 @@ public class PastMessages extends JTextArea {
                             b.append(":DENIED");
                             break;
                     }
-                    endHighlight(b.length(), AUTO_MOD);
+                    endHighlight(highlightMask, b.length(), AUTO_MOD);
                     if (!StringUtil.isNullOrEmpty(ma.reason)) {
                         b.append(" [").append(ma.reason).append("]");
                     }

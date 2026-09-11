@@ -264,7 +264,7 @@ public class BlockedTermsPanel extends JPanel {
             BlockedTerm term = data.get(table.convertRowIndexToModel(j));
             toDelete.add(term);
         }
-        if (toDelete.size() == 1 || JOptionPane.showConfirmDialog(table, "Delete "+toDelete.size()+" items?", "Delete items", JOptionPane.OK_CANCEL_OPTION) == 0) {
+        if (JOptionPane.showConfirmDialog(table, "Delete "+toDelete.size()+" items?", "Delete items", JOptionPane.OK_CANCEL_OPTION) == 0) {
             Thread thread = new Thread("deleteTerms") {
                 
                 @Override
@@ -283,7 +283,9 @@ public class BlockedTermsPanel extends JPanel {
                             })));
                         }
                         catch (InterruptedException ex) {
-                            Logger.getLogger(BlockedTermsPanel.class.getName()).log(Level.SEVERE, null, ex);
+                            LOGGER.log(Level.SEVERE, "Bulk delete interrupted", ex);
+                            Thread.currentThread().interrupt();
+                            break;
                         }
                     }
                 }
@@ -308,7 +310,9 @@ public class BlockedTermsPanel extends JPanel {
                             TimeUnit.MILLISECONDS.sleep(BULK_EDIT_DELAY);
                         }
                         catch (InterruptedException ex) {
-                            Logger.getLogger(BlockedTermsPanel.class.getName()).log(Level.SEVERE, null, ex);
+                            LOGGER.log(Level.SEVERE, "Bulk import interrupted", ex);
+                            Thread.currentThread().interrupt();
+                            break;
                         }
                         SwingUtilities.invokeLater(() -> addEntry(item));
                     }
@@ -379,10 +383,10 @@ public class BlockedTermsPanel extends JPanel {
     private void refreshData() {
         loading = true;
         update();
-        api.getBlockedTerms(currentStream, true, t -> {
+        api.getBlockedTerms(currentStream, true, t -> SwingUtilities.invokeLater(() -> {
             setEdited(false);
             setData(t);
-        });
+        }));
     }
     
     public void update() {

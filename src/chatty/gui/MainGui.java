@@ -1166,7 +1166,7 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
         
         userInfoDialog.setTimestampFormat(styleManager.makeTimestampFormat("userDialogTimestamp"));
         userInfoDialog.setFontSize(client.settings.getLong("dialogFontSize"));
-        UserNotes.init(client.api, client.settings);
+        UserNotes.init(client.settings);
         
         hotkeyManager.setGlobalHotkeysEnabled(client.settings.getBoolean("globalHotkeysEnabled"));
         hotkeyManager.loadFromSettings(client.settings);

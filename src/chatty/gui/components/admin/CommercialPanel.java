@@ -14,6 +14,7 @@ import java.awt.event.ActionListener;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import static chatty.gui.components.admin.AdminDialog.hideableLabel;
 import static chatty.gui.components.admin.AdminDialog.makeGbc;
@@ -23,7 +24,15 @@ import static chatty.gui.components.admin.AdminDialog.makeGbc;
  * @author tduva
  */
 public class CommercialPanel extends JPanel {
-    
+
+    private static final Logger LOGGER = Logger.getLogger(CommercialPanel.class.getName());
+
+    /**
+     * Index into the options array of confirmContinueScheduledOnClose()'s
+     * showOptionDialog() that means "Cancel commercial".
+     */
+    private static final int OPTION_CANCEL_COMMERCIAL = 1;
+
     /**
      * After a commercial was attempted to run/the result was returned wait for
      * this long before displaying new data of a scheduled commercial.
@@ -108,7 +117,7 @@ public class CommercialPanel extends JPanel {
             if (result == JOptionPane.CLOSED_OPTION) {
                 return false;
             }
-            if (result == 1) {
+            if (result == OPTION_CANCEL_COMMERCIAL) {
                 clearScheduledCommercial();
             }
         }
@@ -165,10 +174,11 @@ public class CommercialPanel extends JPanel {
     }
     
     public void commercialHotkey(int length) {
-        if (commercialButtons.containsKey(length)) {
-            commercialButtons.get(length).doClick();
+        JToggleButton button = commercialButtons.get(length);
+        if (button != null) {
+            button.doClick();
         } else {
-            commercialButtons.get(30).doClick();
+            LOGGER.warning("No commercial button configured for length: "+length);
         }
     }
     
@@ -386,6 +396,7 @@ public class CommercialPanel extends JPanel {
         String message = "<html><body style='width:240'>"
                 + "There is currently a commercial scheduled to be run. It can also"
                 + " be run if you close this. What do you want to do?";
+        // Index OPTION_CANCEL_COMMERCIAL above must match "Cancel commercial" here
         String[] options = new String[]{"Run on schedule", "Cancel commercial"};
         return JOptionPane.showOptionDialog(main, message,
                 "Closing Admin Dialog while commercial is scheduled", JOptionPane.YES_NO_OPTION,

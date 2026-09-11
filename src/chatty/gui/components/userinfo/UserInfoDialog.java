@@ -40,10 +40,6 @@ public class UserInfoDialog extends JDialog {
 
     private static final String SINGLE_MESSAGE_CHECK = "Remove only selected message";
 
-    public enum Action {
-        NONE, TIMEOUT, MOD, UNMOD, COMMAND
-    }
-    
     private final InfoPanel infoPanel;
     private final PastMessages pastMessages;
 
@@ -523,22 +519,11 @@ public class UserInfoDialog extends JDialog {
     public User getUser() {
         return currentUser;
     }
-    
-    public String getChannel() {
-        return currentUser.getChannel();
-    }
-    
+
     public String getMsgId() {
         return currentMsgId;
     }
-    
-    public String getMsg() {
-        if (currentUser != null) {
-            return currentUser.getMessageText(currentMsgId);
-        }
-        return null;
-    }
-    
+
     public String getTargetMsgId() {
         if (singleMessage.isSelected()) {
             return currentMsgId;

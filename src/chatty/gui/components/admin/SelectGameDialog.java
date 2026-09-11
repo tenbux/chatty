@@ -267,7 +267,10 @@ public class SelectGameDialog extends JDialog {
         }
         searchResultInfo.setText(Language.getString("admin.game.listInfo",
                 searchResult.size(), favorites.size()));
-        list.setSelectedValue(gameInput.getText(), false);
+        // StreamCategory.equals() only matches another StreamCategory (by
+        // name), so a plain String here would never match and always clear
+        // the selection.
+        list.setSelectedValue(new StreamCategory(null, gameInput.getText()), false);
     }
     
     private void doSearch() {

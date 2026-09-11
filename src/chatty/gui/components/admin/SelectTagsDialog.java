@@ -177,7 +177,7 @@ public class SelectTagsDialog extends JDialog {
         add(addToFavoritesButton, gbc);
         
         GuiUtil.smallButtonInsets(removeFromFavoritesButton);
-        addToFavoritesButton.setMnemonic(KeyEvent.VK_F);
+        removeFromFavoritesButton.setMnemonic(KeyEvent.VK_U);
         gbc = makeGbc(1,6,1,1);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 0.5;
@@ -446,6 +446,12 @@ public class SelectTagsDialog extends JDialog {
     
     private void addFromInput() {
         String name = input.getText();
+        if (!new StreamTag(name).isValid()) {
+            // Enter in the input field calls this directly, bypassing the
+            // addCurrent button's enabled state, so the check has to live
+            // here as well.
+            return;
+        }
         StreamTag tag = getCurrent(name);
         if (tag != null) {
             int index = current.indexOf(tag);
@@ -453,6 +459,9 @@ public class SelectTagsDialog extends JDialog {
             current.add(index, new StreamTag(name));
         }
         else {
+            if (current.size() >= MAX_TAGS) {
+                return;
+            }
             current.add(new StreamTag(name));
         }
         updateCurrent();

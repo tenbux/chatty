@@ -163,7 +163,10 @@ public class StatusPanel extends JPanel implements Scrollable {
         });
         GuiUtil.resetFocusTraversalKeys(status);
         status.getAccessibleContext().setAccessibleName(Language.getString("admin.input.title"));
-        GuiUtil.installLengthLimitDocumentFilter(status, 500, false);
+        // Twitch's Modify Channel Information API rejects titles over 140
+        // characters ("Title exceeds the 140 character limit"), which is
+        // also the length the access-denied error hint below assumes.
+        GuiUtil.installLengthLimitDocumentFilter(status, 140, false);
         gbc = makeGbc(0,2,3,1);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         add(status, gbc);
