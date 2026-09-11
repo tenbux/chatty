@@ -200,9 +200,10 @@ public class CachedBulkManager<Key,Item> {
     
     @SuppressWarnings("unchecked") // JSONArray / JSONObject
     public void saveCacheToFile(Path file, BiFunction<Key, Item, String> itemToString) {
+        JSONObject data = new JSONObject();
+        JSONArray items = new JSONArray();
+        int cacheSize;
         synchronized (LOCK) {
-            JSONObject data = new JSONObject();
-            JSONArray items = new JSONArray();
             for (Map.Entry<Key, CacheItem<Item>> entry : cache.entrySet()) {
                 if (!shouldRemove(entry.getValue())) {
                     JSONArray item = new JSONArray();
@@ -214,17 +215,25 @@ public class CachedBulkManager<Key,Item> {
                     }
                 }
             }
-            data.put("items", items);
-            
-            try (BufferedWriter writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
+            cacheSize = cache.size();
+        }
+        data.put("items", items);
+
+        // Write to a temp file and move it into place atomically, so a crash
+        // or error mid-write can't leave a truncated file that gets silently
+        // discarded (as invalid JSON) on the next load.
+        try {
+            Path tempFile = Files.createTempFile(file.toAbsolutePath().getParent(), file.getFileName().toString(), ".tmp");
+            try (BufferedWriter writer = Files.newBufferedWriter(tempFile, StandardCharsets.UTF_8)) {
                 writer.write(data.toJSONString());
-                LOGGER.info(String.format("%sSaved to %s (%d/%d items)",
-                        debugPrefix, file, items.size(), cache.size()));
             }
-            catch (IOException ex) {
-                LOGGER.warning(String.format("%sError saving cache to %s: %s",
-                        debugPrefix, file, ex));
-            }
+            MiscUtil.moveFile(tempFile, file);
+            LOGGER.info(String.format("%sSaved to %s (%d/%d items)",
+                    debugPrefix, file, items.size(), cacheSize));
+        }
+        catch (IOException ex) {
+            LOGGER.warning(String.format("%sError saving cache to %s: %s",
+                    debugPrefix, file, ex));
         }
     }
     

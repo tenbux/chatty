@@ -90,10 +90,10 @@ public class ChannelStateManager {
                 setFollowersOnly(channel, ChannelState.SLOWMODE_ON_INVALID);
             }
         } else {
-            setSlowmode(channel, -1);
+            setFollowersOnly(channel, -1);
         }
     }
-    
+
     public void setShieldMode(String channel, boolean enabled) {
         if (getState(channel).setShieldMode(enabled)) {
             updated(channel);

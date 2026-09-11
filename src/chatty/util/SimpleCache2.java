@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 /**
@@ -31,7 +32,7 @@ public class SimpleCache2 {
     
     private volatile boolean loadSuccess;
     private volatile boolean cacheInvalid;
-    private volatile boolean pendingRefresh;
+    private final AtomicBoolean pendingRefresh = new AtomicBoolean();
     
     public SimpleCache2(String id, String file, long expireTime) {
         this.file = Paths.get(file);
@@ -119,21 +120,23 @@ public class SimpleCache2 {
      * to load it from file, even if the file expired.
      */
     public void refresh() {
-        if (pendingRefresh) {
+        if (!pendingRefresh.compareAndSet(false, true)) {
             return;
         }
-        if (refreshLinesCallback != null) {
-            pendingRefresh = true;
-            List<String> lines = refreshLinesCallback.get();
-            boolean valid = handleLinesCallback.apply(lines);
-            if (valid) {
-                saveToFile(lines);
-                loadSuccess = true;
-            } else if (!loadSuccess) {
-                loadFromCache(true);
+        try {
+            if (refreshLinesCallback != null) {
+                List<String> lines = refreshLinesCallback.get();
+                boolean valid = handleLinesCallback.apply(lines);
+                if (valid) {
+                    saveToFile(lines);
+                    loadSuccess = true;
+                } else if (!loadSuccess) {
+                    loadFromCache(true);
+                }
             }
+        } finally {
+            pendingRefresh.set(false);
         }
-        pendingRefresh = false;
     }
     
     /**

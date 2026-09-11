@@ -60,6 +60,7 @@ public class StatusPanel extends JPanel implements Scrollable {
     private final SelectGameDialog selectGameDialog;
     private final SelectTagsDialog selectTagsDialog;
     private final StatusHistoryDialog statusHistoryDialog;
+    private final SelectLabelsDialog selectLabelsDialog;
     
     private final AdminDialog parent;
     private final MainGui main;
@@ -91,6 +92,7 @@ public class StatusPanel extends JPanel implements Scrollable {
         selectGameDialog = new SelectGameDialog(main, api);
         selectTagsDialog = new SelectTagsDialog(main, api);
         statusHistoryDialog = new StatusHistoryDialog(parent, main.getStatusHistory());
+        selectLabelsDialog = new SelectLabelsDialog(main);
         
         GridBagConstraints gbc;
 
@@ -280,9 +282,8 @@ public class StatusPanel extends JPanel implements Scrollable {
                 setTags(null);
                 statusEdited();
             } else if (e.getSource() == selectLabels) {
-                SelectLabelsDialog dialog = new SelectLabelsDialog(main);
-                dialog.setLocationRelativeTo(StatusPanel.this);
-                List<StreamLabel> result = dialog.open(currentStreamLabels);
+                selectLabelsDialog.setLocationRelativeTo(StatusPanel.this);
+                List<StreamLabel> result = selectLabelsDialog.open(currentStreamLabels);
                 if (result != null) {
                     setLabels(result);
                     statusEdited();

@@ -23,7 +23,7 @@ public class HtmlColors {
         // HTML 4.01
         add("White", 255, 255, 255);
         add("Silver", 192, 192, 192);
-        add(128, 128, 128, "Grey"," Gray");
+        add(128, 128, 128, "Grey", "Gray");
         add("Black", 0, 0, 0);
         add("Red", 255, 0, 0);
         add("Maroon", 128, 0, 0);
@@ -74,7 +74,7 @@ public class HtmlColors {
         add("PeachPuff", 255, 218, 185);
         add("PaleGoldenrod", 238, 232, 170);
         add("Khaki", 240, 230, 140);
-        add("DarkKahki", 189, 183, 107);
+        add("DarkKhaki", 189, 183, 107);
         
         // Brown colors
         add("Cornsilk", 255, 248, 220);
@@ -97,7 +97,7 @@ public class HtmlColors {
         
         // Green colors
         add("DarkOliveGreen", 85, 107, 47);
-        add("OlveDrab", 107, 142, 35);
+        add("OliveDrab", 107, 142, 35);
         add("YellowGreen", 154, 205, 50);
         add("LimeGreen", 50, 205, 50);
         add("LawnGreen", 124, 252, 0);

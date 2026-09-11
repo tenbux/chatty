@@ -73,7 +73,7 @@ public class LineNumbers extends JPanel {
                     updateSize();
                     break;
                 case "background":
-                case "foregorund":
+                case "foreground":
                     updateColors();
                     break;
             }

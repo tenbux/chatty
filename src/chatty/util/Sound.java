@@ -152,7 +152,14 @@ public class Sound {
         else {
             clip = (Clip) AudioSystem.getLine(info);
         }
-        clip.open(ais);
+        try {
+            // Clip.open() reads the whole stream into memory and does not
+            // take ownership of it, so the stream (and any file/URL handle
+            // it holds) must be closed here or it leaks per sound played.
+            clip.open(ais);
+        } finally {
+            ais.close();
+        }
 
         clip.addLineListener(event -> {
             boolean simulateIssue = Debugging.isEnabled("soundNoStop") && ThreadLocalRandom.current().nextBoolean();

@@ -32,12 +32,14 @@ public class DockOverlay extends JPanel {
     
     private Color fillColor = new Color(64, 64, 64, 64);
     private Color lineColor = Color.DARK_GRAY;
-    
+
+    private final Timer timer;
+
     public DockOverlay(DockBase base) {
         this.base = base;
-        
+
         // Stop drawing rectangle when mouse moves outside of area
-        Timer timer = new Timer(100, e -> {
+        timer = new Timer(100, e -> {
             if (paintRect != null && getMousePosition() == null) {
                 paintRect = null;
                 repaint();
@@ -129,6 +131,14 @@ public class DockOverlay extends JPanel {
         return dropInfoUpdated != null;
     }
     
+    @Override
+    public void removeNotify() {
+        // Stop the polling timer once this overlay's window is disposed, so
+        // it doesn't keep firing forever for every popout ever opened.
+        timer.stop();
+        super.removeNotify();
+    }
+
     @Override
     public void paintComponent(Graphics g) {
         if (paintRect != null) {

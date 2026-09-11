@@ -28,7 +28,7 @@ public class UniqueLimitedRingBuffer<T> {
             list.addLast(e);
         }
         if (list.size() > capacity) {
-            list.removeFirst();
+            set.remove(list.removeFirst());
         }
     }
 

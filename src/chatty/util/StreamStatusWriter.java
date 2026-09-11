@@ -180,9 +180,14 @@ public class StreamStatusWriter implements SettingChangeListener {
         Path file = path.resolve(fileName);
         try {
             Files.createDirectories(path);
-            try (BufferedWriter writer = Files.newBufferedWriter(file, CHARSET)) {
+            // Write to a temp file and move it into place atomically, so a
+            // source (e.g. an OBS text source) polling this file never sees
+            // a truncated/partial write.
+            Path tempFile = Files.createTempFile(path, fileName, ".tmp");
+            try (BufferedWriter writer = Files.newBufferedWriter(tempFile, CHARSET)) {
                 writer.write(content);
             }
+            MiscUtil.moveFile(tempFile, file);
         } catch (IOException ex) {
             LOGGER.warning("Error writing status: " + ex);
         }

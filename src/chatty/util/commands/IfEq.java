@@ -75,16 +75,16 @@ class IfEq implements Item {
         if (isRequired != other.isRequired) {
             return false;
         }
-        if (Objects.equals(identifier, other.identifier)) {
+        if (!Objects.equals(identifier, other.identifier)) {
             return false;
         }
-        if (Objects.equals(compare, other.compare)) {
+        if (!Objects.equals(compare, other.compare)) {
             return false;
         }
-        if (Objects.equals(output1, other.output1)) {
+        if (!Objects.equals(output1, other.output1)) {
             return false;
         }
-        return !Objects.equals(output2, other.output2);
+        return Objects.equals(output2, other.output2);
     }
 
     @Override
