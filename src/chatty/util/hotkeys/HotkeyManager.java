@@ -88,7 +88,7 @@ public class HotkeyManager {
                 globalHotkeys = new GlobalHotkeySetter(hotkeyId -> onGlobalHotkey(hotkeyId));
                 // If an error occured during initialization, then set to null
                 // which means it's not going to be used.
-                if (globalHotkeys.isActive()) {
+                if (globalHotkeys.isInactive()) {
                     globalHotkeyErrorWarning = globalHotkeys.getError();
                     globalHotkeys = null;
                 }

@@ -44,14 +44,14 @@ public class GlobalHotkeySetter {
     }
     
     /**
-     * Whether the global hotkey provider has been initialized and is still
-     * active. If false, then more information may be retrieved with
+     * Whether the global hotkey provider has not been initialized, or is no
+     * longer running. If true, then more information may be retrieved with
      * {@link #getError() getError}, unless the provider was intentionally
      * stopped.
-     * 
-     * @return true if global hotkeys can be added, false otherwise
+     *
+     * @return true if global hotkeys can not be added, false otherwise
      */
-    public boolean isActive() {
+    public boolean isInactive() {
         return hotkeys == null || !hotkeys.isRunning();
     }
     
@@ -63,7 +63,7 @@ public class GlobalHotkeySetter {
      * depending on the system)
      */
     public void registerHotkey(Object hotkeyId, KeyStroke keyStroke) {
-        if (isActive()) {
+        if (isInactive()) {
             return;
         }
         try {
@@ -80,7 +80,7 @@ public class GlobalHotkeySetter {
      * Removes all registered hotkeys.
      */
     public void unregisterAllHotkeys() {
-        if (isActive() || !anyRegistered) {
+        if (isInactive() || !anyRegistered) {
             return;
         }
         try {
@@ -98,7 +98,7 @@ public class GlobalHotkeySetter {
      * afterwards.
      */
     public void cleanUp() {
-        if (isActive()) {
+        if (isInactive()) {
             return;
         }
         try {
