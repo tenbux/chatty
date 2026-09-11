@@ -64,9 +64,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 import java.lang.management.ManagementFactory;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -183,6 +185,7 @@ public class TwitchClient {
     private final StreamInfo testStreamInfo = new StreamInfo("testStreamInfo", null);
     
     private Webserver webserver;
+    private String webserverState;
     private final SettingsManager settingsManager;
     private final SpamProtection spamProtection;
     public final CustomCommands customCommands;
@@ -2801,7 +2804,8 @@ public class TwitchClient {
     
     public void startWebserver() {
         if (webserver == null) {
-            webserver = new Webserver(new WebserverListener());
+            webserverState = new BigInteger(130, new SecureRandom()).toString(32);
+            webserver = new Webserver(new WebserverListener(), webserverState);
             new Thread(webserver).start();
         }
         else {
@@ -2809,6 +2813,18 @@ public class TwitchClient {
             // When webserver is already running, it should be started
             g.webserverStarted();
         }
+    }
+
+    /**
+     * The OAuth "state" value the currently running webserver instance
+     * expects a token request to carry back, so it can be embedded in the
+     * auth URL to verify the token actually came from the auth flow Chatty
+     * itself initiated.
+     *
+     * @return The state value, or null if the webserver isn't running
+     */
+    public String getWebserverState() {
+        return webserverState;
     }
     
     public void stopWebserver() {

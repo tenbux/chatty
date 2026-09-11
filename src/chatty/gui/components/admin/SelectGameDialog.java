@@ -269,8 +269,12 @@ public class SelectGameDialog extends JDialog {
                 searchResult.size(), favorites.size()));
         // StreamCategory.equals() only matches another StreamCategory (by
         // name), so a plain String here would never match and always clear
-        // the selection.
-        list.setSelectedValue(new StreamCategory(null, gameInput.getText()), false);
+        // the selection. Guard against an empty input matching the SEPARATOR
+        // sentinel (also a StreamCategory with an empty name).
+        String gameInputText = gameInput.getText();
+        if (!gameInputText.isEmpty()) {
+            list.setSelectedValue(new StreamCategory(null, gameInputText), false);
+        }
     }
     
     private void doSearch() {

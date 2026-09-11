@@ -1695,6 +1695,7 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
                 tokenGetDialog.setLocationRelativeTo(tokenDialog);
                 tokenGetDialog.reset();
                 client.startWebserver();
+                tokenGetDialog.setState(client.getWebserverState());
                 tokenGetDialog.setVisible(true);
 
             } else if (event.getSource() == tokenDialog.getDoneButton()) {

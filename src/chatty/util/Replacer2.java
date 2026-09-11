@@ -296,7 +296,17 @@ public class Replacer2 {
             // Normalize lookup to lowercase for case-insensitivity
             String base = wordsMapping.get(m.group().toLowerCase(Locale.ROOT));
             if (base == null) {
-                return null;
+                // The regex was compiled with CASE_INSENSITIVE|UNICODE_CASE,
+                // whose case-fold equivalence classes can be broader than
+                // simple toLowerCase() (e.g. "ſ"/long s folds to the same
+                // class as "S"/"s" under UNICODE_CASE, but not under plain
+                // toLowerCase()), so a match here isn't guaranteed to have a
+                // corresponding key. Leave this occurrence unchanged rather
+                // than discarding every other replacement already found in
+                // this message.
+                b.append(m.group());
+                lastAppendPos = m.end();
+                continue;
             }
             int lengthDiff = m.group().length() - base.length();
             if (lengthDiff != 0) {

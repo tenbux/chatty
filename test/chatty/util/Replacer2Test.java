@@ -161,7 +161,26 @@ public class Replacer2Test {
                 "𝒜𝑩ℂ𝘿", "abcd"
         );
     }
-    
+
+    /**
+     * Regression test: the words regex is compiled with
+     * CASE_INSENSITIVE|UNICODE_CASE, whose case-fold equivalence classes are
+     * broader than the simple toLowerCase() used to build the wordsMapping
+     * lookup table. "St" matches the pattern for "ſt" (long s + t)
+     * under UNICODE_CASE (verified: "St".matches("(?iu)ſt") is true),
+     * but "St".toLowerCase() is "st", not "ſt", so the lookup used to
+     * return null and abort the entire replaceWords() pass, discarding an
+     * earlier, unrelated, successfully found replacement in the same
+     * message.
+     */
+    @Test
+    public void testReplaceWords_unicodeCaseFoldMismatch_doesNotDiscardOtherReplacements() {
+        Replacer2 replacer = Replacer2.create(Arrays.asList("hi ſt", "yell yellow"));
+        Replacer2.Result result = replacer.replace("yellow St");
+        assertEquals("yell St", result.getChangedText());
+    }
+
+
     private static void test(String[] items, String message, String... searchAndExpected) {
         test(items, message, false, searchAndExpected);
     }

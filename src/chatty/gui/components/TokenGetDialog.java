@@ -41,6 +41,7 @@ public class TokenGetDialog extends JDialog implements ItemListener, ActionListe
     private final Map<Scope, JCheckBox> checkboxes = new HashMap<>();
     
     private String currentUrl = TwitchClient.REQUEST_TOKEN_URL;
+    private String state;
     
     public TokenGetDialog(MainGui owner) {
         super(owner,"Get login data",true);
@@ -135,6 +136,17 @@ public class TokenGetDialog extends JDialog implements ItemListener, ActionListe
         urlField.setEnabled(false);
         setStatus("Please wait..");
     }
+
+    /**
+     * Sets the OAuth "state" value to embed in the request URL, matching
+     * what the currently running webserver instance expects back.
+     *
+     * @param state
+     */
+    public void setState(String state) {
+        this.state = state;
+        updateUrl();
+    }
     
     public void ready() {
         openUrl.setEnabled(true);
@@ -188,6 +200,9 @@ public class TokenGetDialog extends JDialog implements ItemListener, ActionListe
             scopes = new StringBuilder(scopes.substring(1));
         }
         String url = TwitchClient.REQUEST_TOKEN_URL+scopes;
+        if (state != null) {
+            url += "&state="+state;
+        }
         currentUrl = url;
         urlField.setText(url);
     }

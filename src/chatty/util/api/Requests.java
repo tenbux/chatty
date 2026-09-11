@@ -115,7 +115,7 @@ public class Requests {
                 api.localUserId,
                 StreamInfoManager.FOLLOWED_STREAMS_LIMIT);
         if (!StringUtil.isNullOrEmpty(cursor)) {
-            url += "&after="+cursor;
+            url += "&after="+URLEncoder.encode(cursor, StandardCharsets.UTF_8);
         }
         newApi.add(url, "GET", api.defaultToken, r -> api.streamInfoManager.requestResultFollows(r.text(), r.responseCode()));
     }
@@ -362,7 +362,7 @@ public class Requests {
                 api.localUserId,
                 BlockedTermsManager.MAX_RESULTS_PER_REQUEST);
         if (!StringUtil.isNullOrEmpty(cursor)) {
-            url += "&after="+cursor;
+            url += "&after="+URLEncoder.encode(cursor, StandardCharsets.UTF_8);
         }
         newApi.add(url, "GET", api.defaultToken, r -> api.blockedTermsManager.resultReceived(streamId, login, r.text(), r.responseCode()));
     }
@@ -884,7 +884,7 @@ public class Requests {
     public void getEventSubSubs(String cursor, Consumer<EventSubSubs> listener, EventSubSubs result) {
         String url = "https://api.twitch.tv/helix/eventsub/subscriptions?status=enabled";
         if (cursor != null) {
-            url += "&after="+cursor;
+            url += "&after="+URLEncoder.encode(cursor, StandardCharsets.UTF_8);
         }
         newApi.add(url, "GET", api.defaultToken, r -> {
             String nextCursor = getCursor(r.text());

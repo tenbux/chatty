@@ -30,6 +30,7 @@ public class Webserver implements Runnable {
     private volatile boolean running = true;
     private volatile ServerSocket serverSocket = null;
     private final WebserverListener listener;
+    private final String expectedState;
     private int connectionCount = 0;
     
     private final List<WebserverConnection> connections =
@@ -62,7 +63,7 @@ public class Webserver implements Runnable {
             public void webserverTokenReceived(String token) {
                 System.out.println("Save token and stuff");
             }
-        });
+        }, "test-state");
         Thread serverThread = new Thread(s, "Webserver");
         serverThread.setDaemon(true);
         serverThread.start();
@@ -71,11 +72,15 @@ public class Webserver implements Runnable {
     /**
      * Construct a new webserver with the given client where data is sent. Still
      * has to be started in a new Thread.
-     * 
-     * @param listener Listener to return state information and data to 
+     *
+     * @param listener Listener to return state information and data to
+     * @param expectedState The OAuth "state" value the token request must
+     * carry back for the token to be accepted, so another local process
+     * hitting this port directly can't feed in an arbitrary token
      */
-    public Webserver(WebserverListener listener) {
+    public Webserver(WebserverListener listener, String expectedState) {
         this.listener = listener;
+        this.expectedState = expectedState;
     }
     
     /**
@@ -282,7 +287,15 @@ public class Webserver implements Runnable {
                         // to the client
                         response = makeResponse("token_received.html");
                         debugConnection("Token received");
-                        if (listener != null) {
+                        if (!StringUtil.isNullOrEmpty(expectedState)
+                                && !expectedState.equals(getState(request))) {
+                            // Doesn't carry the state this webserver instance
+                            // was started for, so it isn't the redirect from
+                            // the auth flow Chatty itself initiated - could be
+                            // another local process hitting this port
+                            // directly with an arbitrary token.
+                            debugConnection("Ignored token request with missing/mismatched state");
+                        } else if (listener != null) {
                             listener.webserverTokenReceived(token);
                         }
                     }
@@ -340,16 +353,49 @@ public class Webserver implements Runnable {
                 return "";
             }
             start += "/token/".length();
-            int end = request.indexOf(" ", start);
-            int end2 = request.indexOf("/", start);
-            // If a / comes earlier than a space, use that
-            if (end2 != -1 && end2 < end) {
-                end = end2;
-            }
+            int end = findEarliestBoundary(request, start, " ", "/", "?");
             if (end == -1) {
                 return "";
             }
             return request.substring(start, end).trim();
+        }
+
+        /**
+         * Gets the "state" query parameter from the request line (e.g.
+         * "GET /token/&lt;token&gt;?state=&lt;state&gt; HTTP/1.1"), used to
+         * verify the token request actually originates from the auth flow
+         * this webserver instance was started for, rather than from an
+         * arbitrary local process hitting this port directly.
+         *
+         * @param request
+         * @return The state value or an empty String
+         */
+        private String getState(String request) {
+            int start = request.indexOf("?state=");
+            if (start == -1) {
+                return "";
+            }
+            start += "?state=".length();
+            int end = findEarliestBoundary(request, start, " ", "&");
+            if (end == -1) {
+                return "";
+            }
+            return request.substring(start, end).trim();
+        }
+
+        /**
+         * Finds the earliest occurrence of any of the given boundary Strings
+         * at or after {@code start}, or -1 if none of them occur.
+         */
+        private int findEarliestBoundary(String request, int start, String... boundaries) {
+            int earliest = -1;
+            for (String boundary : boundaries) {
+                int pos = request.indexOf(boundary, start);
+                if (pos != -1 && (earliest == -1 || pos < earliest)) {
+                    earliest = pos;
+                }
+            }
+            return earliest;
         }
         
         /**
