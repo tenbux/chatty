@@ -20,6 +20,7 @@ import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.text.Normalizer;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -419,7 +420,91 @@ public class Helper {
         return text;
     }
 
-    
+    /**
+     * First and last codepoint of the Unicode "Mathematical Alphanumeric
+     * Symbols" block, used by "fancy font" generators to make chat text
+     * look bold/italic/script/fraktur/monospace by substituting look-alike
+     * math symbols for regular letters and digits. Distinct from any block
+     * used by actual diacritics, so filtering it doesn't affect accented
+     * text.
+     */
+    private static final int STYLIZED_TEXT_RANGE_START = 0x1D400;
+    private static final int STYLIZED_TEXT_RANGE_END = 0x1D7FF;
+
+    /**
+     * First and last codepoint of the "Fullwidth ASCII variants" range
+     * (within Halfwidth and Fullwidth Forms), i.e. the fullwidth mirror of
+     * the printable ASCII range !"#...~. Another common "fancy font"
+     * generator output. Deliberately excludes halfwidth Katakana and the
+     * fullwidth currency/symbol characters further up the same Unicode
+     * block, which aren't stylized Latin text.
+     */
+    private static final int FULLWIDTH_RANGE_START = 0xFF01;
+    private static final int FULLWIDTH_RANGE_END = 0xFF5E;
+
+    /**
+     * Latin small capital letters (used by "small caps" style fancy font
+     * generators), mapped to their regular uppercase equivalent. Scattered
+     * across the Phonetic Extensions, IPA Extensions and Latin Extended-D
+     * blocks rather than one contiguous range, and unlike the other two
+     * stylized ranges above, Unicode defines no compatibility decomposition
+     * for them, so they need an explicit lookup. There's no dedicated small
+     * capital "X" in Unicode, so that letter is left as-is by generators and
+     * this map.
+     */
+    private static final Map<Integer, Character> SMALL_CAPS = new HashMap<>();
+    static {
+        SMALL_CAPS.put(0x1D00, 'A');
+        SMALL_CAPS.put(0x0299, 'B');
+        SMALL_CAPS.put(0x1D04, 'C');
+        SMALL_CAPS.put(0x1D05, 'D');
+        SMALL_CAPS.put(0x1D07, 'E');
+        SMALL_CAPS.put(0xA730, 'F');
+        SMALL_CAPS.put(0x0262, 'G');
+        SMALL_CAPS.put(0x029C, 'H');
+        SMALL_CAPS.put(0x026A, 'I');
+        SMALL_CAPS.put(0x1D0A, 'J');
+        SMALL_CAPS.put(0x1D0B, 'K');
+        SMALL_CAPS.put(0x029F, 'L');
+        SMALL_CAPS.put(0x1D0D, 'M');
+        SMALL_CAPS.put(0x0274, 'N');
+        SMALL_CAPS.put(0x1D0F, 'O');
+        SMALL_CAPS.put(0x1D18, 'P');
+        SMALL_CAPS.put(0xA7AF, 'Q');
+        SMALL_CAPS.put(0x0280, 'R');
+        SMALL_CAPS.put(0xA731, 'S');
+        SMALL_CAPS.put(0x1D1B, 'T');
+        SMALL_CAPS.put(0x1D1C, 'U');
+        SMALL_CAPS.put(0x1D20, 'V');
+        SMALL_CAPS.put(0x1D21, 'W');
+        SMALL_CAPS.put(0x028F, 'Y');
+        SMALL_CAPS.put(0x1D22, 'Z');
+    }
+
+    /**
+     * Replaces characters from the Mathematical Alphanumeric Symbols and
+     * Fullwidth ASCII variants blocks with their plain ASCII equivalent, and
+     * Latin small capital letters with their regular uppercase equivalent,
+     * leaving all other characters (including diacritics) untouched.
+     *
+     * @param text The input text
+     * @return The changed text
+     */
+    public static String decodeStylizedText(String text) {
+        StringBuilder result = new StringBuilder(text.length());
+        text.codePoints().forEach(cp -> {
+            if ((cp >= STYLIZED_TEXT_RANGE_START && cp <= STYLIZED_TEXT_RANGE_END)
+                    || (cp >= FULLWIDTH_RANGE_START && cp <= FULLWIDTH_RANGE_END)) {
+                result.append(Normalizer.normalize(new String(Character.toChars(cp)), Normalizer.Form.NFKC));
+            } else if (SMALL_CAPS.containsKey(cp)) {
+                result.append(SMALL_CAPS.get(cp));
+            } else {
+                result.appendCodePoint(cp);
+            }
+        });
+        return result.toString();
+    }
+
     private static final Pattern ALL_UPERCASE_LETTERS = Pattern.compile("[A-Z]+");
     
     public static boolean isAllUppercaseLetters(String text) {

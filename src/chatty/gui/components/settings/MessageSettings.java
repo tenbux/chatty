@@ -105,14 +105,17 @@ public class MessageSettings extends SettingsPanel {
 
         otherSettingsPanel.add(filterCombiningCharacters,
                 SettingsDialog.makeGbc(1, 2, 1, 1));
-        
-        
+
+        otherSettingsPanel.add(d.addSimpleBooleanSetting(
+                "decodeStylizedText"),
+                SettingsDialog.makeGbc(0, 3, 2, 1, GridBagConstraints.WEST));
+
         otherSettingsPanel.add(d.addSimpleBooleanSetting(
                 "printStreamStatus"),
-                SettingsDialog.makeGbc(0, 3, 4, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 4, 4, 1, GridBagConstraints.WEST));
         otherSettingsPanel.add(d.addSimpleBooleanSetting(
                 "printStreamLive"),
-                SettingsDialog.makeGbc(0, 4, 4, 1, GridBagConstraints.WEST));
+                SettingsDialog.makeGbc(0, 5, 4, 1, GridBagConstraints.WEST));
     }
     
     public static JPanel createTimestampPanel(SettingsDialog d, String setting) {

@@ -167,7 +167,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         EMOTICON_SCALE_FACTOR_GIGANTIFIED,
         CUSTOM_USERICON_SCALE_MODE, BOT_BADGE_ENABLED, CHANNEL_LOGO_SIZE,
         SHOW_CHANNEL_NAME,
-        FILTER_COMBINING_CHARACTERS, PAUSE_ON_MOUSEMOVE,
+        FILTER_COMBINING_CHARACTERS, DECODE_STYLIZED_TEXT, PAUSE_ON_MOUSEMOVE,
         PAUSE_ON_MOUSEMOVE_CTRL_REQUIRED,
         EMOTICONS_ANIMATED,
         SHOW_TOOLTIPS, SHOW_TOOLTIP_IMAGES, BOTTOM_MARGIN,
@@ -2869,6 +2869,9 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         String result = Helper.htmlspecialchars_decode(text);
         result = StringUtil.removeDuplicateWhitespace(result);
         result = Helper.removeEmojiVariationSelector(result);
+        if (styles.isEnabled(Setting.DECODE_STYLIZED_TEXT)) {
+            result = Helper.decodeStylizedText(result);
+        }
         int filterMode = styles.getInt(Setting.FILTER_COMBINING_CHARACTERS);
         if (filterMode > Helper.FILTER_COMBINING_CHARACTERS_OFF) {
             String prev = result;
@@ -4082,6 +4085,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             addSetting(Setting.HIGHLIGHT_MATCHES_ALL, true);
             addNumericSetting(Setting.USERCOLOR_BACKGROUND, 1, 0, 200);
             addNumericSetting(Setting.FILTER_COMBINING_CHARACTERS, 1, 0, 2);
+            addSetting(Setting.DECODE_STYLIZED_TEXT, true);
             addNumericSetting(Setting.DELETED_MESSAGES_MODE, 30, -1, 9999999);
             addNumericSetting(Setting.BUFFER_SIZE, 250, BUFFER_SIZE_MIN, BUFFER_SIZE_MAX);
             addNumericSetting(Setting.AUTO_SCROLL_TIME, 30, 5, 1234);

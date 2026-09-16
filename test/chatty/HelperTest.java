@@ -386,4 +386,25 @@ public class HelperTest {
         copy.addAll(Helper.parseChannelsFromString(Helper.buildStreamsString(original), prepend));
         return copy;
     }
+
+    @Test
+    public void decodeStylizedTextTest() {
+        // Mathematical Bold Italic letters/digits get decoded to plain ASCII
+        assertEquals("Do you have any food", Helper.decodeStylizedText("𝑫𝒐 𝒚𝒐𝒖 𝒉𝒂𝒗𝒆 𝒂𝒏𝒚 𝒇𝒐𝒐𝒅"));
+        assertEquals("20", Helper.decodeStylizedText("𝟸𝟶"));
+        // Fullwidth ASCII variants get decoded to plain ASCII
+        assertEquals("Testing!", Helper.decodeStylizedText("Ｔｅｓｔｉｎｇ！"));
+        // Small caps get decoded to regular uppercase, "X" has no small
+        // capital in Unicode so is left as whatever the generator used
+        assertEquals("TESTING THE NEW CHATTY DECODER, X MARKS THE SPOT",
+                Helper.decodeStylizedText("ᴛᴇꜱᴛɪɴɢ ᴛʜᴇ ɴᴇᴡ ᴄʜᴀᴛᴛʏ ᴅᴇᴄᴏᴅᴇʀ, X ᴍᴀʀᴋꜱ ᴛʜᴇ ꜱᴘᴏᴛ"));
+        // Fullwidth currency symbols outside the ASCII-variant range are untouched
+        assertEquals("¥100", Helper.decodeStylizedText("¥100"));
+        // Regular text and diacritics are left untouched
+        assertEquals("café", Helper.decodeStylizedText("café"));
+        assertEquals("Beyoncé", Helper.decodeStylizedText("Beyoncé"));
+        assertEquals("naïve", Helper.decodeStylizedText("naïve"));
+        assertEquals("Zürich", Helper.decodeStylizedText("Zürich"));
+        assertEquals("", Helper.decodeStylizedText(""));
+    }
 }

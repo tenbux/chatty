@@ -656,7 +656,8 @@ public class SettingsManager {
 
         // Message filtering
         settings.addLong("filterCombiningCharacters", Helper.FILTER_COMBINING_CHARACTERS_LENIENT);
-        
+        settings.addBoolean("decodeStylizedText", true);
+
         // Low-trust/restricted messages
         settings.addBoolean("showLowTrustInfo", false);
         settings.addBoolean("showRestrictedMessages", false);

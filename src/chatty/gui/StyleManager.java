@@ -42,7 +42,7 @@ public class StyleManager implements StyleServer {
             "inputFont","emoteScale", "emoteMaxHeight", "usericonScale",
             "emoteScaleGigantified",
             "customUsericonScaleMode", "botBadgeEnabled",
-            "filterCombiningCharacters", "pauseChatOnMouseMove",
+            "filterCombiningCharacters", "decodeStylizedText", "pauseChatOnMouseMove",
             "pauseChatOnMouseMoveCtrlRequired",
             "animatedEmotes", "streamChatLogos",
             "banReasonAppended", "banDurationAppended",
@@ -225,6 +225,7 @@ public class StyleManager implements StyleServer {
         addBooleanSetting(Setting.LINKS_CUSTOM_COLOR, "msgColorsLinks");
         addLongSetting(Setting.HIGHLIGHT_HOVERED_USER, "markHoveredUser");
         addLongSetting(Setting.FILTER_COMBINING_CHARACTERS, "filterCombiningCharacters");
+        addBooleanSetting(Setting.DECODE_STYLIZED_TEXT, "decodeStylizedText");
         addBooleanSetting(Setting.PAUSE_ON_MOUSEMOVE, "pauseChatOnMouseMove");
         addBooleanSetting(Setting.PAUSE_ON_MOUSEMOVE_CTRL_REQUIRED, "pauseChatOnMouseMoveCtrlRequired");
         addBooleanSetting(Setting.EMOTICONS_ANIMATED, "animatedEmotes");
