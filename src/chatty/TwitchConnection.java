@@ -18,6 +18,7 @@ import chatty.util.settings.Settings;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 /**
  *
@@ -308,8 +309,10 @@ public class TwitchConnection {
         } else if (tags.isValueOf("msg-id", "announcement")) {
             return new UsernoticeInfo("Announcement", text, months, false);
         } else if (tags.isValue("msg-id", "modiversary")) {
-            // Twitch omits the username from system-msg for mod anniversary
-            if (!text.startsWith(user.getDisplayNick()) && !text.startsWith(login)) {
+            // Twitch omits the username from system-msg for mod anniversary.
+            // Match the name anywhere (whole word) so a reworded or fixed
+            // message that already names the user isn't given it twice.
+            if (!containsWord(text, user.getDisplayNick()) && !containsWord(text, login)) {
                 text = user.getDisplayNick() + " " + text;
             }
             return new UsernoticeInfo("Usernotice", text, months, false);
@@ -318,6 +321,20 @@ public class TwitchConnection {
             // new messages types for this
             return new UsernoticeInfo("Usernotice", text, months, false);
         }
+    }
+
+    /**
+     * Whether {@code word} occurs in {@code text} as a whole word, ignoring
+     * case. Returns false if either is null or empty.
+     */
+    private static boolean containsWord(String text, String word) {
+        if (StringUtil.isNullOrEmpty(text, word)) {
+            return false;
+        }
+        // Unicode-aware boundaries so localized display names match too
+        return Pattern.compile("\\b"+Pattern.quote(word)+"\\b",
+                Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.UNICODE_CHARACTER_CLASS)
+                .matcher(text).find();
     }
 
     public Set<String> getOpenChannels() {
