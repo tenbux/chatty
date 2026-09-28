@@ -131,7 +131,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         URL_DELETED, DELETED_LINE, EMOTICON, IS_APPENDED_INFO, INFO_TEXT, BANS,
         BAN_MESSAGE, MSG_ID, ID_AUTOMOD, AUTOMOD_ACTION, USERICON, IMAGE_ID, ANIMATED,
         APPENDED_INFO_UPDATED, MENTION, USERICON_INFO, USERICON_SHARED_INFO, GENERAL_LINK,
-        REPEAT_MESSAGE_COUNT, LOW_TRUST_INFO, IS_RESTRICTED, POWER_UP_INFO,
+        REPEAT_MESSAGE_COUNT, LOW_TRUST_INFO, IS_RESTRICTED, POWER_UP_INFO, CHATGIF,
         
         LINE_ID, LOCAL_USER,
         
@@ -165,6 +165,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         ACTION_COLORED, LINKS_CUSTOM_COLOR, BUFFER_SIZE, AUTO_SCROLL_TIME,
         EMOTICON_MAX_HEIGHT, EMOTICON_SCALE_FACTOR, USERICON_SCALE_FACTOR,
         EMOTICON_SCALE_FACTOR_GIGANTIFIED,
+        CHATGIFS_MAX_HEIGHT, CHATGIFS_ENABLED,
         CUSTOM_USERICON_SCALE_MODE, BOT_BADGE_ENABLED, CHANNEL_LOGO_SIZE,
         SHOW_CHANNEL_NAME,
         FILTER_COMBINING_CHARACTERS, DECODE_STYLIZED_TEXT, PAUSE_ON_MOUSEMOVE,
@@ -641,7 +642,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             style = styles.standard(user.getDisplayColor());
         }
         print(" ", style);
-        printSpecialsNormal(text, user, style, emotes, false, message.bits > 0,
+        boolean chatGifAdded = printSpecialsNormal(text, user, style, emotes, false, message.bits > 0,
                 message.highlightMatches,
                 message.replaceMatches, message.replacement, message.tags);
         
@@ -658,6 +659,25 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         if (message.msgId == null && tempMsgId != null) {
             setParagraphAttribute(getCurrentParagraphOffset(), Attribute.TEMP_MSG_ID, tempMsgId);
         }
+        
+        /**
+         * Reduce line spacing since it's relative to line height and GIFs are
+         * much taller than usually lines, so it might look weird. This isn't
+         * the best solution, but the easiest without changing a bunch of layout
+         * code such as entirely replacing the private ParagraphView.Row class
+         * to change how the line spacing is calculated.
+         */
+        if (chatGifAdded) {
+            SimpleAttributeSet attr = new SimpleAttributeSet();
+            int maxHeight = styles.getInt(Setting.CHATGIFS_MAX_HEIGHT);
+            if (maxHeight <= 0) {
+                maxHeight = 350; // Assumed large max height
+            }
+            float reduceFactor = Math.min(42f / maxHeight,1);
+            StyleConstants.setLineSpacing(attr, Math.max(StyleConstants.getLineSpacing(styles.paragraph()) * reduceFactor, 0));
+            doc.setParagraphAttributes(getCurrentParagraphOffset(), 1, attr, false);
+        }
+        
         finishLine();
         
         String powerUpInfo = message.tags.getPowerUpInfo();
@@ -2711,7 +2731,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
     /**
      * For user messages. Applys replacements, links, emotes, bits, mentions.
      */
-    protected void printSpecialsNormal(String text, User user, MutableAttributeSet style,
+    protected boolean printSpecialsNormal(String text, User user, MutableAttributeSet style,
             TagEmotes emotes, boolean ignoreLinks, boolean containsBits,
             java.util.List<Match> highlightMatches,
             java.util.List<Match> replacements, String replacement,
@@ -2736,6 +2756,18 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
                                                  ? style : styles.standard());
         }
         
+        boolean chatGifAdded = false;
+        if (styles.isEnabled(Setting.CHATGIFS_ENABLED)) {
+            for (ChatGif gif : ChatGif.parse(tags != null ? tags.get("gifs") : null, text)) {
+                if (!inRanges(gif.start, ranges) && !inRanges(gif.end, ranges)) {
+                    ranges.put(gif.start, gif.end);
+                    // Use cached ChatGif only for showing image (start/end may be wrong in the cached one if the message differs)
+                    rangesStyle.put(gif.start, styles.chatGif(main.emoticons.getCachedChatGif(gif)));
+                    chatGifAdded = true;
+                }
+            }
+        }
+        
         if (styles.isEnabled(Setting.EMOTICONS_ENABLED)) {
             findEmoticons(text, user, ranges, rangesStyle, emotes, tags != null && tags.hasGigantifiedEmote());
             if (containsBits) {
@@ -2749,6 +2781,8 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
         
         // Actually output it
         printSpecials(user, text, style, ranges, rangesStyle, highlightMatches);
+        
+        return chatGifAdded;
     }
     
     /**
@@ -4061,6 +4095,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
          */
         private void setSettings() {
             addSetting(Setting.EMOTICONS_ENABLED,true);
+            addSetting(Setting.CHATGIFS_ENABLED, true);
             addSetting(Setting.USERICONS_ENABLED, true);
             addSetting(Setting.TIMESTAMP_ENABLED, true);
             addSetting(Setting.SHOW_BANMESSAGES, false);
@@ -4092,6 +4127,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             addNumericSetting(Setting.EMOTICON_MAX_HEIGHT, 200, 0, 300);
             addNumericSetting(Setting.EMOTICON_SCALE_FACTOR, 100, 1, 200);
             addNumericSetting(Setting.EMOTICON_SCALE_FACTOR_GIGANTIFIED, 150, 1, 200);
+            addNumericSetting(Setting.CHATGIFS_MAX_HEIGHT, 140, -1, 500);
             addNumericSetting(Setting.USERICON_SCALE_FACTOR, 100, 1, 200);
             addNumericSetting(Setting.CUSTOM_USERICON_SCALE_MODE, 0, 0, 10);
             addNumericSetting(Setting.DISPLAY_NAMES_MODE, 0, 0, 10);
@@ -4538,6 +4574,17 @@ public class ChannelTextPane extends JTextPane implements LinkListener, CachedIm
             emoteStyle.addAttribute(Attribute.EMOTICON, emoteImage);
             emoteStyle.addAttribute(Attribute.IMAGE_ID, idCounter.getAndIncrement());
             emoteStyle.addAttribute(Attribute.ANIMATED, emoticon.isAnimated());
+            return emoteStyle;
+        }
+        
+        public MutableAttributeSet chatGif(ChatGif gif) {
+            SimpleAttributeSet emoteStyle = new SimpleAttributeSet();
+            CachedImage<ChatGif> image = gif.getIcon(ChannelTextPane.this, (int)(numericSettings.get(Setting.CHATGIFS_MAX_HEIGHT)));
+            StyleConstants.setIcon(emoteStyle, image.getImageIcon());
+            
+            emoteStyle.addAttribute(Attribute.CHATGIF, image);
+            emoteStyle.addAttribute(Attribute.IMAGE_ID, idCounter.getAndIncrement());
+            emoteStyle.addAttribute(Attribute.ANIMATED, true);
             return emoteStyle;
         }
         

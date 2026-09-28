@@ -2,8 +2,10 @@
 package chatty.util;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Test;
 
+import java.awt.Dimension;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -132,4 +134,38 @@ public class ImageCacheTest {
         }
     }
 
+    
+    @Test
+    public void testScaledSize() {
+        testScaledSize(28, 28, 1f, -1, 28, 28);
+        testScaledSize(28, 28, 0f, -1, 28, 28);
+        testScaledSize(28, 28, -1f, -1, 28, 28);
+        testScaledSize(28, 28, 0.00001f, -1, 1, 1);
+        testScaledSize(28, 28, 1f, 1, 1, 1);
+        testScaledSize(1, 2, 1f, 1, 1, 1);
+        
+        testScaledSize(28, 28, 1f, 20, 20, 20);
+        testScaledSize(28, 28, 2f, -1, 56, 56);
+        testScaledSize(28, 28, 0.5f, -1, 14, 14);
+        
+        testScaledSize(100, 50, 1f, 28, 56, 28);
+        testScaledSize(50, 100, 1f, 28, 14, 28);
+        
+        testScaledSize(50, 100, 10f, 0, 175, 350); // Fallback max
+        
+        testScaledSize(480, 360, 1f, 0, 350, 262); // Fallback max
+        testScaledSize(480, 360, 1f, 300, 350, 262); // Fallback max
+        
+        testScaledSize(360, 480, 1f, 0, 262, 350); // Fallback max
+        testScaledSize(360, 480, 1f, 300, 225, 300);
+        
+        testScaledSize(480, 480, 1f, 0, 350, 350); // Fallback max
+        testScaledSize(480, 480, 1f, 300, 300, 300);
+    }
+    
+    private static void testScaledSize(int width, int height, float scaleFactor, int maxHeight, int expectedResultWidth, int expectedResultHeight) {
+        Dimension result = ImageCache.ImageRequest.getScaledSize(new Dimension(width, height), scaleFactor, maxHeight);
+        Assert.assertEquals(new Dimension(expectedResultWidth, expectedResultHeight), result);
+    }
+    
 }

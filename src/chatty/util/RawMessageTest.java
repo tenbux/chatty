@@ -253,6 +253,12 @@ public class RawMessageTest {
             case "sharedsub" -> {
                 return "@badges=moderator/1,subscriber/36,turbo/1;color=#0000FF;display-name=USER;emotes=;flags=;id=1234;source-id=abcd;login=user;mod=1;msg-id=sharedchatnotice;source-msg-id=resub;msg-param-cumulative-months=45;msg-param-cumulative-tenure-months=45;msg-param-months=0;msg-param-should-share-streak-tenure=false;msg-param-should-share-streak=0;msg-param-sub-plan-name=CHANNEL\\sSub;msg-param-sub-plan=Prime;room-id=123;source-room-id=12826;subscriber=1;system-msg=USER\\sSubscribed\\swith\\sTwitch\\sPrime.;turbo=1;user-id=123;user-type=mod :tmi.twitch.tv USERNOTICE " + channel + " :Abc";
             }
+            case "gif" -> {
+                return "@badge-info=;badges=twitchcon2018/1;color=#9146FF;display-name=Test;emotes=;first-msg=0;flags=;gifs=0-43|l1AsJYjSxCcslp3Vu|https://media4.giphy.com/media/l1AsJYjSxCcslp3Vu/giphy.gif?cid=095d7a5d2hfstidos4gdmzftw987c5bxkd27qy6ayechjslo&ep=v1_gifs_search&rid=giphy.gif&ct=g;id=1234;mod=0;returning-chatter=0;room-id=1234;subscriber=0;tmi-sent-ts=1234;turbo=0;user-id=1234;user-type= :test!test@test.tmi.twitch.tv PRIVMSG "+channel+" :[Season 1 Test GIF by SpongeBob SquarePants]";
+            }
+            case "gif2" -> {
+                return "@badge-info=;badges=;color=#0000FF;display-name=Test;emotes=;first-msg=0;flags=;gifs=0-21|G31qDpgbdpFPnGInD2|https://media3.giphy.com/media/G31qDpgbdpFPnGInD2/giphy.gif?cid=095d7a5dkuedhdgawwv3skg52aonktjas1hd02yt1nur859s&ep=v1_gifs_trending&rid=giphy.gif&ct=g;id=1234;mod=0;returning-chatter=0;room-id=1234;subscriber=0;tmi-sent-ts=1234;turbo=0;user-id=1234;user-type= :test!test@test.tmi.twitch.tv PRIVMSG "+channel+" :[Sad Wait GIF by DAZN]";
+            }
             case "custom" -> {
                 String[] parts = options.split("&");
                 String badges = parts[0];

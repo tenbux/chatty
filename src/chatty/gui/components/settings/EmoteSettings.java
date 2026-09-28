@@ -57,8 +57,6 @@ public class EmoteSettings extends SettingsPanel {
                 SettingsDialog.makeGbc(2, 3, 1, 1, GridBagConstraints.EAST));
         main.add(d.addSimpleLongSetting("emoteMaxHeight", 3, true),
                 SettingsDialog.makeGbc(3, 3, 1, 1, GridBagConstraints.WEST));
-        main.add(new JLabel(Language.getString("settings.emoticons.maxHeightPixels")),
-                SettingsDialog.makeGbc(4, 3, 1, 1, GridBagConstraints.WEST));
         
         main.add(new JLabel(Language.getString("settings.emoticons.gigantifiedScale")),
                 SettingsDialog.makeGbc(0, 4, 1, 1, GridBagConstraints.WEST));
@@ -240,6 +238,16 @@ public class EmoteSettings extends SettingsPanel {
         localEmotesButton.addActionListener(e -> localEmotesDialog.show(d));
         localEmoteSettings.add(localEmotesButton,
                 SettingsDialog.makeGbc(0, 1, 2, 1, GridBagConstraints.WEST));
+        
+        //==========================
+        // GIF Keyboard
+        //==========================
+        JPanel chatGifSettings = addTitledPanel(Language.getString("settings.section.chatGifs"), 4);
+        
+        chatGifSettings.add(d.addSimpleBooleanSetting("chatGifsEnabled"),
+                SettingsDialog.makeGbc(0, 0, 2, 1, GridBagConstraints.WEST));
+        
+        SettingsUtil.addLabeledComponent(chatGifSettings, "settings.emoticons.maxHeight", 2, 0, 1, GridBagConstraints.WEST, d.addSimpleLongSetting("chatGifsMaxHeight", 3, true));
     }
     
     public static Map<Long, String> makeScaleValues() {

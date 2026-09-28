@@ -424,6 +424,7 @@ public class ImageCache {
         Path tmp = file.resolveSibling(file.getFileName()+".tmp-"+System.nanoTime());
         try {
             URLConnection c = url.openConnection();
+            setRequestImageTypes(c);
             try (InputStream is = c.getInputStream()) {
                 long written = Files.copy(is, tmp, StandardCopyOption.REPLACE_EXISTING);
                 if (written > 0) {
@@ -441,6 +442,15 @@ public class ImageCache {
             }
         }
         return false;
+    }
+    
+    /**
+     * Giphy URLs provided by Twitch Chat would return the website without this.
+     * 
+     * @param c The connection used to load the image
+     */
+    public static void setRequestImageTypes(URLConnection c) {
+        c.addRequestProperty("Accept", "image/webp,image/png,image/gif");
     }
     
     private static ImageResult getImageFromFile(Path file, ImageRequest request) {
@@ -510,8 +520,8 @@ public class ImageCache {
      */
     public static class ImageRequest {
         
-        public static final int MAX_SCALED_WIDTH = 250;
-        public static final int MAX_SCALED_HEIGHT = 150;
+        public static final int MAX_SCALED_WIDTH = 350;
+        public static final int MAX_SCALED_HEIGHT = 350;
         
         public final int urlFactor;
         public final int maxHeight;
@@ -668,14 +678,22 @@ public class ImageCache {
                 scaledHeight *= scaleFactor;
             }
 
-            if (maxHeight > 0 && scaledHeight > maxHeight) {
+            /**
+             * Also checks a hardcoded max width/height (now keeps aspect ratio
+             * when it runs into the limit). This is unlikely to affect regular
+             * emotes, but could affect GIF Keyboard GIFs.
+             */
+            maxHeight = maxHeight > 0 ? Math.min(maxHeight, MAX_SCALED_HEIGHT) : MAX_SCALED_HEIGHT;
+            if (scaledHeight > maxHeight) {
                 scaledWidth = scaledWidth / (scaledHeight / maxHeight);
                 scaledHeight = maxHeight;
             }
-
-            /**
-             * Convert into int before checking
-             */
+            
+            if (scaledWidth > MAX_SCALED_WIDTH) {
+                scaledHeight = scaledHeight / (scaledWidth / MAX_SCALED_WIDTH);
+                scaledWidth = MAX_SCALED_WIDTH;
+            }
+            
             int resultWidth = (int) scaledWidth;
             int resultHeight = (int) scaledHeight;
             if (resultWidth < 1) {
@@ -683,17 +701,6 @@ public class ImageCache {
             }
             if (resultHeight < 1) {
                 resultHeight = 1;
-            }
-
-            /**
-             * This shouldn't really happen, but just in case, so no ridicously
-             * huge (default) image is created.
-             */
-            if (resultWidth > MAX_SCALED_WIDTH) {
-                resultWidth = MAX_SCALED_WIDTH;
-            }
-            if (resultHeight > MAX_SCALED_HEIGHT) {
-                resultHeight = MAX_SCALED_HEIGHT;
             }
             return new Dimension(resultWidth, resultHeight);
         }

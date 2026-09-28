@@ -17,6 +17,7 @@ import chatty.util.api.CachedImage;
 import chatty.util.api.CachedImage.ImageType;
 import chatty.util.api.Emoticon;
 import chatty.util.api.Emoticons;
+import chatty.util.api.ChatGif;
 import chatty.util.api.usericons.Usericon;
 import chatty.util.irc.MsgTags;
 import org.json.simple.JSONArray;
@@ -181,6 +182,7 @@ public class LinkController extends MouseAdapter {
         User user;
         CachedImage<Emoticon> emoteImage;
         CachedImage<Usericon> usericonImage;
+        CachedImage<ChatGif> chatGifImage;
 
         if ((url = getUrl(element)) != null && !isUrlDeleted(element)) {
             if (linkListener != null) {
@@ -204,6 +206,8 @@ public class LinkController extends MouseAdapter {
             for (UserListener listener : userListener) {
                 listener.usericonClicked(usericonImage.getObject(), e);
             }
+        } else if ((chatGifImage = getChatGifImage(element)) != null) {
+            linkListener.linkClicked(chatGifImage.getObject().url);
         }
     }
     
@@ -260,6 +264,7 @@ public class LinkController extends MouseAdapter {
         }
         
         CachedImage<Emoticon> emoteImage = getEmoticonImage(element);
+        CachedImage<ChatGif> chatGifImage = getChatGifImage(element);
         CachedImage<Usericon> usericonImage = getUsericonImage(element);
         String replacedText = getReplacedText(element);
         String replyMsgId = getReplyText(element);
@@ -270,6 +275,8 @@ public class LinkController extends MouseAdapter {
             popup.show(textPane, element, p -> makeEmoticonPopupText(emoteImage, popupImagesEnabled, p, element), emoteImage.getImageIcon().getIconWidth());
         } else if (usericonImage != null) {
             popup.show(textPane, element, p -> makeUsericonPopupText(usericonImage, getUsericonInfo(element), getUsericonSharedInfo(element), p), usericonImage.getImageIcon().getIconWidth());
+        } else if (chatGifImage != null) {
+            popup.show(textPane, element, p -> p.setText(POPUP_HTML_PREFIX+"GIF Keyboard<br />"+chatGifImage.getObject().msgText), chatGifImage.getImageIcon().getIconWidth());
         } else if (replacedText != null) {
             popup.show(textPane, element, p -> makeReplacementPopupText(replacedText, p), 1);
         } else if (replyMsgId != null) {
@@ -291,6 +298,7 @@ public class LinkController extends MouseAdapter {
                 || mention != null
                 || emoteImage != null
                 || usericonImage != null
+                || chatGifImage != null
                 || isRestricted
                 || hypeChatInfo != null;
         
@@ -357,6 +365,10 @@ public class LinkController extends MouseAdapter {
     @SuppressWarnings("unchecked")
     private CachedImage<Emoticon> getEmoticonImage(Element e) {
         return (CachedImage<Emoticon>)(e.getAttributes().getAttribute(ChannelTextPane.Attribute.EMOTICON));
+    }
+    
+    private CachedImage<ChatGif> getChatGifImage(Element e) {
+        return (CachedImage<ChatGif>)(e.getAttributes().getAttribute(ChannelTextPane.Attribute.CHATGIF));
     }
     
     private CachedImage<Usericon> getUsericonImage(Element e) {
