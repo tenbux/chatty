@@ -296,12 +296,15 @@ public class ModActionPayload extends Payload {
             }
             switch (reason) {
                 case "automod":
-                    JSONObject automod = JSONUtil.getOrEmpty(event, "automod");
+                    // Twitch sends "automod":null for some holds (seen on a GIF message)
+                    if (!(event.get("automod") instanceof JSONObject automod)) {
+                        return "AutoMod";
+                    }
                     String category = JSONUtil.getString(automod, "category");
                     int level = JSONUtil.getInteger(automod, "level", 0);
-                    
+
                     List<String> fragments = new ArrayList<>();
-                    JSONArray boundaries = (JSONArray) automod.get("boundaries");
+                    JSONArray boundaries = automod.get("boundaries") instanceof JSONArray a ? a : new JSONArray();
                     for (Object boundary : boundaries) {
                         String fragment = getFragment((JSONObject) boundary);
                         if (fragment != null) {
@@ -312,7 +315,7 @@ public class ModActionPayload extends Payload {
                                          category, level, StringUtil.join(fragments,", "));
                 case "blocked_term":
                     JSONObject blocked_term = JSONUtil.getOrEmpty(event, "blocked_term");
-                    JSONArray terms = (JSONArray) blocked_term.get("terms_found");
+                    JSONArray terms = blocked_term.get("terms_found") instanceof JSONArray a ? a : new JSONArray();
                     String stream = JSONUtil.getString(event, "broadcaster_user_login");
                     List<String> result = new ArrayList<>();
                     for (Object o : terms) {
@@ -339,6 +342,9 @@ public class ModActionPayload extends Payload {
         }
         
         private String getFragment(JSONObject boundary) {
+            if (boundary == null) {
+                return null;
+            }
             int start = JSONUtil.getInteger(boundary, "start_pos", -1);
             int end = JSONUtil.getInteger(boundary, "end_pos", -1);
             if (start > -1 && end > -1) {
