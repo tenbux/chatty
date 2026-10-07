@@ -33,6 +33,7 @@ public class TableEditor<T> extends JPanel {
     private static final String BUTTON_ADD_TIP = Language.getString("settings.listSelector.button.add.tip");
     private static final String BUTTON_REMOVE_TIP = Language.getString("settings.listSelector.button.remove.tip");
     private static final String BUTTON_EDIT_TIP = Language.getString("settings.listSelector.button.edit.tip");
+    private static final String BUTTON_COPY_TIP = Language.getString("settings.listSelector.button.copy.tip");
     private static final String BUTTON_UP_TIP = Language.getString("settings.listSelector.button.moveUp.tip");
     private static final String BUTTON_DOWN_TIP = Language.getString("settings.listSelector.button.moveDown.tip");
     
@@ -58,6 +59,7 @@ public class TableEditor<T> extends JPanel {
     private final JButton add = new JButton();
     private final JButton remove = new JButton();
     private final JButton edit = new JButton();
+    private final JButton copy = new JButton();
     private final JButton moveUp = new JButton();
     private final JButton moveDown = new JButton();
     private final JButton refresh = new JButton();
@@ -155,6 +157,7 @@ public class TableEditor<T> extends JPanel {
         // Buttons Configuration
         configureButton(add, "list-add.png", BUTTON_ADD_TIP);
         configureButton(edit, "edit.png", BUTTON_EDIT_TIP);
+        configureButton(copy, "edit-copy.png", BUTTON_COPY_TIP);
         configureButton(remove, "list-remove.png", BUTTON_REMOVE_TIP);
         configureButton(moveUp, "go-up.png", BUTTON_UP_TIP);
         configureButton(moveDown, "go-down.png", BUTTON_DOWN_TIP);
@@ -164,7 +167,7 @@ public class TableEditor<T> extends JPanel {
         // Layout
         setLayout(new GridBagLayout());
         GridBagConstraints gbc;
-        gbc = makeGbc(0, 0, 2, 8);
+        gbc = makeGbc(0, 0, 2, 9);
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weightx = 1;
         gbc.weighty = 1;
@@ -173,13 +176,13 @@ public class TableEditor<T> extends JPanel {
         // Filter
         
         if (sortingMode == SORTING_MODE_SORTED) {
-            gbc = makeGbc(0, 8, 1, 1);
+            gbc = makeGbc(0, 9, 1, 1);
             gbc.insets = new Insets(0,2,0,1);
             JLabel filterInputLabel = new JLabel("Filter: ");
             filterInputLabel.setLabelFor(filterInput);
             add(filterInputLabel, gbc);
             
-            gbc = makeGbc(1, 8, 1, 1);
+            gbc = makeGbc(1, 9, 1, 1);
             gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.weightx = 1;
             add(filterInput, gbc);
@@ -212,20 +215,23 @@ public class TableEditor<T> extends JPanel {
         gbc = makeGbc(2, 2, 1, 1);
         add(edit, gbc);
         
+        gbc = makeGbc(2, 3, 1, 1);
+        add(copy, gbc);
+        
         if (sortingMode == SORTING_MODE_MANUAL) {
-            gbc = makeGbc(2, 3, 1, 1);
+            gbc = makeGbc(2, 4, 1, 1);
             add(moveUp, gbc);
 
-            gbc = makeGbc(2, 4, 1, 1);
+            gbc = makeGbc(2, 5, 1, 1);
             add(moveDown, gbc);
         }
         
         if (refreshButton) {
-            gbc = makeGbc(2, 5, 1, 1);
+            gbc = makeGbc(2, 6, 1, 1);
             add(refresh, gbc);
         }
         
-        gbc = makeGbc(2, 6, 1, 1);
+        gbc = makeGbc(2, 7, 1, 1);
         add(editAll, gbc);
         editAll.setVisible(false);
         
@@ -442,11 +448,13 @@ public class TableEditor<T> extends JPanel {
         add.setEnabled(isEnabled());
         remove.setEnabled(enabled);
         edit.setEnabled(enabled);
+        copy.setEnabled(enabled);
         moveUp.setEnabled(enabled);
         moveDown.setEnabled(enabled);
         if (currentlyFiltering) {
             add.setEnabled(false);
             edit.setEnabled(false);
+            copy.setEnabled(false);
             moveUp.setEnabled(false);
             moveDown.setEnabled(false);
         }
@@ -456,12 +464,14 @@ public class TableEditor<T> extends JPanel {
             if (item != null) {
                 remove.setToolTipText(BUTTON_REMOVE_TIP+": "+item);
                 edit.setToolTipText(BUTTON_EDIT_TIP+": "+item);
+                copy.setToolTipText(BUTTON_COPY_TIP+": "+item);
                 moveUp.setToolTipText(BUTTON_UP_TIP+": "+item);
                 moveDown.setToolTipText(BUTTON_DOWN_TIP+": "+item);
             }
             else {
                 remove.setToolTipText(BUTTON_REMOVE_TIP);
                 edit.setToolTipText(BUTTON_EDIT_TIP);
+                copy.setToolTipText(BUTTON_COPY_TIP);
                 moveUp.setToolTipText(BUTTON_UP_TIP);
                 moveDown.setToolTipText(BUTTON_DOWN_TIP);
             }
@@ -564,6 +574,17 @@ public class TableEditor<T> extends JPanel {
      */
     private void editSelectedItem() {
         editItem(-1, null);
+    }
+
+    /**
+     * Open the add dialog prefilled with the currently selected item. If no
+     * item is selected, nothing is done.
+     */
+    private void copySelectedItem() {
+        int modelIndex = indexToModel(table.getSelectedRow());
+        if (modelIndex != -1) {
+            addItem(data.get(modelIndex));
+        }
     }
 
     /**
@@ -760,6 +781,8 @@ public class TableEditor<T> extends JPanel {
                 removeSelected();
             } else if (e.getSource() == edit) {
                 editSelectedItem();
+            } else if (e.getSource() == copy) {
+                copySelectedItem();
             } else if (e.getSource() == add) {
                 addItem(null);
             } else if (e.getSource() == refresh) {

@@ -28,6 +28,7 @@ public class ListSelector extends JPanel implements ListSetting<String> {
     private final JButton add = new JButton();
     private final JButton remove = new JButton();
     private final JButton change = new JButton();
+    private final JButton copy = new JButton();
     private final JButton moveUp = new JButton();
     private final JButton moveDown = new JButton();
     private final JButton sort = new JButton();
@@ -58,7 +59,10 @@ public class ListSelector extends JPanel implements ListSetting<String> {
         // Button actions
         ActionListener buttonAction = e -> {
             if (e.getSource() == add || e.getSource() == input) {
-                addItem();
+                addItem("");
+            }
+            else if (e.getSource() == copy) {
+                addItem(list.getSelectedValue());
             }
             else if (e.getSource() == remove) {
                 removeItem();
@@ -116,6 +120,7 @@ public class ListSelector extends JPanel implements ListSetting<String> {
         configureButton(add, "list-add.png", Language.getString("settings.listSelector.button.add.tip"));
         configureButton(remove, "list-remove.png", Language.getString("settings.listSelector.button.remove.tip"));
         configureButton(change, "edit.png", Language.getString("settings.listSelector.button.edit.tip"));
+        configureButton(copy, "edit-copy.png", Language.getString("settings.listSelector.button.copy.tip"));
         configureButton(moveUp, "go-up.png", Language.getString("settings.listSelector.button.moveUp.tip"));
         configureButton(moveDown, "go-down.png", Language.getString("settings.listSelector.button.moveDown.tip"));
         configureButton(sort, "sort.png", Language.getString("settings.listSelector.button.sort.tip"));
@@ -126,6 +131,7 @@ public class ListSelector extends JPanel implements ListSetting<String> {
         remove.addActionListener(buttonAction);
         input.addActionListener(buttonAction);
         change.addActionListener(buttonAction);
+        copy.addActionListener(buttonAction);
         moveUp.addActionListener(buttonAction);
         moveDown.addActionListener(buttonAction);
         sort.addActionListener(buttonAction);
@@ -154,24 +160,27 @@ public class ListSelector extends JPanel implements ListSetting<String> {
         gbc.gridy = 2;
         add(change, gbc);
         
+        gbc.gridy = 3;
+        add(copy, gbc);
+        
         if (manualSorting) {
-            gbc.gridy = 3;
+            gbc.gridy = 4;
             add(moveUp, gbc);
 
-            gbc.gridy = 4;
+            gbc.gridy = 5;
             add(moveDown, gbc);
         }
         if (alphabeticSorting) {
-            gbc.gridy = 5;
+            gbc.gridy = 6;
             add(sort, gbc);
         }
-        gbc.gridy = 6;
+        gbc.gridy = 7;
         add(editAll, gbc);
         
         gbc.weightx = 1;
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.gridheight = 7;
+        gbc.gridheight = 8;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weighty = 1;
         add(new JScrollPane(list), gbc);
@@ -245,12 +254,14 @@ public class ListSelector extends JPanel implements ListSetting<String> {
     }
     
     /**
-     * Add the item currently in the input box, but not if it's empty or already
-     * in the list.
+     * Open the add dialog prefilled with {@code preset} and add the result,
+     * but not if it's empty or already in the list.
+     *
+     * @param preset The initial text of the dialog, may be empty
      */
-    private void addItem() {
+    private void addItem(String preset) {
         String item = getEditor().showDialog(
-                Language.getString("settings.listSelector.addEntry", title), "", info);
+                Language.getString("settings.listSelector.addEntry", title), preset, info);
         item = format(item);
         if (item != null && !item.isEmpty() && !data.contains(item)) {
             int selectedIndex = list.getSelectedIndex();
@@ -363,6 +374,7 @@ public class ListSelector extends JPanel implements ListSetting<String> {
         boolean exactlyOneIsSelected = list.getSelectedIndices().length == 1 && isEnabled();
         remove.setEnabled(somethingIsSelected);
         change.setEnabled(exactlyOneIsSelected);
+        copy.setEnabled(exactlyOneIsSelected);
         moveUp.setEnabled(exactlyOneIsSelected);
         moveDown.setEnabled(exactlyOneIsSelected);
         add.setEnabled(isEnabled());
