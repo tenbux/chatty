@@ -33,7 +33,7 @@ public class ChatterLiveStatus {
             Debugging.println("livechatters", "Requesting %d chatter IDs", toRequest.size());
             requester.accept(toRequest);
         }, "[LiveChatters] ", CachedBulkManager.DAEMON);
-        data.setCacheTimes(2, 30, TimeUnit.MINUTES);
+        data.setCacheTimes(1, 30, TimeUnit.MINUTES);
     }
 
     /**
@@ -42,7 +42,7 @@ public class ChatterLiveStatus {
      *
      * @param userId The user ID
      * @return true only if the chatter is known to be live, false if offline,
-     * not yet known or on error
+     * not yet known, due for refresh or on error
      */
     public boolean isLive(String userId) {
         if (userId == null || userId.isEmpty()) {
@@ -50,7 +50,11 @@ public class ChatterLiveStatus {
         }
         // The ID is its own unique key so each chatter keeps a pending query;
         // a shared key would replace queries of other chatters in busy chats.
-        return Boolean.TRUE.equals(data.getOrQuerySingle(userId, null, CachedBulkManager.NONE, userId));
+        // getOrQuery leaves out values due for refresh (unlike
+        // getOrQuerySingle), so a stream that just ended stops showing the
+        // icon until a new request confirms it is still live.
+        CachedBulkManager.Result<String, Boolean> result = data.getOrQuery(userId, null, CachedBulkManager.NONE, userId);
+        return result != null && Boolean.TRUE.equals(result.get(userId));
     }
 
     /**
@@ -111,6 +115,10 @@ public class ChatterLiveStatus {
 
     int pendingQueries() {
         return data.pendingRequests();
+    }
+
+    void setCurrentTimestamp(long timestamp) {
+        data.setCurrentTimestamp(timestamp);
     }
 
 }

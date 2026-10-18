@@ -69,4 +69,21 @@ public class ChatterLiveStatusTest {
         status.requestNow();
         assertEquals(100, captured.size());
     }
+
+    @Test
+    public void test_isLive_afterOneMinute_returnsFalseUntilRechecked() {
+        ChatterLiveStatus status = create();
+        status.setCurrentTimestamp(0);
+        status.resultReceived(Set.of("1"), Set.of("1"));
+        status.setCurrentTimestamp(59_999);
+        assertTrue(status.isLive("1"));
+        assertEquals(0, status.pendingQueries());
+
+        status.setCurrentTimestamp(60_000);
+        assertFalse(status.isLive("1"));
+        assertEquals(1, status.pendingQueries());
+
+        status.resultReceived(Set.of("1"), Set.of("1"));
+        assertTrue(status.isLive("1"));
+    }
 }
