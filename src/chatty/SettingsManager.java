@@ -840,6 +840,7 @@ public class SettingsManager {
         
         settings.addBoolean("pronouns", false);
         settings.addBoolean("pronounsChat", false);
+        settings.addBoolean("liveChatterIcons", false);
         
         // TTS
         settings.addBoolean("ttsEnabled", false);

@@ -141,6 +141,12 @@ public class OtherSettings extends SettingsPanel {
         
         SettingsUtil.addSubsettings(pronouns1, pronouns2);
         
+        other.add(d.addSimpleBooleanSetting(
+                "liveChatterIcons",
+                "Show LIVE icon for chatters who are currently streaming",
+                "Checked when a chatter's message is printed, so the icon may lag a few minutes and is not removed from earlier messages."),
+                SettingsDialog.makeGbc(0, 12, 3, 1, GridBagConstraints.WEST));
+        
         //--------------------------
         // Paths
         //--------------------------
