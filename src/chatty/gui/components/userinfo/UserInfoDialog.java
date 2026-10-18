@@ -212,6 +212,10 @@ public class UserInfoDialog extends JDialog {
                         infoPanel.setRefreshingFollowAge();
                         getFollowInfo(true);
                         break;
+                    case "refreshLive":
+                        infoPanel.setRefreshingLiveStatus();
+                        getLiveStatus(true);
+                        break;
                     case "copyChannelInfo":
                         MiscUtil.copyToClipboard(infoPanel.getChannelInfoTooltipText());
                         break;
@@ -417,6 +421,7 @@ public class UserInfoDialog extends JDialog {
     }
     
     private void setUser(User user, String msgId, String autoModMsgId, String localUsername, boolean opened) {
+        boolean sameUser = currentUser == user;
         if (currentUser != user) {
             currentUser = user;
             currentMsgId = msgId;
@@ -443,6 +448,12 @@ public class UserInfoDialog extends JDialog {
              * chat).
              */
             buttons.removeAndAddButtons(makeParameters());
+            if (sameUser) {
+                // A new user is checked by the info panel, but the status
+                // shown for the same user may be from long ago
+                infoPanel.setRefreshingLiveStatus();
+                getLiveStatus(false);
+            }
         }
         updateButtons();
         finishDialog();
@@ -586,6 +597,19 @@ public class UserInfoDialog extends JDialog {
         return null;
     }
     
+    protected void getLiveStatus(boolean refresh) {
+        if (requester == null) {
+            return;
+        }
+        User user = currentUser;
+        requester.getLiveStatus(user.getId(), refresh, live -> GuiUtil.edt(() -> {
+            // The dialog may show another user by the time the result arrives
+            if (currentUser == user) {
+                infoPanel.setLiveStatus(live);
+            }
+        }));
+    }
+
     protected void getFollowCount() {
         if (requester != null) {
             requester.requestFollowerInfo(currentUser.getName());

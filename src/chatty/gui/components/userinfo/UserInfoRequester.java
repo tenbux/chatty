@@ -16,4 +16,10 @@ public interface UserInfoRequester {
     UserInfo getCachedUserInfo(String channel, Consumer<UserInfo> result);
     
     void requestFollowerInfo(String stream);
+
+    /**
+     * @param result Receives true (live), false (offline) or null (unknown),
+     * possibly on another thread
+     */
+    void getLiveStatus(String userId, boolean refresh, Consumer<Boolean> result);
 }

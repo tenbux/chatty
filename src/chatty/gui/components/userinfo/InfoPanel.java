@@ -40,6 +40,7 @@ public class InfoPanel extends JPanel {
     private final SizeMagicLabel firstSeen = new SizeMagicLabel();
     private final SizeMagicLabel followedAt = new SizeMagicLabel();
     private final SizeMagicLabel subscribed = new SizeMagicLabel();
+    private final SizeMagicLabel liveStatus = new SizeMagicLabel();
     private final SizeMagic infoLabelSize;
 
     private User currentUser;
@@ -61,12 +62,14 @@ public class InfoPanel extends JPanel {
         panel1.add(subscribed);
         
         panel2.add(colorInfo);
+        panel2.add(liveStatus);
         panel2.add(followers);
         panel2.add(createdAt);
-        
+
         //firstSeen.setComponentPopupMenu(new DataContextMenu("userid", listener));
         followedAt.setComponentPopupMenu(new DataContextMenu("following", listener));
         createdAt.setComponentPopupMenu(new DataContextMenu("account", listener));
+        liveStatus.setComponentPopupMenu(new DataContextMenu("live", listener));
 
         setLayout(new GridBagLayout());
         add(panel1, Util.makeGbc(0, 0, 1, 1));
@@ -92,6 +95,7 @@ public class InfoPanel extends JPanel {
         infoLabelSize.register(subscribed);
         infoLabelSize.register(createdAt);
         infoLabelSize.register(numberOfLines);
+        infoLabelSize.register(liveStatus);
     }
     
     /**
@@ -225,7 +229,10 @@ public class InfoPanel extends JPanel {
         }
         
         owner.getFollowCount();
-        
+
+        setRefreshingLiveStatus();
+        owner.getLiveStatus(false);
+
         // Follower Info
         Follower follow = owner.getFollowInfo(false);
         currentFollower = null;
@@ -277,6 +284,9 @@ public class InfoPanel extends JPanel {
             // Should mostly already be set, but just in case
             if (currentUser.getId() == null) {
                 currentUser.setId(info.id());
+                // The earlier check had no ID to look up
+                setRefreshingLiveStatus();
+                owner.getLiveStatus(false);
             }
             // For button containing $(followage) and such
             owner.updateButtons();
@@ -363,6 +373,30 @@ public class InfoPanel extends JPanel {
     protected void setRefreshingFollowAge() {
         followedAt.setText(Language.getString("userDialog.loading"));
     }
+
+    protected void setRefreshingLiveStatus() {
+        liveStatus.setText(Language.getString("userDialog.loading"));
+        liveStatus.setToolTipText(null);
+    }
+
+    /**
+     * @param live true (streaming), false (offline) or null (unknown)
+     */
+    public void setLiveStatus(Boolean live) {
+        if (live == null) {
+            liveStatus.setText(new String[]{"Stream: unknown", "Stream: ?"});
+            liveStatus.setToolTipText("Could not check whether this user is streaming (right-click to refresh)");
+        }
+        else if (live) {
+            liveStatus.setText(new String[]{"Streaming: LIVE", "LIVE"});
+            liveStatus.setToolTipText("This user is streaming on their channel (right-click to refresh)");
+        }
+        else {
+            liveStatus.setText(new String[]{"Streaming: offline", "Offline"});
+            liveStatus.setToolTipText("This user is not streaming (right-click to refresh)");
+        }
+        infoLabelSize.check();
+    }
     
     private static class DataContextMenu extends ContextMenu {
 
@@ -386,6 +420,7 @@ public class InfoPanel extends JPanel {
                     addItem("copyUserId", "Copy ID");
                     addItem("copyChannelInfo", "Copy Full Info (Tooltip)");
                 }
+                case "live" -> addItem("refreshLive", "Refresh");
             }
         }
         

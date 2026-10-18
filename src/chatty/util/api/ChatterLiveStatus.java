@@ -58,6 +58,32 @@ public class ChatterLiveStatus {
     }
 
     /**
+     * Get the live status for a single chatter, requested immediately if it is
+     * not cached or if a refresh is forced. The result also updates the status
+     * used for chat messages.
+     *
+     * @param userId The user ID
+     * @param refresh Ignore any cached status and request it again
+     * @param result Receives true (live), false (offline) or null (unknown),
+     * possibly on another thread; without refresh a failed request may
+     * report the previously cached status instead of null
+     */
+    public void getLiveStatus(String userId, boolean refresh, Consumer<Boolean> result) {
+        if (userId == null || userId.isEmpty()) {
+            result.accept(null);
+            return;
+        }
+        int options = CachedBulkManager.ASAP;
+        if (refresh) {
+            options |= CachedBulkManager.REFRESH;
+        }
+        // A fresh unique object, since the chat lookup re-queries with the ID
+        // as unique key and would otherwise replace this query, dropping the
+        // listener.
+        data.query(null, r -> result.accept(r.get(userId)), options, userId);
+    }
+
+    /**
      * @param requested All IDs that were part of the request
      * @param liveIds IDs of the requested chatters that are live, or null if
      * the request failed

@@ -1,6 +1,8 @@
 package chatty.util.api;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.junit.Test;
 
@@ -85,5 +87,52 @@ public class ChatterLiveStatusTest {
 
         status.resultReceived(Set.of("1"), Set.of("1"));
         assertTrue(status.isLive("1"));
+    }
+
+    @Test
+    public void test_getLiveStatus_cachedFresh_returnsWithoutRequest() {
+        Set<String> captured = new HashSet<>();
+        ChatterLiveStatus status = new ChatterLiveStatus(captured::addAll);
+        status.resultReceived(Set.of("1"), Set.of("1"));
+        List<Boolean> results = new ArrayList<>();
+        status.getLiveStatus("1", false, results::add);
+        assertEquals(List.of(true), results);
+        assertTrue(captured.isEmpty());
+    }
+
+    @Test
+    public void test_getLiveStatus_refresh_requestsImmediatelyAndReportsOffline() {
+        Set<String> captured = new HashSet<>();
+        ChatterLiveStatus status = new ChatterLiveStatus(captured::addAll);
+        status.resultReceived(Set.of("1"), Set.of("1"));
+        List<Boolean> results = new ArrayList<>();
+        status.getLiveStatus("1", true, results::add);
+        assertEquals(Set.of("1"), captured);
+        assertTrue(results.isEmpty());
+
+        status.resultReceived(Set.of("1"), Set.of());
+        assertEquals(List.of(false), results);
+        assertFalse(status.isLive("1"));
+    }
+
+    @Test
+    public void test_getLiveStatus_refreshError_reportsNull() {
+        ChatterLiveStatus status = create();
+        List<Boolean> results = new ArrayList<>();
+        status.getLiveStatus("1", true, results::add);
+        status.resultReceived(Set.of("1"), null);
+        assertEquals(1, results.size());
+        assertNull(results.get(0));
+    }
+
+    @Test
+    public void test_getLiveStatus_nullId_reportsNullWithoutRequest() {
+        Set<String> captured = new HashSet<>();
+        ChatterLiveStatus status = new ChatterLiveStatus(captured::addAll);
+        List<Boolean> results = new ArrayList<>();
+        status.getLiveStatus(null, true, results::add);
+        assertEquals(1, results.size());
+        assertNull(results.get(0));
+        assertTrue(captured.isEmpty());
     }
 }

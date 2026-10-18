@@ -265,6 +265,10 @@ public class TwitchApi {
     public boolean isChatterLive(String userId) {
         return chatterLiveStatus.isLive(userId);
     }
+
+    public void getChatterLiveStatus(String userId, boolean refresh, Consumer<Boolean> result) {
+        chatterLiveStatus.getLiveStatus(userId, refresh, result);
+    }
     
     //===================
     // Stream Information

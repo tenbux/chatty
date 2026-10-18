@@ -73,6 +73,11 @@ public class UserInfoManager {
                 api.getFollowers(stream, false);
             }
 
+            @Override
+            public void getLiveStatus(String userId, boolean refresh, Consumer<Boolean> result) {
+                api.getChatterLiveStatus(userId, refresh, result);
+            }
+
         };
     }
     
