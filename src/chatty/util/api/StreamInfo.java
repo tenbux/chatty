@@ -325,7 +325,13 @@ public class StreamInfo {
                 }
                 recheckOffline = -1;
                 this.online = false;
-                addHistoryItem(System.currentTimeMillis(), new StreamInfoHistoryItem(System.currentTimeMillis()));
+                long now = System.currentTimeMillis();
+                // Offline streams are polled more often than expiresAfter, and
+                // history is never trimmed, so only record one offline entry
+                // per expiresAfter seconds.
+                if (isOfflineHistoryItemDue(now)) {
+                    addHistoryItem(now, new StreamInfoHistoryItem(now));
+                }
             }
             result = setUpdateSucceeded(true);
         }
@@ -551,6 +557,17 @@ public class StreamInfo {
                 && System.currentTimeMillis() - recheckOffline > RECHECK_OFFLINE_DELAY;
     }
     
+    /**
+     * Whether the latest update succeeded, reported the stream as offline and
+     * has not gone stale (see isValid()).
+     *
+     * @return true if known to be offline, false if online, pending an offline
+     * recheck, stale or never updated
+     */
+    public synchronized boolean isKnownOffline() {
+        return !online && isValid();
+    }
+
     public synchronized boolean getFollowed() {
         return followed;
     }
@@ -740,6 +757,15 @@ public class StreamInfo {
                 " Viewers: "+viewers;
     }
     
+    private boolean isOfflineHistoryItemDue(long now) {
+        synchronized(history) {
+            Map.Entry<Long, StreamInfoHistoryItem> last = history.lastEntry();
+            return last == null
+                    || last.getValue().isOnline()
+                    || now - last.getKey() >= (long) expiresAfter * 1000;
+        }
+    }
+
     private void addHistoryItem(Long time, StreamInfoHistoryItem item) {
         synchronized(history) {
             history.put(time, item);

@@ -14,6 +14,7 @@ import org.json.simple.parser.ParseException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
 
 /**
@@ -39,7 +40,13 @@ public class StreamInfoManager {
     private static final int UPDATE_STREAMINFO_DELAY = 120;
     
     private static final int SPECIAL_CHECK_DELAY = 20;
-    
+
+    /**
+     * Seconds between requests for open channels known to be offline. Shorter
+     * than UPDATE_STREAMINFO_DELAY so going live is noticed sooner.
+     */
+    private static final int OFFLINE_CHECK_DELAY = 30;
+
     private static final int UPDATE_FOLLOWS_DELAY = 200;
     
     /**
@@ -80,6 +87,7 @@ public class StreamInfoManager {
     private final ElapsedTime streamsInfoRequestedET = new ElapsedTime();
     private final ElapsedTime followsRequestedET = new ElapsedTime();
     private final ElapsedTime specialCheckDoneET = new ElapsedTime();
+    private final ElapsedTime offlineCheckDoneET = new ElapsedTime();
     
     private int followsRequestErrors = 0;
     private String prevToken = "";
@@ -175,6 +183,7 @@ public class StreamInfoManager {
         // Prefer to request several stream infos at once
         requestStreamsInfo(streams);
         checkRerequest(streams);
+        checkKnownOffline(streams);
         // Then check to request this one, which can happen if the streams
         // request was requested not too long ago. This ofc is also to actually
         // return the StreamInfo object.
@@ -224,9 +233,28 @@ public class StreamInfoManager {
                 streamsRequestErrors)) {
             return;
         }
-        requestStreamsInfo2(streams, true);
+        specialCheckDoneET.set();
+        requestStreamsInfo2(streams, StreamInfo::recheckOffline);
     }
-    
+
+    /**
+     * Requests the given channels that are known to be offline, at most once
+     * per OFFLINE_CHECK_DELAY (extended after request errors).
+     */
+    private void checkKnownOffline(Set<String> streams) {
+        // Callers without the open channels pass an empty set, which must not
+        // use up the delay for the callers that do have them
+        if (streams.isEmpty()) {
+            return;
+        }
+        if (!checkTimePassed(offlineCheckDoneET, OFFLINE_CHECK_DELAY,
+                streamsRequestErrors)) {
+            return;
+        }
+        offlineCheckDoneET.set();
+        requestStreamsInfo2(streams, StreamInfo::isKnownOffline);
+    }
+
     /**
      * Request info for a list of streams regulary. This first checks if enough
      * time has passed since the last request, then requests those streams that
@@ -239,31 +267,29 @@ public class StreamInfoManager {
                 streamsRequestErrors)) {
             return;
         }
-        requestStreamsInfo2(streams, false);
+        if (requestStreamsInfo2(streams, info -> true)) {
+            streamsInfoRequestedET.set();
+        }
     }
-    
+
     /**
      * Request info for a list of streams in one request. Puts together a list
-     * of streams that fit the criteria (mainly that they aren't currently
-     * waiting for a response) and then actually starts a request if there are
-     * streams to request.
-     * 
-     * This is used for two different kinds of requests: The regular request of
-     * all open channels and the special request that is used to recheck offline
-     * status.
+     * of streams that fit the criteria (that they aren't currently waiting for
+     * a response and match the filter) and then actually starts a request if
+     * there are streams to request.
      *
      * @param streams The list of streams
-     * @param special Whether this is a special request to recheck offline
-     * status
+     * @param filter Which streams to include in the request
+     * @return true if a request was started, false if no stream qualified
      */
-    private void requestStreamsInfo2(Set<String> streams, boolean special) {
+    private boolean requestStreamsInfo2(Set<String> streams, Predicate<StreamInfo> filter) {
         Set<String> streamsForRequest = new HashSet<>();
         Set<StreamInfo> streamInfosForRequest = new HashSet<>();
         for (String stream : streams) {
             StreamInfo cached = getStreamInfo(stream);
             // Don't check for expired, so all open chans are
             // requested, meaning hopefully less requests
-            if (cached.isRequestPending() && (!special || cached.recheckOffline())) {
+            if (cached.isRequestPending() && filter.test(cached)) {
                 streamsForRequest.add(stream);
                 streamInfosForRequest.add(cached);
                 cached.setRequested();
@@ -272,15 +298,11 @@ public class StreamInfoManager {
                 break;
             }
         }
-        if (special) {
-            specialCheckDoneET.set();
+        if (streamsForRequest.isEmpty()) {
+            return false;
         }
-        if (!streamsForRequest.isEmpty()) {
-            if (!special) {
-                streamsInfoRequestedET.set();
-            }
-            api.requests.requestStreamsInfo(streamsForRequest, streamInfosForRequest);
-        }
+        api.requests.requestStreamsInfo(streamsForRequest, streamInfosForRequest);
+        return true;
     }
     
     /**

@@ -7,6 +7,8 @@ import org.junit.Test;
 import java.util.LinkedHashMap;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  *
@@ -48,7 +50,60 @@ public class StreamInfoTest {
         assertEquals(-1, info.getHistoryStreamStart(500*MINUTE, false));
         assertEquals(-1, info.getHistoryStreamStart(500*MINUTE, true));
     }
-    
+
+    @Test
+    public void isKnownOffline_noUpdateYet_false() {
+        StreamInfo info = new StreamInfo("test", null);
+        assertFalse(info.isKnownOffline());
+    }
+
+    @Test
+    public void isKnownOffline_afterOfflineUpdate_true() {
+        StreamInfo info = new StreamInfo("test", null);
+        info.setOffline();
+        assertTrue(info.isKnownOffline());
+    }
+
+    @Test
+    public void isKnownOffline_afterOnlineUpdate_false() {
+        StreamInfo info = new StreamInfo("test", null);
+        info.setOffline();
+        info.set("title", new StreamCategory("1", "game"), 5, System.currentTimeMillis(), StreamInfo.StreamType.LIVE);
+        assertFalse(info.isKnownOffline());
+    }
+
+    @Test
+    public void setOffline_repeatedWithinExpiry_addsOneHistoryItem() {
+        StreamInfo info = new StreamInfo("test", null);
+        info.setExpiresAfter(120);
+        info.setOffline();
+        info.setOffline();
+        assertEquals(1, info.getHistory().size());
+    }
+
+    @Test
+    public void setOffline_lastOfflineItemOlderThanExpiry_addsHistoryItem() {
+        StreamInfo info = new StreamInfo("test", null);
+        info.setExpiresAfter(120);
+        TestHistory testHistory = new TestHistory(System.currentTimeMillis() - 200*1000);
+        testHistory.add();
+        info.setHistory(testHistory.history);
+        info.setOffline();
+        assertEquals(2, info.getHistory().size());
+    }
+
+    @Test
+    public void setOffline_lastItemOnline_addsHistoryItem() {
+        StreamInfo info = new StreamInfo("test", null);
+        info.setExpiresAfter(120);
+        TestHistory testHistory = new TestHistory(System.currentTimeMillis() - 1000);
+        testHistory.setLive(true);
+        testHistory.add();
+        info.setHistory(testHistory.history);
+        info.setOffline();
+        assertEquals(2, info.getHistory().size());
+    }
+
     private static class TestHistory {
         
         private long currentTime;
