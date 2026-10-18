@@ -930,7 +930,8 @@ public class LinkController extends MouseAdapter {
         String info;
         if (!usericon.metaTitle.isEmpty()) {
             info = POPUP_HTML_PREFIX+"Badge: "+Helper.htmlspecialchars_encode(usericon.metaTitle);
-        } else if (usericon.type == Usericon.Type.HL || usericon.type == Usericon.Type.FIRSTMSG) {
+        } else if (usericon.type == Usericon.Type.HL || usericon.type == Usericon.Type.FIRSTMSG
+                || usericon.type == Usericon.Type.LIVE) {
             // Customize text since not really a badge
             info = POPUP_HTML_PREFIX+usericon.type.label;
         } else if (usericon.type == Usericon.Type.CHANNEL_LOGO) {

@@ -57,6 +57,43 @@ public class UsericonManagerTest {
         testThirdParty(m, usernames, userids, user, true, true, false, true);
     }
     
+    private UsericonManager createManagerWithLiveFallback() {
+        Settings settings = new Settings(null, null);
+        settings.addBoolean("ffzModIcon", false);
+        settings.addBoolean("customUsericonsEnabled", false);
+        settings.addList("customUsericons", new ArrayList<>(), Setting.LIST);
+        UsericonManager m = new UsericonManager(settings);
+        m.addDefaultIcon(UsericonFactory.createFallbackIcon(Usericon.Type.LIVE,
+                MainGui.class.getResource("icon_live.png")));
+        return m;
+    }
+    
+    private boolean hasLiveIcon(UsericonManager m) {
+        User user = new User("test", Room.EMPTY);
+        List<Usericon> badges = m.getBadges(null, user, null, false, null, 0);
+        return badges.stream().anyMatch(icon -> icon.type == Usericon.Type.LIVE);
+    }
+    
+    @Test
+    public void test_getBadges_liveCheckTrue_containsLiveIcon() {
+        UsericonManager m = createManagerWithLiveFallback();
+        m.setLiveCheck(u -> true);
+        assertTrue(hasLiveIcon(m));
+    }
+    
+    @Test
+    public void test_getBadges_liveCheckFalse_noLiveIcon() {
+        UsericonManager m = createManagerWithLiveFallback();
+        m.setLiveCheck(u -> false);
+        assertFalse(hasLiveIcon(m));
+    }
+    
+    @Test
+    public void test_getBadges_noLiveCheck_noLiveIcon() {
+        UsericonManager m = createManagerWithLiveFallback();
+        assertFalse(hasLiveIcon(m));
+    }
+    
     private void testThirdParty(UsericonManager m, Set<String> usernames, Set<String> userids, User user, boolean... results) {
         List<Usericon> thirdParty = setThirdParty(m, usernames, userids);
         List<Usericon> badges = m.getBadges(IrcBadges.parse(null), user, null, false, null, -1);

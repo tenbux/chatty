@@ -69,6 +69,7 @@ public class Usericon implements Comparable {
         FOUNDER(16, "Founder", "FND", "%", "founder", null),
         ALL(17, "All Types", "ALL", "", null, null),
         FIRSTMSG(18, "First Message in Channel", "FMG", "'", null, null),
+        LIVE(19, "Live Streaming", "LIV", "'", null, null),
         UNDEFINED(-1, "Undefined", "UDF", null, null, null);
         
         public final Color color;

@@ -12,6 +12,7 @@ import chatty.util.irc.MsgTags;
 import chatty.util.settings.Settings;
 
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
 
 /**
@@ -47,8 +48,22 @@ public class UsericonManager {
 
     private final Settings settings;
     
+    /**
+     * Injected so this class does not depend on how live status is looked up.
+     */
+    private Predicate<User> liveCheck;
+    
     public UsericonManager(Settings settings) {
         this.settings = settings;
+    }
+    
+    /**
+     * Set the check deciding whether a user gets the LIVE icon.
+     *
+     * @param liveCheck The check, or null to never show the LIVE icon
+     */
+    public synchronized void setLiveCheck(Predicate<User> liveCheck) {
+        this.liveCheck = liveCheck;
     }
     
     public synchronized void addDefaultIcons(List<Usericon> icons) {
@@ -131,6 +146,7 @@ public class UsericonManager {
         addFallbackIcon(Usericon.Type.BOT, "icon_bot.png");
         addFallbackIcon(Usericon.Type.HL, "icon_hl.png");
         addFallbackIcon(Usericon.Type.FIRSTMSG, "icon_firstmsg.png");
+        addFallbackIcon(Usericon.Type.LIVE, "icon_live.png");
 //        addFallbackIcon(Usericon.Type.RESUB, "icon_sub.png");
 //        addFallbackIcon(Usericon.Type.NEWSUB, "icon_sub.png");
 //        List<Usericon> test = new ArrayList<>();
@@ -189,6 +205,12 @@ public class UsericonManager {
         }
         addThirdPartyIcons(icons, user, tags);
         addAddonIcons(icons, user, tags);
+        if (liveCheck != null && liveCheck.test(user)) {
+            Usericon icon = getIcon(Usericon.Type.LIVE, null, null, user, tags);
+            if (icon != null) {
+                icons.add(icon);
+            }
+        }
         if (tags != null && tags.isHighlightedMessage()) {
             Usericon icon = getIcon(Usericon.Type.HL, null, null, user, tags);
             if (icon != null) {

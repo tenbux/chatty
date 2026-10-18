@@ -67,6 +67,7 @@ class UsericonEditor extends TableEditor<Usericon> {
         typeNames.put(Usericon.Type.OTHER, "Other (Third-Party)");
         typeNames.put(Usericon.Type.HL, "Highlighted (by points)");
         typeNames.put(Usericon.Type.FIRSTMSG, "First Message in Channel");
+        typeNames.put(Usericon.Type.LIVE, "Live Streaming");
         typeNames.put(Usericon.Type.ALL, "All Types");
         typeNames.put(Usericon.Type.TURBO, "Turbo");
         typeNames.put(Usericon.Type.PRIME, "Prime");
