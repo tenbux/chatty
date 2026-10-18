@@ -55,6 +55,7 @@ public class TwitchApi {
     protected final CachedBulkManager<Req, Boolean> m;
     protected final ResultManager resultManager;
     protected final UserInfoManager userInfoManager;
+    protected final ChatterLiveStatus chatterLiveStatus;
     protected final BlockedTermsManager blockedTermsManager;
     
     private volatile Long tokenLastChecked = Long.valueOf(0);
@@ -76,6 +77,7 @@ public class TwitchApi {
         channelInfoManager = new ChannelInfoManager(this, resultListener);
         userIDs = new UserIDs(this);
         userInfoManager = new UserInfoManager(this);
+        chatterLiveStatus = new ChatterLiveStatus(ids -> requests.requestChatterLiveStatus(ids));
         emoticonManager2 = new EmoticonManager2(resultListener, requests);
         blockedTermsManager = new BlockedTermsManager(requests);
         m = new CachedBulkManager<>((manager, asap, normal, backlog) -> {
@@ -258,6 +260,10 @@ public class TwitchApi {
 
     public UserInfo getCachedOnlyUserInfo(String login) {
         return userInfoManager.getCachedOnly(login);
+    }
+
+    public boolean isChatterLive(String userId) {
+        return chatterLiveStatus.isLive(userId);
     }
     
     //===================

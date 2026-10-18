@@ -217,6 +217,13 @@ public class Requests {
         });
     }
 
+    public void requestChatterLiveStatus(Set<String> userIds) {
+        String url = "https://api.twitch.tv/helix/streams?first=100&" + makeNewApiParameters("user_id", userIds);
+        newApi.add(url, "GET", api.defaultToken, r -> {
+            api.chatterLiveStatus.resultReceived(userIds, ChatterLiveStatus.parseLiveIds(r.text()));
+        });
+    }
+
     //================
     // User Management
     //================
