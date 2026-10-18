@@ -144,7 +144,7 @@ public class OtherSettings extends SettingsPanel {
         other.add(d.addSimpleBooleanSetting(
                 "liveChatterIcons",
                 "Show LIVE icon for chatters who are currently streaming",
-                "Checked when a chatter's message is printed, so the icon may lag a few minutes and is not removed from earlier messages."),
+                "Checked when a chatter's message is printed, so the icon may lag a few minutes and is not removed from earlier messages. In very busy chats it may take longer to show up."),
                 SettingsDialog.makeGbc(0, 12, 3, 1, GridBagConstraints.WEST));
         
         //--------------------------

@@ -2,7 +2,9 @@ package chatty.util.api;
 
 import chatty.util.CachedBulkManager;
 import chatty.util.Debugging;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -61,15 +63,12 @@ public class ChatterLiveStatus {
             data.setError(requested);
             return;
         }
+        // One batched call, since each setResult scans all pending queries.
+        Map<String, Boolean> results = new HashMap<>();
         for (String id : requested) {
-            data.setResult(id, liveIds.contains(id));
+            results.put(id, liveIds.contains(id));
         }
-        // Defensive: also record live IDs that were not in the requested set
-        for (String id : liveIds) {
-            if (!requested.contains(id)) {
-                data.setResult(id, true);
-            }
-        }
+        data.setResult(results);
     }
 
     /**
@@ -101,6 +100,13 @@ public class ChatterLiveStatus {
             LOGGER.warning("Error parsing live chatter streams: " + ex);
         }
         return null;
+    }
+
+    /**
+     * Run the request pass immediately instead of waiting for the timer.
+     */
+    void requestNow() {
+        data.doRequests();
     }
 
     int pendingQueries() {

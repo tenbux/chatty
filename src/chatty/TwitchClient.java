@@ -301,7 +301,8 @@ public class TwitchClient {
 
         usercolorManager = new UsercolorManager(settings);
         usericonManager = new UsericonManager(settings);
-        // Runs under the UsericonManager lock, so it must stay a cache read; the setting is checked first so no lookup is queued while the feature is off.
+        // Runs under the UsericonManager lock, so it must stay a cache read;
+        // the setting is checked first so no lookup is queued while the feature is off.
         usericonManager.setLiveCheck(user -> settings.getBoolean("liveChatterIcons")
                 && !user.isBroadcaster()
                 && api.isChatterLive(user.getId()));

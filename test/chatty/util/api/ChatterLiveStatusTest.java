@@ -1,5 +1,6 @@
 package chatty.util.api;
 
+import java.util.HashSet;
 import java.util.Set;
 import org.junit.Test;
 
@@ -56,5 +57,16 @@ public class ChatterLiveStatusTest {
         assertEquals(1, status.pendingQueries());
         assertFalse(status.isLive("4"));
         assertEquals(1, status.pendingQueries());
+    }
+
+    @Test
+    public void test_requester_receivesAtMost100Ids() {
+        Set<String> captured = new HashSet<>();
+        ChatterLiveStatus status = new ChatterLiveStatus(captured::addAll);
+        for (int i = 0; i < 150; i++) {
+            status.isLive("id" + i);
+        }
+        status.requestNow();
+        assertEquals(100, captured.size());
     }
 }
