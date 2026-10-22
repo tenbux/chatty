@@ -236,10 +236,11 @@ public class HighlightedMessages extends JDialog {
     
     public void addMessage(String channel, User user, String text, boolean action,
             TagEmotes emotes, int bits, boolean whisper, List<Match> highlightMatches,
-            Object highlightSource, MsgTags tags) {
+            Object highlightSource, MsgTags tags, long lineId) {
         messageAdded(channel);
         UserMessage message = new UserMessage(user, text, emotes, null, bits, highlightMatches, null, null, tags);
         message.whisper = whisper;
+        message.lineId = lineId;
         if (messages.type == ChannelTextPane.Type.HIGHLIGHTS) {
             message.highlightSource = highlightSource;
         }

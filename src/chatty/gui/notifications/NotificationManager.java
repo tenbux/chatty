@@ -117,7 +117,7 @@ public class NotificationManager {
     
     public void highlight(User user, User localUser, String message, MsgTags tags,
                           boolean isOwnMessage, boolean isWhisper, boolean hasBits,
-                          HighlightItem matchedItem) {
+                          HighlightItem matchedItem, long lineId) {
         check(null, user.getChannel(), user, localUser, message, tags, matchedItem, n -> {
             if (isOwnMessage && !n.hasOption(TypeOption.OWN_MSG)) {
                 return null;
@@ -128,15 +128,15 @@ public class NotificationManager {
             if (n.type == Type.HIGHLIGHT) {
                 String title = String.format("[Highlight] %s in %s",
                         getDisplayName(user), user.getChannel());
-                return new NotificationData(title, message);
+                return new NotificationData(title, message, lineId);
             } else if (n.type == Type.MESSAGE) {
                 String title = String.format("[Message] %s in %s",
                         getDisplayName(user), user.getChannel());
-                return new NotificationData(title, message);
+                return new NotificationData(title, message, lineId);
             } else if (n.type == Type.WHISPER && isWhisper) {
                 String title = String.format("[Whisper] %s",
                         getDisplayName(user));
-                return new NotificationData(title, message);
+                return new NotificationData(title, message, lineId);
             }
             return null;
         });
@@ -198,7 +198,7 @@ public class NotificationManager {
     }
     
     public void message(User user, User localUser, String message, MsgTags tags,
-            boolean isOwnMessage, boolean hasBits) {
+            boolean isOwnMessage, boolean hasBits, long lineId) {
         check(Type.MESSAGE, user.getChannel(), user, localUser, message, tags, n -> {
             if (isOwnMessage && !n.hasOption(TypeOption.OWN_MSG)) {
                 return null;
@@ -208,7 +208,7 @@ public class NotificationManager {
             }
             String title = String.format("[Message] %s in %s",
                     getDisplayName(user), user.getChannel());
-            return new NotificationData(title, message);
+            return new NotificationData(title, message, lineId);
         });
     }
     
@@ -287,7 +287,11 @@ public class NotificationManager {
         NotificationData check(Notification n);
     }
 
-    private record NotificationData(String title, String message) {
+    private record NotificationData(String title, String message, Long lineId) {
+
+        NotificationData(String title, String message) {
+            this(title, message, null);
+        }
 
     }
     
@@ -342,7 +346,7 @@ public class NotificationManager {
                         shown = true;
                         shownNotifiction = n;
                         shownData = d;
-                        showNotification(n, d.title, d.message, channel, channel);
+                        showNotification(n, d.title, d.message, channel, d.lineId);
                     }
                     if (!played
                             && !(matchedItem != null && matchedItem.noSound())
@@ -391,8 +395,8 @@ public class NotificationManager {
     }
     
     public void showNotification(Notification n, String title, String message,
-                                 String data, String channel) {
-        main.showNotification(title, message, n.foregroundColor, n.backgroundColor, new NotificationWindowData(n, data));
+                                 String channel, Long lineId) {
+        main.showNotification(title, message, n.foregroundColor, n.backgroundColor, new NotificationWindowData(n, channel, lineId));
     }
     
     private void playSound(Notification n) {
@@ -507,7 +511,15 @@ public class NotificationManager {
         return Helper.makeDisplayNick(user, displayNamesMode);
     }
 
-    public record NotificationWindowData(Notification notification, String channel) {
+    /**
+     * @param lineId Id of the printed chat line that triggered the
+     * notification, or null if none is known
+     */
+    public record NotificationWindowData(Notification notification, String channel, Long lineId) {
+
+        public NotificationWindowData(Notification notification, String channel) {
+            this(notification, channel, null);
+        }
 
     }
     

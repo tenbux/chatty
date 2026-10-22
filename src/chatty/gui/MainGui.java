@@ -2707,7 +2707,11 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
             if (data != null) {
                 Notification notification = data.notification();
                 String channel = data.channel();
-                if (client.settings.getBoolean("liveStreamsNotificationAction")
+                Long lineId = data.lineId();
+                if (lineId != null && channels.hasLineId(channel, lineId)) {
+                    goToSourceLine(channel, lineId);
+                }
+                else if (client.settings.getBoolean("liveStreamsNotificationAction")
                         && notification != null
                         && notification.type == Notification.Type.STREAM_STATUS) {
                     StreamInfo status = client.api.getCachedStreamInfo(Helper.toStream(channel));
@@ -3548,6 +3552,9 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
             }
 
             TagEmotes tagEmotes = Emoticons.parseEmotesTag(tags.getRawEmotes());
+            // Notifications are created before the message, but need its line
+            // id so the notification can go to the printed line
+            long lineId = Message.getLineId();
 
             // Do stuff if highlighted, without printing message
             if (highlighted) {
@@ -3557,14 +3564,14 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
                 } else {
                     channels.setChannelNewMessage(chan);
                 }
-                notificationManager.highlight(user, localUser, text, tags, isOwnMessage, whisper, bitsAmount > 0, highlighter.getLastMatchItem());
+                notificationManager.highlight(user, localUser, text, tags, isOwnMessage, whisper, bitsAmount > 0, highlighter.getLastMatchItem(), lineId);
                 TextToSpeech.get(client.settings).message(user, text, tags, isOwnMessage);
             } else if (!ignored) {
                 if (whisper) {
                     notificationManager.whisper(user, localUser, text, isOwnMessage);
                 } else {
                     notificationManager.message(user, localUser, text, tags, isOwnMessage,
-                            bitsAmount > 0);
+                            bitsAmount > 0, lineId);
                     TextToSpeech.get(client.settings).message(user, text, tags, isOwnMessage);
                 }
                 if (!isOwnMessage) {
@@ -3587,13 +3594,14 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
                     UserMessage message = new UserMessage(user, text, tagEmotes, null, bitsForEmotes, ignoreMatches, null, null, tags);
                     message.whisper = whisper;
                     message.ignoreSource = ignoreSource;
+                    message.lineId = lineId;
                     routingManager.addUserMessage(routingTargets, message, localUser);
                 }
                 // No match item is set when ignored by "Ignored Users" list
                 if (ignoredUser || ignoreList.getLastMatchItem().hide()) {
                     ignoredMessages.addMessage(channel, user, text, action,
                             tagEmotes, bitsForEmotes, whisper, ignoreMatches,
-                            ignoreSource, tags);
+                            ignoreSource, tags, lineId);
                     ignoredMessagesHelper.ignoredMessage(channel);
                 }
                 if ((ignoredUser || ignoreList.getLastMatchItem().noLog())
@@ -3621,6 +3629,7 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
                         hasReplacements ? filter.getLastReplacement() : null,
                         tags);
                 message.localUser = localUser;
+                message.lineId = lineId;
 
                 // Message comes from a history service
                 if (tags.isHistoricMsg()) {
@@ -5462,6 +5471,31 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
     
     public void scrollToLineId(String channel, long lineId, String label) {
         GuiUtil.edt(() -> channels.scrollToLineId(channel, lineId, label));
+    }
+
+    /**
+     * Switch to the channel and scroll to the line, or only switch to the
+     * channel if the line isn't there anymore.
+     */
+    public void goToSourceLine(String channel, long lineId) {
+        GuiUtil.edt(() -> {
+            if (channels.hasLineId(channel, lineId)) {
+                channels.scrollToLineId(channel, lineId, "Source Message");
+            }
+            else {
+                channels.switchToChannel(channel);
+            }
+            // Switching tabs doesn't raise the window, which may be behind the
+            // window that was double-clicked in
+            Channel chan = channels.getExistingChannel(channel);
+            Window window = chan != null ? SwingUtilities.getWindowAncestor(chan) : null;
+            if (window == this) {
+                makeVisible();
+            }
+            else if (window != null) {
+                window.toFront();
+            }
+        });
     }
     
     public WindowListener getWindowListener() {

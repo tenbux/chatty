@@ -86,7 +86,10 @@ public class LinkController extends MouseAdapter {
 
     private MainGui main;
     
+    private ChannelTextPane.Type type;
+    
     public void setType(ChannelTextPane.Type type) {
+        this.type = type;
     }
     
     /**
@@ -244,6 +247,63 @@ public class LinkController extends MouseAdapter {
             // because this is used to change the focus to the input
             mouseClickedListener.mouseClicked(channel, false);
         }
+        // Panes without an own channel (Highlights, Ignored, Custom Tabs) mix
+        // messages from several channels, so only there is a source to go to.
+        // Stream Chat has no own channel either, but only shows one channel.
+        if (e.getClickCount() == 2
+                && e.getButton() == MouseEvent.BUTTON1
+                && channel == null
+                && type != ChannelTextPane.Type.STREAM_CHAT
+                && main != null) {
+            Element element = getElement(e);
+            if (element != null && !isClickable(element)) {
+                SourceLine source = getSourceLine(element, null);
+                if (source != null) {
+                    main.goToSourceLine(source.channel(), source.lineId());
+                }
+            }
+        }
+    }
+
+    /**
+     * Whether a single left-click on the element already does something (e.g.
+     * open a link or user info), so a double-click shouldn't also act on it.
+     */
+    private boolean isClickable(Element element) {
+        return (getUrl(element) != null && !isUrlDeleted(element))
+                || getGeneralLink(element) != null
+                || getUser(element) != null
+                || getMention(element) != null
+                || getEmoticonImage(element) != null
+                || getUsericonImage(element) != null
+                || getChatGifImage(element) != null;
+    }
+
+    record SourceLine(String channel, long lineId) {
+    }
+
+    /**
+     * Get the source of the message line the element belongs to.
+     *
+     * @param element An element of the message line
+     * @param paneChannel The channel of the pane the element is in, or null if
+     * the pane has no single channel
+     * @return The source, or null if the line has no line id or channel, or if
+     * the source channel is the pane's own channel
+     */
+    static SourceLine getSourceLine(Element element, String paneChannel) {
+        Long lineId = (Long) element.getAttributes().getAttribute(Attribute.LINE_ID);
+        User user = (User) element.getAttributes().getAttribute(Attribute.LOCAL_USER);
+        if (user == null && element.getParentElement() != null) {
+            user = ChannelTextPane.getUserFromLine(element.getParentElement());
+        }
+        String sourceChannel = user != null ? user.getChannel() : null;
+        if (lineId != null
+                && sourceChannel != null
+                && !sourceChannel.equals(paneChannel)) {
+            return new SourceLine(sourceChannel, lineId);
+        }
+        return null;
     }
     
     @Override
@@ -1109,20 +1169,12 @@ public class LinkController extends MouseAdapter {
             m.addSeparator();
             m.add(menu);
             
-            Long lineId = (Long) getSource(Attribute.LINE_ID, element);
-            User user = (User) getSource(Attribute.LOCAL_USER, element);
-            if (user == null && element.getParentElement() != null) {
-                user = ChannelTextPane.getUserFromLine(element.getParentElement());
-            }
-            String sourceChannel = user != null ? user.getChannel() : null;
-            if (lineId != null
-                    && sourceChannel != null
-                    && (channel == null || !channel.getChannel().equals(sourceChannel))
-                    && main != null) {
+            SourceLine source = getSourceLine(element, channel != null ? channel.getChannel() : null);
+            if (source != null && main != null) {
                 JMenuItem item = new JMenuItem("Go to source message");
-                item.setEnabled(main.hasLineId(sourceChannel, lineId));
-                item.setToolTipText("Message from "+sourceChannel);
-                item.addActionListener(e -> main.scrollToLineId(sourceChannel, lineId, "Source Message"));
+                item.setEnabled(main.hasLineId(source.channel(), source.lineId()));
+                item.setToolTipText("Message from "+source.channel());
+                item.addActionListener(e -> main.scrollToLineId(source.channel(), source.lineId(), "Source Message"));
                 m.add(item);
             }
         }
