@@ -124,6 +124,24 @@ public class StreamLeaderboardTest {
     }
 
     @Test
+    public void test_refresh_fileReplacedMidStream_noDoubleCount() throws IOException {
+        TwitchStreamState live = new TwitchStreamState(true, at(20, 0, 0), -1);
+        append(chat(19, 0, 0, "viewer_one")
+                + chat(20, 1, 0, "viewer_one")
+                + chat(20, 2, 0, "viewer_two"));
+        assertEquals(2, leaderboard.refresh(live).total());
+
+        // Starts differently from the old file, as when the log is rotated or rewritten externally.
+        Files.writeString(dir.resolve(LOG_FILE),
+                chat(20, 1, 0, "viewer_one") + chat(20, 2, 0, "viewer_two") + chat(20, 3, 0, "viewer_two"),
+                StandardCharsets.UTF_8);
+        StreamLeaderboard.Snapshot snapshot = leaderboard.refresh(live);
+
+        assertEquals(3, snapshot.total());
+        assertEquals(List.of(new Entry("viewer_two", 2), new Entry("viewer_one", 1)), snapshot.ranking());
+    }
+
+    @Test
     public void test_refresh_unavailable_emptySnapshotThenRecovers() throws IOException {
         append(chat(20, 1, 0, "viewer_one"));
         StreamLeaderboard.Snapshot first = leaderboard.refresh(new TwitchStreamState(false, -1, -1));

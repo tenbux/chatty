@@ -70,9 +70,10 @@ public class StreamLeaderboard {
         if (resolution == null) {
             rebuild(twitch);
         } else {
-            readNewLines();
+            boolean hasReset = reader.readAppended(this::handleLine);
             Resolution latest = StreamRangeResolver.resolve(new ArrayList<>(markers), twitch);
-            if (!latest.equals(resolution)) {
+            // After a reset the reader re-emitted lines already counted, so the tally cannot be trusted.
+            if (hasReset || !latest.equals(resolution)) {
                 rebuild(twitch);
             }
         }
@@ -98,10 +99,6 @@ public class StreamLeaderboard {
             range = null;
         }
         resolution = resolved;
-    }
-
-    private void readNewLines() throws IOException {
-        reader.readAppended(this::handleLine);
     }
 
     private void handleLine(String line) {

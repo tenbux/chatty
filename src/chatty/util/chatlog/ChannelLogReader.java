@@ -116,9 +116,13 @@ public class ChannelLogReader {
      * appeared since and are not older than the newest file the scan saw.
      *
      * @param lines receives the lines in file order
+     * @return true if any file was read again from its start because it shrank
+     * or no longer starts with the bytes first read; the lines of such a file
+     * were emitted before, so the caller's totals may now count them twice
      * @throws IOException if a file cannot be read
      */
-    public void readAppended(Consumer<String> lines) throws IOException {
+    public boolean readAppended(Consumer<String> lines) throws IOException {
+        boolean hasReset = false;
         List<Path> toRead = new ArrayList<>(offsets.keySet());
         if (isSplit) {
             for (DatedFile file : listFiles()) {
@@ -136,8 +140,9 @@ public class ChannelLogReader {
             toRead.add(singleFile());
         }
         for (Path path : toRead) {
-            readFile(path, lines);
+            hasReset |= readFile(path, lines);
         }
+        return hasReset;
     }
 
     private Path singleFile() {
@@ -174,16 +179,20 @@ public class ChannelLogReader {
      * file that keeps growing cannot keep this call busy. A file that is now
      * shorter than the stored offset, or no longer starts with the bytes first
      * read, was truncated or replaced and is read again from the start.
+     *
+     * @return whether the file was read again from the start for that reason
      */
-    private void readFile(Path path, Consumer<String> lines) throws IOException {
+    private boolean readFile(Path path, Consumer<String> lines) throws IOException {
         if (!Files.isRegularFile(path)) {
-            return;
+            return false;
         }
+        boolean isReset = false;
         try (FileChannel fileChannel = FileChannel.open(path, StandardOpenOption.READ)) {
             long end = fileChannel.size();
             long position = offsets.getOrDefault(path, 0L);
             if (position > 0 && (end < position || !hasSameHead(path, fileChannel))) {
                 position = 0;
+                isReset = true;
                 heads.remove(path);
             }
             // Recorded up front so a file that is empty or has no complete line yet is still followed.
@@ -218,6 +227,7 @@ public class ChannelLogReader {
             }
             rememberHead(path, fileChannel);
         }
+        return isReset;
     }
 
     private boolean hasSameHead(Path path, FileChannel fileChannel) throws IOException {
