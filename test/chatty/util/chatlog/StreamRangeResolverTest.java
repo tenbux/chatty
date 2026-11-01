@@ -56,14 +56,42 @@ public class StreamRangeResolverTest {
 
     @Test
     public void test_resolve_offlineMarkerSlightlyAfterStart_extendsToEarlierLive() {
-        Resolution result = StreamRangeResolver.resolve(List.of(live(10), offline(105)), liveStream(100));
+        Resolution result = StreamRangeResolver.resolve(List.of(live(10), offline(103)), liveStream(100));
         assertEquals(new StreamRange(minutes(10), Long.MAX_VALUE, true), result);
+    }
+
+    @Test
+    public void test_resolve_offlineMarkerBeyondLagAfterStart_doesNotExtend() {
+        Resolution result = StreamRangeResolver.resolve(List.of(live(10), offline(104)), liveStream(100));
+        assertEquals(new StreamRange(minutes(100), Long.MAX_VALUE, true), result);
+    }
+
+    @Test
+    public void test_resolve_liveDropAfterJoinWithEarlierStreamInLog_keepsTwitchStart() {
+        // Yesterday's stream, then today's stream joined late (no LIVE marker) that dropped at 6 and resumed at 8.
+        Resolution result = StreamRangeResolver.resolve(
+                List.of(live(-1440), offline(-1200), offline(6), live(8)), liveStream(0));
+        assertEquals(new StreamRange(minutes(0), Long.MAX_VALUE, true), result);
+    }
+
+    @Test
+    public void test_resolve_liveOfflineNearStartPrecededByOffline_doesNotExtend() {
+        Resolution result = StreamRangeResolver.resolve(
+                List.of(live(-1440), offline(-1200), offline(2)), liveStream(0));
+        assertEquals(new StreamRange(minutes(0), Long.MAX_VALUE, true), result);
     }
 
     @Test
     public void test_resolve_chainOfShortDrops_extendsAcrossAll() {
         Resolution result = StreamRangeResolver.resolve(
                 List.of(live(10), offline(50), live(55), offline(95)), liveStream(100));
+        assertEquals(new StreamRange(minutes(10), Long.MAX_VALUE, true), result);
+    }
+
+    @Test
+    public void test_resolve_twoDropsWithinJoinGap_extendsAcrossBoth() {
+        Resolution result = StreamRangeResolver.resolve(
+                List.of(live(10), offline(92), live(93), offline(95)), liveStream(100));
         assertEquals(new StreamRange(minutes(10), Long.MAX_VALUE, true), result);
     }
 
@@ -94,6 +122,28 @@ public class StreamRangeResolverTest {
         Resolution result = StreamRangeResolver.resolve(
                 List.of(live(10), offline(50), live(55), offline(200)), twitch);
         assertEquals(new StreamRange(minutes(10), minutes(200), false), result);
+    }
+
+    @Test
+    public void test_resolve_offlineFromLogsJoinedLateAfterEarlierStream_unavailable() {
+        // Yesterday's stream, then today's stream joined late (no LIVE marker) and ended at 180; Chatty restarted since.
+        TwitchStreamState twitch = new TwitchStreamState(false, -1, -1);
+        Resolution result = StreamRangeResolver.resolve(List.of(live(-1440), offline(-1200), offline(180)), twitch);
+        assertEquals(new Unavailable("No recent stream found in the logs"), result);
+    }
+
+    @Test
+    public void test_resolve_offlineFromLogsLiveOfflineOffline_unavailable() {
+        TwitchStreamState twitch = new TwitchStreamState(false, -1, -1);
+        Resolution result = StreamRangeResolver.resolve(List.of(live(10), offline(50), offline(200)), twitch);
+        assertEquals(new Unavailable("No recent stream found in the logs"), result);
+    }
+
+    @Test
+    public void test_resolve_offlineFromLogsOnlyOfflineMarker_unavailable() {
+        TwitchStreamState twitch = new TwitchStreamState(false, -1, -1);
+        Resolution result = StreamRangeResolver.resolve(List.of(offline(200)), twitch);
+        assertEquals(new Unavailable("No recent stream found in the logs"), result);
     }
 
     @Test

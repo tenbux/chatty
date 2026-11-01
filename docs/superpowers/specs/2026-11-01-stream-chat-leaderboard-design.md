@@ -124,10 +124,12 @@ stream began. *(My call.)*
 **Channel live** (`getOnline()` and `isValid()` true):
 
 - Start at Twitch's picnic start.
-- If the log has an OFFLINE marker within 10 minutes before that start, the
-  start moves back to the LIVE marker that began that earlier segment, and
-  the rule repeats. This covers a Chatty restart after the streamer had a
-  short drop.
+- If the log has an OFFLINE marker from 10 minutes before that start to 3
+  minutes after it (the marker can trail the restart by one stream-info
+  poll), and the marker directly before that OFFLINE is a LIVE marker, the
+  start moves back to that LIVE marker, and the rule repeats. Any other
+  marker in between, such as the OFFLINE of an earlier stream, stops the
+  walk. This covers a Chatty restart after the streamer had a short drop.
 - The stream ends at "now".
 - If Twitch's start is `-1` (no stream data yet), show "Stream start
   unknown".
@@ -138,8 +140,10 @@ ended instead of blank until the stream returns.
 
 - If this Chatty session saw the stream, use Twitch's picnic start (it isn't
   reset on going offline) and the last-online time as the end.
-- Otherwise use the log: the last OFFLINE marker is the end, and the start is
-  found by walking back with short-drop joining.
+- Otherwise use the log: the last OFFLINE marker is the end, the LIVE marker
+  directly before it is the start, and the start is then walked back with
+  short-drop joining. If the marker before that OFFLINE is not a LIVE marker,
+  there is no bounded stream.
 - If the log has no LIVE/OFFLINE pair to bound a stream (for example, Chatty
   was closed when it ended), show "No recent stream found in the logs".
 

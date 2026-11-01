@@ -12,10 +12,17 @@ import java.util.List;
 public final class StreamRangeResolver {
 
     /**
-     * Largest gap between a stream start and an OFFLINE marker for the two to be
-     * treated as one interrupted stream.
+     * Largest gap between a stream start and an earlier OFFLINE marker for the
+     * two to be treated as one interrupted stream.
      */
     static final long JOIN_GAP = 10 * 60 * 1000;
+
+    /**
+     * How far after Twitch's reported start an OFFLINE marker may still belong
+     * to the drop before it: the marker is written when a stream-info poll sees
+     * the change, so it can trail the restart by about one poll.
+     */
+    static final long OFFLINE_LAG = 3 * 60 * 1000;
 
     private static final long UNKNOWN = -1;
 
@@ -64,61 +71,56 @@ public final class StreamRangeResolver {
             if (twitch.picnicStartMs() == UNKNOWN) {
                 return new Unavailable("Stream start unknown");
             }
-            return new StreamRange(extendBack(sorted, twitch.picnicStartMs()), Long.MAX_VALUE, true);
+            return new StreamRange(extendBack(sorted, twitch.picnicStartMs(), sorted.size()), Long.MAX_VALUE, true);
         }
         if (twitch.picnicStartMs() != UNKNOWN && twitch.lastOnlineMs() != UNKNOWN) {
-            return new StreamRange(extendBack(sorted, twitch.picnicStartMs()), twitch.lastOnlineMs(), false);
+            return new StreamRange(extendBack(sorted, twitch.picnicStartMs(), sorted.size()), twitch.lastOnlineMs(), false);
         }
-        if (!sorted.isEmpty()) {
-            StatusMarker last = sorted.get(sorted.size() - 1);
-            if (!last.isLive()) {
-                StatusMarker live = latestLiveBefore(sorted, last.timeMs());
-                if (live != null) {
-                    return new StreamRange(extendBack(sorted, live.timeMs()), last.timeMs(), false);
-                }
-            }
+        int lastIndex = sorted.size() - 1;
+        if (lastIndex >= 1 && !sorted.get(lastIndex).isLive() && sorted.get(lastIndex - 1).isLive()) {
+            long start = extendBack(sorted, sorted.get(lastIndex - 1).timeMs(), lastIndex - 1);
+            return new StreamRange(start, sorted.get(lastIndex).timeMs(), false);
         }
         return new Unavailable("No recent stream found in the logs");
     }
 
     /**
-     * Moves a stream start earlier while an OFFLINE marker near it is preceded by
-     * a LIVE marker, meaning the stream only dropped briefly. The distance check
-     * is absolute because OFFLINE detection can land slightly after the start
-     * Twitch reports.
+     * Moves a stream start earlier while an OFFLINE marker within
+     * [start - JOIN_GAP, start + OFFLINE_LAG] directly follows a LIVE marker,
+     * meaning the stream only dropped briefly. A marker in between, such as the
+     * OFFLINE of an earlier stream, means the LIVE marker began a different
+     * stream.
+     *
+     * @param candidateEnd index in {@code sorted} before which OFFLINE markers are
+     * considered; once the start is a LIVE marker, later OFFLINE markers belong
+     * to the segment that marker began
      */
-    private static long extendBack(List<StatusMarker> sorted, long startMs) {
+    private static long extendBack(List<StatusMarker> sorted, long startMs, int candidateEnd) {
         long start = startMs;
+        int end = candidateEnd;
         while (true) {
-            StatusMarker offline = latestOfflineNear(sorted, start);
-            if (offline == null) {
+            int offline = latestOfflineNear(sorted, start, end);
+            if (offline <= 0) {
                 return start;
             }
-            StatusMarker live = latestLiveBefore(sorted, offline.timeMs());
-            if (live == null || live.timeMs() >= start) {
+            StatusMarker previous = sorted.get(offline - 1);
+            if (!previous.isLive() || previous.timeMs() >= start) {
                 return start;
             }
-            start = live.timeMs();
+            start = previous.timeMs();
+            end = offline - 1;
         }
     }
 
-    private static StatusMarker latestOfflineNear(List<StatusMarker> sorted, long timeMs) {
-        for (int i = sorted.size() - 1; i >= 0; i--) {
+    /** Returns the index of the latest OFFLINE marker near the start before {@code end}, or -1. */
+    private static int latestOfflineNear(List<StatusMarker> sorted, long startMs, int end) {
+        for (int i = end - 1; i >= 0; i--) {
             StatusMarker marker = sorted.get(i);
-            if (!marker.isLive() && Math.abs(marker.timeMs() - timeMs) <= JOIN_GAP) {
-                return marker;
+            if (!marker.isLive() && marker.timeMs() >= startMs - JOIN_GAP
+                    && marker.timeMs() <= startMs + OFFLINE_LAG) {
+                return i;
             }
         }
-        return null;
-    }
-
-    private static StatusMarker latestLiveBefore(List<StatusMarker> sorted, long timeMs) {
-        for (int i = sorted.size() - 1; i >= 0; i--) {
-            StatusMarker marker = sorted.get(i);
-            if (marker.isLive() && marker.timeMs() < timeMs) {
-                return marker;
-            }
-        }
-        return null;
+        return -1;
     }
 }
