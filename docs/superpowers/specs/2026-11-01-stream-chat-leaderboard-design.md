@@ -126,12 +126,16 @@ Chatty uses for its own LIVE/OFFLINE lines, so a briefly stale stream info
 does not flip the board to ended):
 
 - Start at Twitch's picnic start.
-- If the log has an OFFLINE marker from 10 minutes before that start to 3
+- Take the latest OFFLINE marker from 10 minutes before that start to 3
   minutes after it (the marker can trail the restart by one stream-info
-  poll), and the marker directly before that OFFLINE is a LIVE marker, the
-  start moves back to that LIVE marker, and the rule repeats. Any other
-  marker in between, such as the OFFLINE of an earlier stream, stops the
-  walk. This covers a Chatty restart after the streamer had a short drop.
+  poll). If the marker directly before that OFFLINE is a LIVE marker, the
+  start moves back to that LIVE marker. The rule then repeats from the new
+  start, considering only OFFLINE markers before that LIVE marker, so it
+  never reuses a marker it already passed. If that marker is anything else,
+  such as the OFFLINE of an earlier stream, the walk stops. This covers a
+  Chatty restart after the streamer had a short drop. Known gap: if Chatty
+  restarted between two short drops (two OFFLINE markers in a row in the
+  window), the walk stops and the first segment is not counted.
 - The stream ends at "now".
 - If Twitch's start is `-1` (no stream data yet), show "Stream start
   unknown".
