@@ -360,7 +360,7 @@ public class ChatLog {
         }
     }
     
-    private boolean isChanEnabled(String channel) {
+    public boolean isChanEnabled(String channel) {
         if (log == null) {
             return false;
         }

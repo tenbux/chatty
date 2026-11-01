@@ -121,6 +121,7 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
     private FollowersDialog subscribersDialog;
     private StreamChat streamChat;
     private ModerationLog moderationLog;
+    private StreamLeaderboardDialog streamLeaderboardDialog;
     private AutoModDialog autoModDialog;
     private EventLog eventLog;
     
@@ -267,6 +268,7 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
         StreamChatContextMenu.client = client;
         
         moderationLog = new ModerationLog(this, dockedDialogs);
+        streamLeaderboardDialog = new StreamLeaderboardDialog(this, client);
         autoModDialog = new AutoModDialog(this, client.api, client, dockedDialogs);
         eventLog = new EventLog(this);
         EventLog.setMain(eventLog);
@@ -310,6 +312,7 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
         windowStateManager.addWindow(followerDialog, "followers", true, true);
         windowStateManager.addWindow(subscribersDialog, "subscribers", true, true);
         windowStateManager.addWindow(moderationLog, "moderationLog", true, true);
+        windowStateManager.addWindow(streamLeaderboardDialog, "streamLeaderboard", true, false);
         windowStateManager.addWindow(streamChat, "streamChat", true, true);
         windowStateManager.addWindow(userInfoDialog.getDummyWindow(), "userInfo", true, false);
         windowStateManager.addWindow(autoModDialog, "autoMod", true, true);
@@ -506,6 +509,15 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
             @Override
             public void actionPerformed(ActionEvent e) {
                 toggleModerationLog();
+            }
+        });
+        
+        addMenuAction("dialog.streamLeaderboard", "Dialog: Stream Leaderboard (toggle)",
+                KeyEvent.VK_UNDEFINED, new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                toggleStreamLeaderboard();
             }
         });
         
@@ -3224,6 +3236,17 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
     private void toggleModerationLog() {
         if (closeDialog(moderationLog)) {
             openModerationLog();
+        }
+    }
+    
+    private void openStreamLeaderboard() {
+        windowStateManager.setWindowPosition(streamLeaderboardDialog);
+        streamLeaderboardDialog.showForChannel(channels.getLastActiveChannel());
+    }
+    
+    private void toggleStreamLeaderboard() {
+        if (closeDialog(streamLeaderboardDialog)) {
+            openStreamLeaderboard();
         }
     }
     
