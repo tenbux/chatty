@@ -74,7 +74,8 @@ public final class StreamRangeResolver {
             return new StreamRange(extendBack(sorted, twitch.picnicStartMs(), sorted.size()), Long.MAX_VALUE, true);
         }
         if (twitch.picnicStartMs() != UNKNOWN && twitch.lastOnlineMs() != UNKNOWN) {
-            return new StreamRange(extendBack(sorted, twitch.picnicStartMs(), sorted.size()), twitch.lastOnlineMs(), false);
+            long start = extendBack(sorted, twitch.picnicStartMs(), sorted.size());
+            return new StreamRange(start, endAfterLastOnline(sorted, twitch.lastOnlineMs()), false);
         }
         int lastIndex = sorted.size() - 1;
         if (lastIndex >= 1 && !sorted.get(lastIndex).isLive() && sorted.get(lastIndex - 1).isLive()) {
@@ -82,6 +83,21 @@ public final class StreamRangeResolver {
             return new StreamRange(start, sorted.get(lastIndex).timeMs(), false);
         }
         return new Unavailable("No recent stream found in the logs");
+    }
+
+    /**
+     * Prefers the OFFLINE marker written after the last-online time, so the
+     * final chat before the offline poll counts and the end matches what the
+     * logs alone give after a restart. The last-online time also drifts by a
+     * few milliseconds between reads, which a marker time does not.
+     */
+    private static long endAfterLastOnline(List<StatusMarker> sorted, long lastOnlineMs) {
+        for (StatusMarker marker : sorted) {
+            if (!marker.isLive() && marker.timeMs() >= lastOnlineMs && marker.timeMs() <= lastOnlineMs + JOIN_GAP) {
+                return marker.timeMs();
+            }
+        }
+        return lastOnlineMs;
     }
 
     /**

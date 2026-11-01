@@ -12,6 +12,7 @@ import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.function.Consumer;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import org.junit.Before;
@@ -32,11 +33,19 @@ public class StreamLeaderboardTest {
     private Path dir;
     private StreamLeaderboard leaderboard;
 
+    private int scanCount;
+
     @Before
     public void setUp() {
         dir = folder.getRoot().toPath();
-        leaderboard = new StreamLeaderboard(
-                new ChannelLogReader(dir, CHANNEL, "daily", ZONE), ZONE, () -> NOW_MS);
+        ChannelLogReader reader = new ChannelLogReader(dir, CHANNEL, "daily", ZONE) {
+            @Override
+            public void scanFrom(long fromMs, Consumer<String> lines) throws IOException {
+                scanCount++;
+                super.scanFrom(fromMs, lines);
+            }
+        };
+        leaderboard = new StreamLeaderboard(reader, ZONE, () -> NOW_MS);
     }
 
     private static long at(int hour, int minute, int second) {
@@ -152,6 +161,38 @@ public class StreamLeaderboardTest {
         StreamLeaderboard.Snapshot second = leaderboard.refresh(new TwitchStreamState(true, at(20, 0, 0), -1));
 
         assertEquals(1, second.total());
+    }
+
+    @Test
+    public void test_refresh_endedLastOnlineJitter_doesNotRebuild() throws IOException {
+        append(chat(20, 1, 0, "viewer_one") + chat(20, 2, 0, "viewer_two"));
+        long lastOnline = at(21, 0, 0);
+        StreamLeaderboard.Snapshot first = leaderboard.refresh(new TwitchStreamState(false, at(20, 0, 0), lastOnline));
+        int scansAfterFirst = scanCount;
+
+        StreamLeaderboard.Snapshot second = leaderboard.refresh(
+                new TwitchStreamState(false, at(20, 0, 0), lastOnline + 1));
+        StreamLeaderboard.Snapshot third = leaderboard.refresh(
+                new TwitchStreamState(false, at(20, 0, 0), lastOnline - 1));
+
+        assertEquals(scansAfterFirst, scanCount);
+        assertEquals(first.resolution(), second.resolution());
+        assertEquals(first.resolution(), third.resolution());
+        assertEquals(2, third.total());
+    }
+
+    @Test
+    public void test_refresh_endedLastOnlineMovedFiveSeconds_rebuilds() throws IOException {
+        append(chat(20, 1, 0, "viewer_one") + chat(20, 2, 0, "viewer_two"));
+        long lastOnline = at(21, 0, 0);
+        leaderboard.refresh(new TwitchStreamState(false, at(20, 0, 0), lastOnline));
+        int scansAfterFirst = scanCount;
+
+        StreamLeaderboard.Snapshot second = leaderboard.refresh(
+                new TwitchStreamState(false, at(20, 0, 0), lastOnline + 5000));
+
+        assertTrue(scanCount > scansAfterFirst);
+        assertEquals(new StreamRange(at(20, 0, 0), lastOnline + 5000, false), second.resolution());
     }
 
     @Test

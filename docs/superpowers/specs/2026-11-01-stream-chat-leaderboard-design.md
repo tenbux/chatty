@@ -139,7 +139,13 @@ start and end times. This also covers a short drop, which shows the board as
 ended instead of blank until the stream returns.
 
 - If this Chatty session saw the stream, use Twitch's picnic start (it isn't
-  reset on going offline) and the last-online time as the end.
+  reset on going offline). The end is the earliest OFFLINE marker from the
+  last-online time to 10 minutes after it, which includes the final chat
+  before the offline poll and matches the log-only end after a restart; with
+  no such marker, the last-online time is the end. The last-online time
+  drifts by a few milliseconds between reads, so two ended ranges with the
+  same start whose ends differ by under 5 seconds count as the same range and
+  do not trigger a rebuild.
 - Otherwise use the log: the last OFFLINE marker is the end, the LIVE marker
   directly before it is the start, and the start is then walked back with
   short-drop joining. If the marker before that OFFLINE is not a LIVE marker,

@@ -110,6 +110,27 @@ public class StreamRangeResolverTest {
     }
 
     @Test
+    public void test_resolve_offlineWithSessionAndOfflineMarkerAfterLastOnline_endsAtMarker() {
+        TwitchStreamState twitch = new TwitchStreamState(false, minutes(100), minutes(300));
+        Resolution result = StreamRangeResolver.resolve(List.of(offline(302), offline(305)), twitch);
+        assertEquals(new StreamRange(minutes(100), minutes(302), false), result);
+    }
+
+    @Test
+    public void test_resolve_offlineWithSessionAndOfflineMarkerBeyondJoinGap_endsAtLastOnline() {
+        TwitchStreamState twitch = new TwitchStreamState(false, minutes(100), minutes(300));
+        Resolution result = StreamRangeResolver.resolve(List.of(offline(311)), twitch);
+        assertEquals(new StreamRange(minutes(100), minutes(300), false), result);
+    }
+
+    @Test
+    public void test_resolve_offlineWithSessionAndOfflineMarkerBeforeLastOnline_endsAtLastOnline() {
+        TwitchStreamState twitch = new TwitchStreamState(false, minutes(100), minutes(300));
+        Resolution result = StreamRangeResolver.resolve(List.of(offline(299)), twitch);
+        assertEquals(new StreamRange(minutes(100), minutes(300), false), result);
+    }
+
+    @Test
     public void test_resolve_offlineFromLogs_lastPair() {
         TwitchStreamState twitch = new TwitchStreamState(false, -1, -1);
         Resolution result = StreamRangeResolver.resolve(List.of(live(10), offline(200)), twitch);
