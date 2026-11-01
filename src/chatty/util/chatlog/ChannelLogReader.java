@@ -1,0 +1,222 @@
+package chatty.util.chatlog;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
+/**
+ * Reads the on-disk chat log files of a single channel and then follows their
+ * growth, emitting only lines that were not emitted before.
+ *
+ * <p>Call {@link #scanFrom} once, then {@link #readAppended} repeatedly. Lines
+ * are UTF-8, emitted without their line terminator (a trailing {@code \r} is
+ * dropped), and only once complete.
+ *
+ * <p>Not thread-safe.
+ */
+public class ChannelLogReader {
+
+    private static final String LOG_SPLIT_NEVER = "never";
+    private static final int CHUNK_SIZE = 64 * 1024;
+    private static final byte[] NO_BYTES = new byte[0];
+
+    /**
+     * A file name produced by the writer for a split period, as in
+     * {@code 2026-10-31_#chan.log}. The {@code -N.log} variants, which the
+     * writer uses when the plain name is locked, deliberately do not match.
+     */
+    private final Pattern datedFileName;
+
+    private final Path logDir;
+    private final String channel;
+    private final boolean isSplit;
+    private final ZoneId zone;
+
+    /**
+     * End of the last complete line read, per file. The bytes of an incomplete
+     * final line stay beyond this offset and are re-read once completed.
+     */
+    private final Map<Path, Long> offsets = new HashMap<>();
+
+    /** Date prefix of the newest file seen by the last scan, if any. */
+    private LocalDate newestDate;
+
+    /**
+     * @param logDir directory holding the log files, including the channel
+     * subdirectory if the caller uses one (may be missing)
+     * @param channel channel name including the leading {@code #}
+     * @param logSplit value of the log split setting
+     * @param zone zone the local date prefixes of the file names are in
+     */
+    public ChannelLogReader(Path logDir, String channel, String logSplit, ZoneId zone) {
+        this.logDir = logDir;
+        this.channel = channel;
+        this.isSplit = !LOG_SPLIT_NEVER.equals(logSplit);
+        this.zone = zone;
+        this.datedFileName = Pattern.compile(
+                "(\\d{4}-\\d{2}-\\d{2})_" + Pattern.quote(channel) + "\\.log");
+    }
+
+    /**
+     * Forgets all previous progress, then emits every complete line of each
+     * file that may hold lines at or after the given time.
+     *
+     * @param fromMs epoch milliseconds
+     * @param lines receives the lines in file order
+     * @throws IOException if a file cannot be read
+     */
+    public void scanFrom(long fromMs, Consumer<String> lines) throws IOException {
+        offsets.clear();
+        newestDate = null;
+
+        List<DatedFile> files = listFiles();
+        if (!files.isEmpty()) {
+            newestDate = files.get(files.size() - 1).date;
+        }
+        for (int i = 0; i < files.size(); i++) {
+            boolean isLast = i == files.size() - 1;
+            // A file lasts until the next one starts, whatever the split period.
+            if (isLast || startMillis(files.get(i + 1).date) > fromMs) {
+                readFile(files.get(i).path, lines);
+            }
+        }
+        if (!isSplit) {
+            readFile(singleFile(), lines);
+        }
+    }
+
+    /**
+     * Emits the complete lines added since the last {@link #scanFrom} or
+     * {@code readAppended}. Covers the files the scan selected, plus files that
+     * appeared since and are not older than the newest file the scan saw.
+     *
+     * @param lines receives the lines in file order
+     * @throws IOException if a file cannot be read
+     */
+    public void readAppended(Consumer<String> lines) throws IOException {
+        List<Path> toRead = new ArrayList<>(offsets.keySet());
+        if (isSplit) {
+            for (DatedFile file : listFiles()) {
+                boolean isNew = !offsets.containsKey(file.path);
+                if (isNew && (newestDate == null || !file.date.isBefore(newestDate))) {
+                    toRead.add(file.path);
+                    if (newestDate == null || file.date.isAfter(newestDate)) {
+                        newestDate = file.date;
+                    }
+                }
+            }
+            // File names sort by date, which is the order lines were written.
+            toRead.sort(Comparator.naturalOrder());
+        } else if (!toRead.contains(singleFile())) {
+            toRead.add(singleFile());
+        }
+        for (Path path : toRead) {
+            readFile(path, lines);
+        }
+    }
+
+    private Path singleFile() {
+        return logDir.resolve(channel + ".log");
+    }
+
+    private long startMillis(LocalDate date) {
+        return date.atStartOfDay(zone).toInstant().toEpochMilli();
+    }
+
+    private List<DatedFile> listFiles() throws IOException {
+        List<DatedFile> result = new ArrayList<>();
+        if (!isSplit || !Files.isDirectory(logDir)) {
+            return result;
+        }
+        try (Stream<Path> children = Files.list(logDir)) {
+            for (Path path : (Iterable<Path>) children::iterator) {
+                Matcher matcher = datedFileName.matcher(path.getFileName().toString());
+                if (matcher.matches() && Files.isRegularFile(path)) {
+                    try {
+                        result.add(new DatedFile(path, LocalDate.parse(matcher.group(1))));
+                    } catch (DateTimeParseException ex) {
+                        // Digits shaped like a date but not a real one (2026-13-45): not ours.
+                    }
+                }
+            }
+        }
+        result.sort(Comparator.comparing((DatedFile file) -> file.date));
+        return result;
+    }
+
+    /**
+     * Reads from the stored offset to the end of the file as it is now, so a
+     * file that keeps growing cannot keep this call busy.
+     */
+    private void readFile(Path path, Consumer<String> lines) throws IOException {
+        if (!Files.isRegularFile(path)) {
+            return;
+        }
+        long position = offsets.getOrDefault(path, 0L);
+        // Recorded up front so a file that is empty or has no complete line yet is still followed.
+        offsets.put(path, position);
+        try (FileChannel fileChannel = FileChannel.open(path, StandardOpenOption.READ)) {
+            long end = fileChannel.size();
+            ByteBuffer buffer = ByteBuffer.allocate(CHUNK_SIZE);
+            byte[] carry = NO_BYTES;
+            while (position < end) {
+                buffer.clear();
+                buffer.limit((int) Math.min(CHUNK_SIZE, end - position));
+                int read = fileChannel.read(buffer, position);
+                if (read < 0) {
+                    break;
+                }
+                position += read;
+
+                byte[] data = new byte[carry.length + read];
+                System.arraycopy(carry, 0, data, 0, carry.length);
+                System.arraycopy(buffer.array(), 0, data, carry.length, read);
+                int lineStart = 0;
+                for (int i = 0; i < data.length; i++) {
+                    if (data[i] == '\n') {
+                        emit(data, lineStart, i, lines);
+                        lineStart = i + 1;
+                    }
+                }
+                carry = Arrays.copyOfRange(data, lineStart, data.length);
+                // Per chunk, so a consumer that throws does not cause lines to be emitted twice.
+                offsets.put(path, position - carry.length);
+            }
+        }
+    }
+
+    private static void emit(byte[] data, int start, int endExclusive, Consumer<String> lines) {
+        if (endExclusive > start && data[endExclusive - 1] == '\r') {
+            endExclusive--;
+        }
+        lines.accept(new String(data, start, endExclusive - start, StandardCharsets.UTF_8));
+    }
+
+    private static class DatedFile {
+
+        final Path path;
+        final LocalDate date;
+
+        DatedFile(Path path, LocalDate date) {
+            this.path = path;
+            this.date = date;
+        }
+    }
+}

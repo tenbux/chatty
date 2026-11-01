@@ -1,0 +1,231 @@
+package chatty.util.chatlog;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+public class ChannelLogReaderTest {
+
+    private static final String CHANNEL = "#testchan";
+    private static final ZoneId ZONE = ZoneId.of("UTC");
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
+    private Path dir;
+
+    @Before
+    public void setUp() {
+        dir = folder.getRoot().toPath();
+    }
+
+    private static long startOfDay(int month, int day, int hour) {
+        return LocalDate.of(2026, month, day).atTime(hour, 0).atZone(ZONE).toInstant().toEpochMilli();
+    }
+
+    private void write(String fileName, String content) throws IOException {
+        Files.writeString(dir.resolve(fileName), content, StandardCharsets.UTF_8);
+    }
+
+    private void append(String fileName, String content) throws IOException {
+        Files.writeString(dir.resolve(fileName), content, StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+    }
+
+    private ChannelLogReader reader(String logSplit) {
+        return new ChannelLogReader(dir, CHANNEL, logSplit, ZONE);
+    }
+
+    private static List<String> scan(ChannelLogReader reader, long fromMs) throws IOException {
+        List<String> lines = new ArrayList<>();
+        reader.scanFrom(fromMs, lines::add);
+        return lines;
+    }
+
+    private static List<String> readNew(ChannelLogReader reader) throws IOException {
+        List<String> lines = new ArrayList<>();
+        reader.readAppended(lines::add);
+        return lines;
+    }
+
+    @Test
+    public void test_scanFrom_skipsFilesEndingBeforeFrom() throws IOException {
+        write("2026-10-29_#testchan.log", "line-29\n");
+        write("2026-10-30_#testchan.log", "line-30a\nline-30b\n");
+        write("2026-10-31_#testchan.log", "line-31\n");
+
+        List<String> lines = scan(reader("daily"), startOfDay(10, 30, 12));
+
+        assertEquals(List.of("line-30a", "line-30b", "line-31"), lines);
+    }
+
+    @Test
+    public void test_scanFrom_ignoresSuffixFiles() throws IOException {
+        write("2026-10-31_#testchan.log", "main\n");
+        write("2026-10-31_#testchan-1.log", "locked-writer\n");
+
+        List<String> lines = scan(reader("daily"), startOfDay(10, 31, 0));
+
+        assertEquals(List.of("main"), lines);
+    }
+
+    @Test
+    public void test_scanFrom_ignoresOtherChannelsAndNonLogFiles() throws IOException {
+        write("2026-10-31_#testchan.log", "mine\n");
+        write("2026-10-31_#other.log", "other-channel\n");
+        write("2026-10-31_#testchan.txt", "wrong-extension\n");
+
+        List<String> lines = scan(reader("daily"), startOfDay(10, 31, 0));
+
+        assertEquals(List.of("mine"), lines);
+    }
+
+    @Test
+    public void test_scanFrom_neverSplit_readsSingleFile() throws IOException {
+        write("#testchan.log", "one\ntwo\n");
+        write("2026-10-31_#testchan.log", "dated-file-is-not-used\n");
+
+        List<String> lines = scan(reader("never"), 0);
+
+        assertEquals(List.of("one", "two"), lines);
+    }
+
+    @Test
+    public void test_scanFrom_missingDirectory_emitsNothing() throws IOException {
+        ChannelLogReader missing = new ChannelLogReader(dir.resolve("absent"), CHANNEL, "daily", ZONE);
+
+        assertTrue(scan(missing, 0).isEmpty());
+        assertTrue(readNew(missing).isEmpty());
+    }
+
+    @Test
+    public void test_scanFrom_noMatchingFiles_emitsNothing() throws IOException {
+        assertTrue(scan(reader("daily"), 0).isEmpty());
+        assertTrue(scan(reader("never"), 0).isEmpty());
+    }
+
+    @Test
+    public void test_scanFrom_stripsCarriageReturnAndDecodesUtf8() throws IOException {
+        write("2026-10-31_#testchan.log", "café ☃\r\nplain\n");
+
+        List<String> lines = scan(reader("daily"), startOfDay(10, 31, 0));
+
+        assertEquals(List.of("café ☃", "plain"), lines);
+    }
+
+    @Test
+    public void test_scanFrom_calledAgain_resetsStateAndRereads() throws IOException {
+        write("2026-10-31_#testchan.log", "a\nb\n");
+        ChannelLogReader reader = reader("daily");
+        scan(reader, startOfDay(10, 31, 0));
+
+        List<String> lines = scan(reader, startOfDay(10, 31, 0));
+
+        assertEquals(List.of("a", "b"), lines);
+    }
+
+    @Test
+    public void test_readAppended_returnsOnlyNewLines() throws IOException {
+        write("2026-10-31_#testchan.log", "old\n");
+        ChannelLogReader reader = reader("daily");
+        scan(reader, startOfDay(10, 31, 0));
+
+        append("2026-10-31_#testchan.log", "new-1\nnew-2\n");
+
+        assertEquals(List.of("new-1", "new-2"), readNew(reader));
+        assertTrue(readNew(reader).isEmpty());
+    }
+
+    @Test
+    public void test_readAppended_partialLineEmittedOnceCompleted() throws IOException {
+        write("2026-10-31_#testchan.log", "first\n");
+        ChannelLogReader reader = reader("daily");
+        scan(reader, startOfDay(10, 31, 0));
+
+        append("2026-10-31_#testchan.log", "[..] <a> hel");
+        assertTrue(readNew(reader).isEmpty());
+
+        append("2026-10-31_#testchan.log", "lo\n");
+        assertEquals(List.of("[..] <a> hello"), readNew(reader));
+    }
+
+    @Test
+    public void test_scanFrom_partialFinalLine_notEmittedUntilCompleted() throws IOException {
+        write("2026-10-31_#testchan.log", "done\npartial");
+        ChannelLogReader reader = reader("daily");
+
+        assertEquals(List.of("done"), scan(reader, startOfDay(10, 31, 0)));
+
+        append("2026-10-31_#testchan.log", "-now-done\n");
+        assertEquals(List.of("partial-now-done"), readNew(reader));
+    }
+
+    @Test
+    public void test_readAppended_partialMultiByteCharacterEmittedIntact() throws IOException {
+        byte[] snowman = "☃".getBytes(StandardCharsets.UTF_8);
+        Path file = dir.resolve("2026-10-31_#testchan.log");
+        Files.write(file, new byte[]{snowman[0], snowman[1]});
+        ChannelLogReader reader = reader("daily");
+        scan(reader, startOfDay(10, 31, 0));
+
+        Files.write(file, new byte[]{snowman[2], '\n'}, StandardOpenOption.APPEND);
+
+        assertEquals(List.of("☃"), readNew(reader));
+    }
+
+    @Test
+    public void test_readAppended_picksUpNewDayFile() throws IOException {
+        write("2026-10-31_#testchan.log", "day-one\n");
+        ChannelLogReader reader = reader("daily");
+        scan(reader, startOfDay(10, 31, 0));
+
+        write("2026-11-01_#testchan.log", "day-two-a\nday-two-b\n");
+        append("2026-10-31_#testchan.log", "late\n");
+
+        assertEquals(List.of("late", "day-two-a", "day-two-b"), readNew(reader));
+        assertTrue(readNew(reader).isEmpty());
+    }
+
+    @Test
+    public void test_readAppended_ignoresNewFileOlderThanNewestSeen() throws IOException {
+        write("2026-10-31_#testchan.log", "day-one\n");
+        ChannelLogReader reader = reader("daily");
+        scan(reader, startOfDay(10, 31, 0));
+
+        write("2026-10-20_#testchan.log", "backfilled-old-file\n");
+
+        assertTrue(readNew(reader).isEmpty());
+    }
+
+    @Test
+    public void test_readAppended_afterScanWithNoFiles_picksUpFirstFile() throws IOException {
+        ChannelLogReader reader = reader("daily");
+        scan(reader, 0);
+
+        write("2026-10-31_#testchan.log", "first\n");
+
+        assertEquals(List.of("first"), readNew(reader));
+    }
+
+    @Test
+    public void test_readAppended_neverSplit_picksUpFileCreatedAfterScan() throws IOException {
+        ChannelLogReader reader = reader("never");
+        scan(reader, 0);
+
+        write("#testchan.log", "hello\n");
+
+        assertEquals(List.of("hello"), readNew(reader));
+    }
+}
