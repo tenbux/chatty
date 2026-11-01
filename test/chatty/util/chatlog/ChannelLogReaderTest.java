@@ -228,4 +228,48 @@ public class ChannelLogReaderTest {
 
         assertEquals(List.of("hello"), readNew(reader));
     }
+
+    @Test
+    public void test_readAppended_fileShrunk_rereadsFromStart() throws IOException {
+        write("2026-10-31_#testchan.log", "old-line-one\nold-line-two\n");
+        ChannelLogReader reader = reader("daily");
+        scan(reader, startOfDay(10, 31, 0));
+
+        write("2026-10-31_#testchan.log", "new\n");
+
+        assertEquals(List.of("new"), readNew(reader));
+        append("2026-10-31_#testchan.log", "after\n");
+        assertEquals(List.of("after"), readNew(reader));
+    }
+
+    @Test
+    public void test_readAppended_fileReplacedByLargerOne_rereadsFromStart() throws IOException {
+        write("2026-10-31_#testchan.log", "[10:00] <a> first\n");
+        ChannelLogReader reader = reader("daily");
+        scan(reader, startOfDay(10, 31, 0));
+
+        write("2026-10-31_#testchan.log", "[11:00] <b> replacement one\n[11:01] <b> replacement two\n");
+
+        assertEquals(List.of("[11:00] <b> replacement one", "[11:01] <b> replacement two"), readNew(reader));
+    }
+
+    @Test
+    public void test_readAppended_consumerThrows_onlyThrownLineIsEmittedAgain() throws IOException {
+        write("2026-10-31_#testchan.log", "a\nb\nc\n");
+        ChannelLogReader reader = reader("daily");
+        List<String> seen = new ArrayList<>();
+        try {
+            reader.scanFrom(startOfDay(10, 31, 0), line -> {
+                if (line.equals("b")) {
+                    throw new IllegalStateException("consumer failed");
+                }
+                seen.add(line);
+            });
+        } catch (IllegalStateException ex) {
+            // Expected: the consumer rejected "b".
+        }
+
+        assertEquals(List.of("a"), seen);
+        assertEquals(List.of("b", "c"), readNew(reader));
+    }
 }

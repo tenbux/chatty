@@ -35,6 +35,7 @@ public class ChannelLogReader {
 
     private static final String LOG_SPLIT_NEVER = "never";
     private static final int CHUNK_SIZE = 64 * 1024;
+    private static final int HEAD_SIZE = 64;
     private static final byte[] NO_BYTES = new byte[0];
 
     /**
@@ -54,6 +55,12 @@ public class ChannelLogReader {
      * final line stay beyond this offset and are re-read once completed.
      */
     private final Map<Path, Long> offsets = new HashMap<>();
+
+    /**
+     * The first bytes of each file as first read. Size alone cannot reveal a
+     * file that was replaced by a larger one; a changed start does.
+     */
+    private final Map<Path, byte[]> heads = new HashMap<>();
 
     /** Date prefix of the newest file seen by the last scan, if any. */
     private LocalDate newestDate;
@@ -84,6 +91,7 @@ public class ChannelLogReader {
      */
     public void scanFrom(long fromMs, Consumer<String> lines) throws IOException {
         offsets.clear();
+        heads.clear();
         newestDate = null;
 
         List<DatedFile> files = listFiles();
@@ -163,17 +171,24 @@ public class ChannelLogReader {
 
     /**
      * Reads from the stored offset to the end of the file as it is now, so a
-     * file that keeps growing cannot keep this call busy.
+     * file that keeps growing cannot keep this call busy. A file that is now
+     * shorter than the stored offset, or no longer starts with the bytes first
+     * read, was truncated or replaced and is read again from the start.
      */
     private void readFile(Path path, Consumer<String> lines) throws IOException {
         if (!Files.isRegularFile(path)) {
             return;
         }
-        long position = offsets.getOrDefault(path, 0L);
-        // Recorded up front so a file that is empty or has no complete line yet is still followed.
-        offsets.put(path, position);
         try (FileChannel fileChannel = FileChannel.open(path, StandardOpenOption.READ)) {
             long end = fileChannel.size();
+            long position = offsets.getOrDefault(path, 0L);
+            if (position > 0 && (end < position || !hasSameHead(path, fileChannel))) {
+                position = 0;
+                heads.remove(path);
+            }
+            // Recorded up front so a file that is empty or has no complete line yet is still followed.
+            offsets.put(path, position);
+
             ByteBuffer buffer = ByteBuffer.allocate(CHUNK_SIZE);
             byte[] carry = NO_BYTES;
             while (position < end) {
@@ -183,6 +198,8 @@ public class ChannelLogReader {
                 if (read < 0) {
                     break;
                 }
+                // File offset of data[0]; carry holds the bytes just before this read.
+                long dataStart = position - carry.length;
                 position += read;
 
                 byte[] data = new byte[carry.length + read];
@@ -193,13 +210,34 @@ public class ChannelLogReader {
                     if (data[i] == '\n') {
                         emit(data, lineStart, i, lines);
                         lineStart = i + 1;
+                        // After each line, so a consumer that throws only gets the line it threw on again.
+                        offsets.put(path, dataStart + lineStart);
                     }
                 }
                 carry = Arrays.copyOfRange(data, lineStart, data.length);
-                // Per chunk, so a consumer that throws does not cause lines to be emitted twice.
-                offsets.put(path, position - carry.length);
             }
+            rememberHead(path, fileChannel);
         }
+    }
+
+    private boolean hasSameHead(Path path, FileChannel fileChannel) throws IOException {
+        byte[] known = heads.get(path);
+        return known == null || Arrays.equals(known, readHead(fileChannel, known.length));
+    }
+
+    private void rememberHead(Path path, FileChannel fileChannel) throws IOException {
+        long consumed = offsets.get(path);
+        if (consumed > 0 && !heads.containsKey(path)) {
+            heads.put(path, readHead(fileChannel, (int) Math.min(consumed, HEAD_SIZE)));
+        }
+    }
+
+    private static byte[] readHead(FileChannel fileChannel, int length) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(length);
+        while (buffer.hasRemaining() && fileChannel.read(buffer, buffer.position()) >= 0) {
+            // Keep filling; a short read is not the end of the file.
+        }
+        return Arrays.copyOf(buffer.array(), buffer.position());
     }
 
     private static void emit(byte[] data, int start, int endExclusive, Consumer<String> lines) {
