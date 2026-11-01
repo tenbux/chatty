@@ -14,6 +14,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.function.Consumer;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Rule;
@@ -34,6 +35,8 @@ public class StreamLeaderboardTest {
     private StreamLeaderboard leaderboard;
 
     private int scanCount;
+    /** When set, the next readAppended emits this line and then fails, as a read error partway through would. */
+    private String lineBeforeAppendFailure;
 
     @Before
     public void setUp() {
@@ -43,6 +46,16 @@ public class StreamLeaderboardTest {
             public void scanFrom(long fromMs, Consumer<String> lines) throws IOException {
                 scanCount++;
                 super.scanFrom(fromMs, lines);
+            }
+
+            @Override
+            public boolean readAppended(Consumer<String> lines) throws IOException {
+                if (lineBeforeAppendFailure != null) {
+                    lines.accept(lineBeforeAppendFailure);
+                    lineBeforeAppendFailure = null;
+                    throw new IOException("simulated read failure");
+                }
+                return super.readAppended(lines);
             }
         };
         leaderboard = new StreamLeaderboard(reader, ZONE, () -> NOW_MS);
@@ -193,6 +206,20 @@ public class StreamLeaderboardTest {
 
         assertTrue(scanCount > scansAfterFirst);
         assertEquals(new StreamRange(at(20, 0, 0), lastOnline + 5000, false), second.resolution());
+    }
+
+    @Test
+    public void test_refresh_readFailsAfterEmittingCountedLine_nextRefreshRecounts() throws IOException {
+        TwitchStreamState live = new TwitchStreamState(true, at(20, 0, 0), -1);
+        append(chat(20, 1, 0, "viewer_one") + chat(20, 2, 0, "viewer_two"));
+        assertEquals(2, leaderboard.refresh(live).total());
+
+        lineBeforeAppendFailure = chat(20, 1, 0, "viewer_one").strip();
+        assertThrows(IOException.class, () -> leaderboard.refresh(live));
+        StreamLeaderboard.Snapshot snapshot = leaderboard.refresh(live);
+
+        assertEquals(2, snapshot.total());
+        assertEquals(List.of(new Entry("viewer_one", 1), new Entry("viewer_two", 1)), snapshot.ranking());
     }
 
     @Test

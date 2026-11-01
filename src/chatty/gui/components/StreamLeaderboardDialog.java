@@ -21,6 +21,7 @@ import javax.swing.Timer;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
 import java.io.IOException;
+import java.nio.channels.ClosedByInterruptException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -45,6 +47,8 @@ public class StreamLeaderboardDialog extends JDialog {
     private static final long POLL_INTERVAL_SECONDS = 3;
 
     private static final String READ_ERROR = "Could not read the log files";
+
+    private static final String UNEXPECTED_ERROR = "Leaderboard error, see the debug log";
 
     private static final String DEFAULT_TIMESTAMP = "[yyyy-MM-dd HH:mm:ss]";
 
@@ -136,7 +140,8 @@ public class StreamLeaderboardDialog extends JDialog {
         poller = executor;
         // Built here and used only by the poll thread afterwards, as StreamLeaderboard is not thread-safe.
         StreamLeaderboard board = createBoard(channelName);
-        executor.scheduleWithFixedDelay(() -> poll(channelName, board, current),
+        PollState pollState = new PollState();
+        executor.scheduleWithFixedDelay(() -> poll(channelName, board, current, pollState),
                 0, POLL_INTERVAL_SECONDS, TimeUnit.SECONDS);
     }
 
@@ -160,23 +165,41 @@ public class StreamLeaderboardDialog extends JDialog {
         return new StreamLeaderboard(reader, zone, System::currentTimeMillis);
     }
 
+    /** Poll-thread state of one polling session. */
+    private static class PollState {
+        /** Whether the previous poll failed, so a failure that persists is logged only once. */
+        boolean isFailing;
+    }
+
     /** Runs on the poll thread. */
-    private void poll(String channelName, StreamLeaderboard board, Object current) {
+    private void poll(String channelName, StreamLeaderboard board, Object current, PollState pollState) {
         try {
             String unsupported = findUnsupportedReason(channelName, board);
             if (unsupported != null) {
                 publish(current, null, unsupported, false);
-                return;
+            } else {
+                publish(current, board.refresh(readTwitchState(channelName)), "", false);
             }
-            publish(current, board.refresh(readTwitchState(channelName)), "", false);
+            pollState.isFailing = false;
         } catch (IOException ex) {
-            LOGGER.warning("Stream leaderboard: could not read log files for " + channelName + ": " + ex);
-            publish(current, null, READ_ERROR, true);
+            handlePollFailure(channelName, current, pollState, ex, "could not read log files", READ_ERROR);
         } catch (RuntimeException ex) {
             // Must not escape: an exception would silently cancel all later polls.
-            LOGGER.warning("Stream leaderboard: unexpected error for " + channelName + ": " + ex);
-            publish(current, null, READ_ERROR, true);
+            handlePollFailure(channelName, current, pollState, ex, "unexpected error", UNEXPECTED_ERROR);
         }
+    }
+
+    private void handlePollFailure(String channelName, Object current, PollState pollState,
+            Exception ex, String logReason, String statusText) {
+        // Closing the window interrupts the poll thread, which can surface as a failed read.
+        if (ex instanceof ClosedByInterruptException || Thread.currentThread().isInterrupted()) {
+            return;
+        }
+        if (!pollState.isFailing) {
+            LOGGER.log(Level.WARNING, "Stream leaderboard: " + logReason + " for " + channelName, ex);
+            pollState.isFailing = true;
+        }
+        publish(current, null, statusText, true);
     }
 
     private String findUnsupportedReason(String channelName, StreamLeaderboard board) {
@@ -197,7 +220,7 @@ public class StreamLeaderboardDialog extends JDialog {
         if (info == null) {
             return new TwitchStreamState(false, -1, -1);
         }
-        return new TwitchStreamState(info.isValid() && info.getOnline(),
+        return new TwitchStreamState(info.isValidEnough() && info.getOnline(),
                 info.getTimeStartedWithPicnic(), info.getLastOnlineTime());
     }
 

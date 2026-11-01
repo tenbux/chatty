@@ -22,8 +22,8 @@ import java.util.function.LongSupplier;
 public class StreamLeaderboard {
 
     /**
-     * How far back to look for LIVE/OFFLINE markers. A week covers the gap
-     * between streams of any regular schedule while bounding the scan.
+     * How far back to look for LIVE/OFFLINE markers. A week finds the last
+     * stream of a channel that streams at least weekly while bounding the scan.
      */
     private static final long LOOKBACK_MS = 7L * 24 * 60 * 60 * 1000;
 
@@ -78,7 +78,14 @@ public class StreamLeaderboard {
         if (resolution == null) {
             rebuild(twitch);
         } else {
-            boolean hasReset = reader.readAppended(this::handleLine);
+            boolean hasReset;
+            try {
+                hasReset = reader.readAppended(this::handleLine);
+            } catch (IOException ex) {
+                // Lines emitted before the failure may repeat ones already counted, so start over next time.
+                resolution = null;
+                throw ex;
+            }
             Resolution latest = StreamRangeResolver.resolve(new ArrayList<>(markers), twitch);
             // After a reset the reader re-emitted lines already counted, so the tally cannot be trusted.
             if (hasReset || !isSameRange(latest, resolution)) {

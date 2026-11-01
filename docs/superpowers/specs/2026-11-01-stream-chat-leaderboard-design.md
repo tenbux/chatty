@@ -121,7 +121,9 @@ previous OFFLINE marker continues the same stream. This mirrors the picnic
 rule. The window walks back through the markers this way to find where the
 stream began. *(My call.)*
 
-**Channel live** (`getOnline()` and `isValid()` true):
+**Channel live** (`getOnline()` and `isValidEnough()` true, the same check
+Chatty uses for its own LIVE/OFFLINE lines, so a briefly stale stream info
+does not flip the board to ended):
 
 - Start at Twitch's picnic start.
 - If the log has an OFFLINE marker from 10 minutes before that start to 3
