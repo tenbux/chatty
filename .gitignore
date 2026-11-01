@@ -14,5 +14,6 @@ build.xml
 .windsurf/
 CLAUDE.md
 DECISIONS.md
+docs/superpowers/
 
 .DS_Store
