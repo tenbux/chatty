@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,7 +42,7 @@ public sealed interface LeaderboardLogLine permits LeaderboardLogLine.ChatLine, 
      * malformed lines)
      */
     static LeaderboardLogLine parse(String line, ZoneId zone) {
-                Matcher marker = Parsing.MARKER.matcher(line);
+        Matcher marker = Parsing.MARKER.matcher(line);
         if (marker.matches()) {
             Long timeMs = Parsing.toEpochMs(marker.group(1), zone);
             if (timeMs == null) {
@@ -63,7 +64,8 @@ public sealed interface LeaderboardLogLine permits LeaderboardLogLine.ChatLine, 
     final class Parsing {
 
         private static final String TIME = "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})";
-        private static final Pattern CHAT = Pattern.compile("^\\[" + TIME + "\\] <([^>]+)>\\*? (.*)$");
+        // DOTALL because a message can contain Unicode line separators, which "." would not match.
+        private static final Pattern CHAT = Pattern.compile("^\\[" + TIME + "\\] <([^>]+)>\\*? (.*)$", Pattern.DOTALL);
         private static final Pattern MARKER = Pattern.compile("^\\[" + TIME + "\\] \\*\\* .+ is now (LIVE|OFFLINE) \\*\\*$");
         // Localized display names are logged as "DisplayName (login)".
         private static final Pattern LOCALIZED_NAME = Pattern.compile(".* \\(([^()\\s]+)\\)$");
@@ -102,7 +104,7 @@ public sealed interface LeaderboardLogLine permits LeaderboardLogLine.ChatLine, 
                 return null;
             }
             Matcher localized = LOCALIZED_NAME.matcher(name);
-            String key = (localized.matches() ? localized.group(1) : name).toLowerCase();
+            String key = (localized.matches() ? localized.group(1) : name).toLowerCase(Locale.ROOT);
             return new ChatLine(timeMs, key, name, hasBotSigil || KNOWN_BOTS.contains(key));
         }
     }

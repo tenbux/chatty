@@ -3,6 +3,7 @@ package chatty.util.chatlog;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import static org.junit.Assert.*;
 import org.junit.Test;
 
@@ -81,5 +82,23 @@ public class LeaderboardLogLineTest {
         LeaderboardLogLine.ChatLine chat = parseChat("[2026-10-31 20:00:05] <viewer_one> hi");
         LeaderboardLogLine other = LeaderboardLogLine.parse("[2026-10-31 20:00:05] <viewer_one> hi", ZoneId.of("America/New_York"));
         assertEquals(4 * 3600_000L, ((LeaderboardLogLine.ChatLine) other).timeMs() - chat.timeMs());
+    }
+
+    @Test
+    public void test_parse_messageWithLineSeparator_returnsChatLine() {
+        LeaderboardLogLine.ChatLine chat = parseChat("[2026-10-31 20:00:05] <viewer_one> first\u2028second");
+        assertEquals("viewer_one", chat.key());
+    }
+
+    @Test
+    public void test_parse_turkishDefaultLocale_keyStaysAscii() {
+        Locale original = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            LeaderboardLogLine.ChatLine chat = parseChat("[2026-10-31 20:00:05] <VIEWER_ONE> hi");
+            assertEquals("viewer_one", chat.key());
+        } finally {
+            Locale.setDefault(original);
+        }
     }
 }

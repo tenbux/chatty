@@ -24,7 +24,9 @@ import java.io.IOException;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,7 +54,11 @@ public class StreamLeaderboardDialog extends JDialog {
 
     private static final String DEFAULT_TIMESTAMP = "[yyyy-MM-dd HH:mm:ss]";
 
+    private static final String NOT_A_CHANNEL = "Open a channel tab to see its leaderboard";
+
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("h:mm a");
+
+    private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("MMM d h:mm a");
 
     private final TwitchClient client;
     private final Settings settings;
@@ -117,6 +123,11 @@ public class StreamLeaderboardDialog extends JDialog {
         header.setText(" ");
         status.setText(" ");
         super.setVisible(true);
+        // Whisper and other non-channel tabs have no channel log or stream to read.
+        if (!target.getChannel().startsWith("#")) {
+            status.setText(NOT_A_CHANNEL);
+            return;
+        }
         startPolling();
     }
 
@@ -248,15 +259,19 @@ public class StreamLeaderboardDialog extends JDialog {
             return unavailable.reason();
         }
         StreamRange range = (StreamRange) resolution;
+        String total = snapshot.total() + (snapshot.total() == 1 ? " message" : " messages");
         if (range.isLive()) {
-            return "Live since " + formatTime(range.startMs()) + ", " + snapshot.total() + " messages";
+            return "Live since " + TIME_FORMAT.format(toLocal(range.startMs())) + ", " + total;
         }
-        return "Ended " + formatTime(range.endMs()) + " (" + formatTime(range.startMs()) + "-"
-                + formatTime(range.endMs()) + "), " + snapshot.total() + " messages";
+        // An older stream needs its date, or "Ended 9:00 PM" reads as today.
+        boolean isEndedToday = toLocal(range.endMs()).toLocalDate().equals(LocalDate.now(zone));
+        DateTimeFormatter format = isEndedToday ? TIME_FORMAT : DATE_TIME_FORMAT;
+        String end = format.format(toLocal(range.endMs()));
+        return "Ended " + end + " (" + format.format(toLocal(range.startMs())) + "-" + end + "), " + total;
     }
 
-    private String formatTime(long epochMs) {
-        return TIME_FORMAT.format(Instant.ofEpochMilli(epochMs).atZone(zone));
+    private ZonedDateTime toLocal(long epochMs) {
+        return Instant.ofEpochMilli(epochMs).atZone(zone);
     }
 
     private void showRanking(List<ChatterTally.Entry> entries) {
