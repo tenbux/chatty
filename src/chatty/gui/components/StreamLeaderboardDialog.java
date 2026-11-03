@@ -4,6 +4,7 @@ import chatty.Room;
 import chatty.TwitchClient;
 import chatty.User;
 import chatty.gui.MainGui;
+import chatty.util.MiscUtil;
 import chatty.util.api.StreamInfo;
 import chatty.util.chatlog.ChannelLogReader;
 import chatty.util.chatlog.ChatterTally;
@@ -28,17 +29,23 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.awt.event.ActionEvent;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.IntStream;
 
 /**
  * Non-modal window showing who chatted most in the current (or most recent)
- * stream of one channel, with a button to post the top three to that channel.
+ * stream of one channel, with buttons to post the top three to that channel or
+ * copy the highlighted rows (or the whole list) to the clipboard.
  * Counts come from the channel's log files, read on a background thread while
  * the window is visible.
  */
@@ -60,6 +67,12 @@ public class StreamLeaderboardDialog extends JDialog {
 
     private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("MMM d h:mm a");
 
+    private static final String COPY_LABEL = "Copy";
+
+    private static final String COPIED_LABEL = "Copied";
+
+    private static final int COPIED_FEEDBACK_MS = 1500;
+
     private final TwitchClient client;
     private final Settings settings;
     private final ZoneId zone = ZoneId.systemDefault();
@@ -67,7 +80,10 @@ public class StreamLeaderboardDialog extends JDialog {
     private final JLabel header = new JLabel(" ");
     private final JLabel status = new JLabel(" ");
     private final RankingModel model = new RankingModel();
+    private final JTable table = new JTable(model);
     private final JButton postButton = new JButton("Post top 3");
+    private final JButton copyButton = new JButton(COPIED_LABEL);
+    private final Timer copiedReset = new Timer(COPIED_FEEDBACK_MS, e -> copyButton.setText(COPY_LABEL));
 
     private ScheduledExecutorService poller;
     private Channel channel;
@@ -75,6 +91,9 @@ public class StreamLeaderboardDialog extends JDialog {
     private Object session;
     private boolean isPosting;
     private List<ChatterTally.Entry> ranking = List.of();
+    /** Stream named in the first line of copied text, null when there is none. */
+    private StreamRange copyRange;
+    private int copyTotal;
 
     public StreamLeaderboardDialog(MainGui owner, TwitchClient client) {
         super(owner);
@@ -88,14 +107,29 @@ public class StreamLeaderboardDialog extends JDialog {
         top.add(header, BorderLayout.NORTH);
         top.add(status, BorderLayout.SOUTH);
 
-        JTable table = new JTable(model);
         table.setFillsViewportHeight(true);
         table.getColumnModel().getColumn(0).setMaxWidth(50);
         table.getColumnModel().getColumn(2).setMaxWidth(90);
 
+        // So Cmd/Ctrl+C copies the same text as the button instead of raw table cells.
+        table.getActionMap().put(TransferHandler.getCopyAction().getValue(Action.NAME), new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                copy();
+            }
+        });
+
         postButton.setEnabled(false);
         postButton.addActionListener(e -> postTop());
+        // Sized for the longer label, so showing "Copied" doesn't shift the buttons.
+        copyButton.setPreferredSize(copyButton.getPreferredSize());
+        copyButton.setText(COPY_LABEL);
+        copyButton.setToolTipText("Copy the highlighted rows, or the whole list if none are highlighted");
+        copyButton.setEnabled(false);
+        copyButton.addActionListener(e -> copy());
+        copiedReset.setRepeats(false);
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        bottom.add(copyButton);
         bottom.add(postButton);
 
         add(top, BorderLayout.NORTH);
@@ -119,6 +153,7 @@ public class StreamLeaderboardDialog extends JDialog {
         stopPolling();
         channel = target;
         setTitle("Stream Leaderboard: " + target.getChannel());
+        copyRange = null;
         showRanking(List.of());
         header.setText(" ");
         status.setText(" ");
@@ -244,10 +279,13 @@ public class StreamLeaderboardDialog extends JDialog {
             status.setText(statusText.isEmpty() ? " " : statusText);
             if (snapshot != null) {
                 header.setText(describe(snapshot));
+                copyRange = snapshot.resolution() instanceof StreamRange range ? range : null;
+                copyTotal = snapshot.total();
                 showRanking(snapshot.ranking());
             } else if (!isKeepingBoard) {
                 // A failed read keeps the last good board; an unsupported setup has no valid board to keep.
                 header.setText(" ");
+                copyRange = null;
                 showRanking(List.of());
             }
         });
@@ -275,13 +313,96 @@ public class StreamLeaderboardDialog extends JDialog {
     }
 
     private void showRanking(List<ChatterTally.Entry> entries) {
+        // Replacing the table data clears the selection, so skip it when nothing changed.
+        if (entries.equals(ranking)) {
+            return;
+        }
+        DefaultListSelectionModel selection = (DefaultListSelectionModel) table.getSelectionModel();
+        // Refreshing mid-drag would end the drag; the next poll still sees a changed ranking and catches up.
+        if (selection.getValueIsAdjusting()) {
+            return;
+        }
+        Set<String> selectedNames = selectedNames();
+        String anchorName = nameAt(selection.getAnchorSelectionIndex());
+        String leadName = nameAt(selection.getLeadSelectionIndex());
         ranking = entries;
         model.setEntries(entries);
-        updatePostButton();
+        if (!selectedNames.isEmpty()) {
+            // Reselect by name, since a highlighted chatter's rank can change between polls.
+            for (int row = 0; row < entries.size(); row++) {
+                if (selectedNames.contains(nameKey(entries.get(row)))) {
+                    table.addRowSelectionInterval(row, row);
+                }
+            }
+            // Reselecting moves the anchor to the last row added, which would make Shift+click extend from there.
+            int anchor = rowOf(anchorName);
+            int lead = rowOf(leadName);
+            if (anchor >= 0 && lead >= 0) {
+                selection.setAnchorSelectionIndex(anchor);
+                selection.moveLeadSelectionIndex(lead);
+            }
+        }
+        updateButtons();
     }
 
-    private void updatePostButton() {
+    private String nameAt(int row) {
+        return row >= 0 && row < ranking.size() ? nameKey(ranking.get(row)) : null;
+    }
+
+    private int rowOf(String name) {
+        for (int row = 0; row < ranking.size(); row++) {
+            if (nameKey(ranking.get(row)).equals(name)) {
+                return row;
+            }
+        }
+        return -1;
+    }
+
+    private Set<String> selectedNames() {
+        Set<String> names = new HashSet<>();
+        for (int row : table.getSelectedRows()) {
+            names.add(nameKey(ranking.get(row)));
+        }
+        return names;
+    }
+
+    private static String nameKey(ChatterTally.Entry entry) {
+        return entry.name().toLowerCase(Locale.ROOT);
+    }
+
+    private void updateButtons() {
         postButton.setEnabled(!isPosting && !ranking.isEmpty());
+        copyButton.setEnabled(!ranking.isEmpty());
+    }
+
+    /** Copies the highlighted rows, or all rows if none are highlighted, under a line naming the stream. */
+    private void copy() {
+        if (ranking.isEmpty()) {
+            return;
+        }
+        int[] rows = table.getSelectedRows();
+        if (rows.length == 0) {
+            rows = IntStream.range(0, ranking.size()).toArray();
+        }
+        List<String> lines = new ArrayList<>();
+        if (copyRange != null) {
+            // Built at copy time so a live stream's run time is current.
+            lines.add(LeaderboardPost.formatCopyHeader(channel.getChannel(), copyRange, copyTotal, zone,
+                    System.currentTimeMillis()));
+        }
+        for (int row : rows) {
+            lines.add(LeaderboardPost.formatLine(row + 1, ranking.get(row)));
+        }
+        try {
+            MiscUtil.copyToClipboard(String.join("\n", lines));
+        } catch (IllegalStateException ex) {
+            // Thrown when another app holds the clipboard; the next poll clears this status.
+            LOGGER.log(Level.WARNING, "Stream leaderboard: could not copy to the clipboard", ex);
+            status.setText("Could not copy, the clipboard is busy");
+            return;
+        }
+        copyButton.setText(COPIED_LABEL);
+        copiedReset.restart();
     }
 
     /** Sends the first line now and the rest paced; runs on the EDT. */
@@ -298,7 +419,7 @@ public class StreamLeaderboardDialog extends JDialog {
         long delay = LeaderboardPost.delayBetweenLinesMs(isPrivileged, client.getChannelState(channelName).slowMode());
 
         isPosting = true;
-        updatePostButton();
+        updateButtons();
         if (!sendLine(channelName, room, lines.get(0)) || lines.size() == 1) {
             finishPosting();
             return;
@@ -325,7 +446,7 @@ public class StreamLeaderboardDialog extends JDialog {
 
     private void finishPosting() {
         isPosting = false;
-        updatePostButton();
+        updateButtons();
     }
 
     private static class RankingModel extends AbstractTableModel {

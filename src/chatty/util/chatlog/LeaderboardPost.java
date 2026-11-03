@@ -1,11 +1,17 @@
 package chatty.util.chatlog;
 
 import chatty.util.chatlog.ChatterTally.Entry;
+import chatty.util.chatlog.StreamRangeResolver.StreamRange;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
- * Formats the top of a ranking as chat lines and paces posting them.
+ * Formats the top of a ranking as chat lines and paces posting them, and
+ * formats the ranking as text for the clipboard.
  */
 public final class LeaderboardPost {
 
@@ -23,6 +29,8 @@ public final class LeaderboardPost {
      */
     private static final long SLOW_MODE_MARGIN_MS = 1000;
 
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MMM d", Locale.US);
+
     private LeaderboardPost() {
     }
 
@@ -33,11 +41,51 @@ public final class LeaderboardPost {
     public static List<String> formatTop(List<Entry> ranking) {
         List<String> lines = new ArrayList<>();
         for (int i = 0; i < Math.min(MAX_LINES, ranking.size()); i++) {
-            Entry entry = ranking.get(i);
-            String noun = entry.count() == 1 ? "message" : "messages";
-            lines.add("#" + (i + 1) + " " + entry.name() + ": " + entry.count() + " " + noun);
+            lines.add(formatLine(i + 1, ranking.get(i)));
         }
         return lines;
+    }
+
+    /**
+     * @param rank 1-based position in the ranking
+     * @param entry the chatter at that position
+     * @return the line for that chatter, as posted to chat
+     */
+    public static String formatLine(int rank, Entry entry) {
+        return "#" + rank + " " + entry.name() + ": " + messages(entry.count());
+    }
+
+    /**
+     * @param channel channel name including the leading "#"
+     * @param range the stream the ranking covers
+     * @param total messages counted in that stream
+     * @param zone time zone the start date is shown in
+     * @param nowMs current time, which a live stream's run time is measured up to
+     * @return a line naming the channel, the stream's start date and run time, and the
+     *         message total, to put above copied ranking lines
+     */
+    public static String formatCopyHeader(String channel, StreamRange range, int total, ZoneId zone, long nowMs) {
+        // Always dated, since the text is read elsewhere and later, where "today" is unknown.
+        String date = DATE_FORMAT.format(Instant.ofEpochMilli(range.startMs()).atZone(zone));
+        // A live range has no end yet (its end is Long.MAX_VALUE).
+        long endMs = range.isLive() ? nowMs : range.endMs();
+        String runTime = formatRunTime(endMs - range.startMs());
+        return channel + " stream, " + date + ", " + (range.isLive() ? "live for " + runTime : runTime)
+                + ", " + messages(total);
+    }
+
+    private static String formatRunTime(long durationMs) {
+        long minutes = Math.max(0, durationMs) / 60_000;
+        long hours = minutes / 60;
+        minutes %= 60;
+        if (hours == 0) {
+            return minutes + "min";
+        }
+        return minutes == 0 ? hours + "hr" : hours + "hr " + minutes + "min";
+    }
+
+    private static String messages(int count) {
+        return String.format(Locale.US, "%,d", count) + (count == 1 ? " message" : " messages");
     }
 
     /**
