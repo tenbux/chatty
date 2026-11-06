@@ -5,17 +5,13 @@ import chatty.util.chatlog.StreamRangeResolver.StreamRange;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 
 /**
- * Formats the top of a ranking as chat lines and paces posting them, and
- * formats the ranking as text for the clipboard.
+ * Formats ranking rows as chat lines and paces posting them, and formats the
+ * header line for copying them to the clipboard.
  */
 public final class LeaderboardPost {
-
-    private static final int MAX_LINES = 3;
 
     /**
      * Twitch allows 20 messages per 30 seconds to regular chatters, which is one
@@ -32,18 +28,6 @@ public final class LeaderboardPost {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MMM d", Locale.US);
 
     private LeaderboardPost() {
-    }
-
-    /**
-     * @param ranking chatters, highest count first
-     * @return one line per chatter for the top three, fewer if the ranking is shorter
-     */
-    public static List<String> formatTop(List<Entry> ranking) {
-        List<String> lines = new ArrayList<>();
-        for (int i = 0; i < Math.min(MAX_LINES, ranking.size()); i++) {
-            lines.add(formatLine(i + 1, ranking.get(i)));
-        }
-        return lines;
     }
 
     /**

@@ -4,34 +4,24 @@ import chatty.util.chatlog.ChatterTally.Entry;
 import chatty.util.chatlog.StreamRangeResolver.StreamRange;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.List;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 public class LeaderboardPostTest {
 
     @Test
-    public void test_formatTop_threeLines() {
-        List<String> lines = LeaderboardPost.formatTop(List.of(
-                new Entry("a", 342), new Entry("b", 289), new Entry("c", 201), new Entry("d", 5)));
-
-        assertEquals(List.of("#1 a: 342 messages", "#2 b: 289 messages", "#3 c: 201 messages"), lines);
+    public void test_formatLine_rankNameAndCount() {
+        assertEquals("#1 a: 342 messages", LeaderboardPost.formatLine(1, new Entry("a", 342)));
     }
 
     @Test
-    public void test_formatTop_singularAndFewer() {
-        assertEquals(List.of("#1 a: 1 message"), LeaderboardPost.formatTop(List.of(new Entry("a", 1))));
+    public void test_formatLine_oneMessage_singular() {
+        assertEquals("#12 a: 1 message", LeaderboardPost.formatLine(12, new Entry("a", 1)));
     }
 
     @Test
-    public void test_formatTop_emptyRanking_noLines() {
-        assertTrue(LeaderboardPost.formatTop(List.of()).isEmpty());
-    }
-
-    @Test
-    public void test_formatLine_matchesPostedLine() {
-        assertEquals("#7 a: 12 messages", LeaderboardPost.formatLine(7, new Entry("a", 12)));
+    public void test_formatLine_largeCount_grouped() {
+        assertEquals("#1 a: 1,204 messages", LeaderboardPost.formatLine(1, new Entry("a", 1204)));
     }
 
     @Test

@@ -44,8 +44,8 @@ import java.util.stream.IntStream;
 
 /**
  * Non-modal window showing who chatted most in the current (or most recent)
- * stream of one channel, with buttons to post the top three to that channel or
- * copy the highlighted rows (or the whole list) to the clipboard.
+ * stream of one channel, with buttons to post the highlighted rows to that
+ * channel or copy them (or the whole list) to the clipboard.
  * Counts come from the channel's log files, read on a background thread while
  * the window is visible.
  */
@@ -73,6 +73,10 @@ public class StreamLeaderboardDialog extends JDialog {
 
     private static final int COPIED_FEEDBACK_MS = 1500;
 
+    private static final String POST_LABEL = "Post to chat";
+
+    private static final String STOP_LABEL = "Stop";
+
     private final TwitchClient client;
     private final Settings settings;
     private final ZoneId zone = ZoneId.systemDefault();
@@ -81,7 +85,7 @@ public class StreamLeaderboardDialog extends JDialog {
     private final JLabel status = new JLabel(" ");
     private final RankingModel model = new RankingModel();
     private final JTable table = new JTable(model);
-    private final JButton postButton = new JButton("Post top 3");
+    private final JButton postButton = new JButton(POST_LABEL);
     private final JButton copyButton = new JButton(COPIED_LABEL);
     private final Timer copiedReset = new Timer(COPIED_FEEDBACK_MS, e -> copyButton.setText(COPY_LABEL));
 
@@ -89,7 +93,8 @@ public class StreamLeaderboardDialog extends JDialog {
     private Channel channel;
     /** Identifies the current polling session, so late results from a stopped one are dropped. */
     private Object session;
-    private boolean isPosting;
+    /** Sends the remaining lines of a post in progress, null when not posting. */
+    private Timer postTimer;
     private List<ChatterTally.Entry> ranking = List.of();
     /** Stream named in the first line of copied text, null when there is none. */
     private StreamRange copyRange;
@@ -119,8 +124,19 @@ public class StreamLeaderboardDialog extends JDialog {
             }
         });
 
+        table.getSelectionModel().addListSelectionListener(e -> updateButtons());
+
+        // Sized for the longer label, so showing "Stop" doesn't shift the buttons.
+        postButton.setPreferredSize(postButton.getPreferredSize());
+        postButton.setToolTipText("Post the highlighted rows to chat, one message each");
         postButton.setEnabled(false);
-        postButton.addActionListener(e -> postTop());
+        postButton.addActionListener(e -> {
+            if (postTimer != null) {
+                stopPosting();
+            } else {
+                postSelected();
+            }
+        });
         // Sized for the longer label, so showing "Copied" doesn't shift the buttons.
         copyButton.setPreferredSize(copyButton.getPreferredSize());
         copyButton.setText(COPY_LABEL);
@@ -371,7 +387,9 @@ public class StreamLeaderboardDialog extends JDialog {
     }
 
     private void updateButtons() {
-        postButton.setEnabled(!isPosting && !ranking.isEmpty());
+        boolean isPosting = postTimer != null;
+        postButton.setText(isPosting ? STOP_LABEL : POST_LABEL);
+        postButton.setEnabled(isPosting || table.getSelectedRowCount() > 0);
         copyButton.setEnabled(!ranking.isEmpty());
     }
 
@@ -390,9 +408,7 @@ public class StreamLeaderboardDialog extends JDialog {
             lines.add(LeaderboardPost.formatCopyHeader(channel.getChannel(), copyRange, copyTotal, zone,
                     System.currentTimeMillis()));
         }
-        for (int row : rows) {
-            lines.add(LeaderboardPost.formatLine(row + 1, ranking.get(row)));
-        }
+        lines.addAll(formatRows(rows));
         try {
             MiscUtil.copyToClipboard(String.join("\n", lines));
         } catch (IllegalStateException ex) {
@@ -405,10 +421,19 @@ public class StreamLeaderboardDialog extends JDialog {
         copiedReset.restart();
     }
 
-    /** Sends the first line now and the rest paced; runs on the EDT. */
-    private void postTop() {
-        List<String> lines = LeaderboardPost.formatTop(ranking);
-        if (isPosting || lines.isEmpty() || channel == null) {
+    private List<String> formatRows(int[] rows) {
+        List<String> lines = new ArrayList<>();
+        for (int row : rows) {
+            lines.add(LeaderboardPost.formatLine(row + 1, ranking.get(row)));
+        }
+        return lines;
+    }
+
+    /** Sends the highlighted rows, the first now and the rest paced; runs on the EDT. */
+    private void postSelected() {
+        // Taken now, so changing the highlight or a refresh mid-post doesn't change what is sent.
+        List<String> lines = formatRows(table.getSelectedRows());
+        if (postTimer != null || lines.isEmpty() || channel == null) {
             return;
         }
         String channelName = channel.getChannel();
@@ -418,20 +443,18 @@ public class StreamLeaderboardDialog extends JDialog {
                 && (localUser.isBroadcaster() || localUser.isModerator() || localUser.isVip());
         long delay = LeaderboardPost.delayBetweenLinesMs(isPrivileged, client.getChannelState(channelName).slowMode());
 
-        isPosting = true;
-        updateButtons();
         if (!sendLine(channelName, room, lines.get(0)) || lines.size() == 1) {
-            finishPosting();
             return;
         }
         int[] next = {1};
         Timer timer = new Timer((int) delay, null);
         timer.addActionListener(e -> {
             if (!sendLine(channelName, room, lines.get(next[0])) || ++next[0] >= lines.size()) {
-                timer.stop();
-                finishPosting();
+                stopPosting();
             }
         });
+        postTimer = timer;
+        updateButtons();
         timer.start();
     }
 
@@ -444,8 +467,12 @@ public class StreamLeaderboardDialog extends JDialog {
         return true;
     }
 
-    private void finishPosting() {
-        isPosting = false;
+    /** Cancels the lines of the current post not yet sent. */
+    private void stopPosting() {
+        if (postTimer != null) {
+            postTimer.stop();
+            postTimer = null;
+        }
         updateButtons();
     }
 
