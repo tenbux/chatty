@@ -86,7 +86,18 @@ public class PinnedMessage {
     public boolean hasError() {
         return error != null;
     }
-    
+
+    /**
+     * Whether this holds a pinned message that has not expired yet.
+     *
+     * @param nowMs the current time, in milliseconds since the epoch
+     * @return {@code true} if a message is pinned and its end time (if any)
+     * is after {@code nowMs}
+     */
+    public boolean isActive(long nowMs) {
+        return !hasError() && !isEmpty() && (endsAt == -1 || endsAt > nowMs);
+    }
+
     public static PinnedMessage parse(String stream, String json) {
         try {
             JSONParser parser = new JSONParser();

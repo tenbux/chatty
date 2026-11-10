@@ -1003,6 +1003,7 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
             }
 
             startUpdatingState();
+            startRefreshingPinnedMessages();
 
             windowStateManager.loadWindowStates();
             windowStateManager.setWindowPosition(MainGui.this);
@@ -4439,6 +4440,7 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
             Channel channel = channels.getExistingChannel(state.getChannel());
             if (channel != null) {
                 channel.updateModPanel();
+                channel.updatePinButton();
             }
         });
     }
@@ -4456,7 +4458,24 @@ public class MainGui extends JFrame implements Runnable, SendMessageManager.Outp
         timer.setRepeats(true);
         timer.start();
     }
-    
+
+    // EventSub has no pin subscription type, so pins are polled instead
+    private static final int PINNED_MESSAGE_REFRESH_INTERVAL_MS = 2 * 60 * 1000;
+
+    private void startRefreshingPinnedMessages() {
+        javax.swing.Timer timer = new javax.swing.Timer(PINNED_MESSAGE_REFRESH_INTERVAL_MS, e -> {
+            for (Channel chan : channels.getChannelsOfType(Channel.Type.CHANNEL)) {
+                // Skips tabs left open after parting or while disconnected,
+                // where the request would only fail
+                if (client.isChannelJoined(chan.getChannel())) {
+                    chan.refreshPinnedMessage();
+                }
+            }
+        });
+        timer.setRepeats(true);
+        timer.start();
+    }
+
     /**
      * Manages updating the current state, mainly the titles and menus.
      */

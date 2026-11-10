@@ -14,6 +14,7 @@ import chatty.gui.components.textpane.Message;
 import chatty.util.ElapsedTime;
 import chatty.util.StringUtil;
 import chatty.util.api.AccessChecker;
+import chatty.util.api.PinnedMessage;
 import chatty.util.api.TokenInfo;
 import chatty.util.api.eventsub.payloads.SuspiciousMessagePayload;
 import chatty.util.colors.ColorCorrectionNew;
@@ -26,6 +27,8 @@ import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.MouseWheelEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 /**
  * A single channel window, combining styled text pane, userlist and input box.
@@ -62,6 +65,12 @@ public final class Channel extends JPanel {
     private ModerationPanel modPanel;
     private JDialog modPanelPopup;
     private final JButton modPanelButton;
+
+    private final JButton pinButton;
+    private ExtendedTextPane pinText;
+    private JDialog pinPopup;
+    private boolean canReadPinnedMessage;
+    private PinnedMessage shownPinnedMessage;
 
     public Channel(final Room room, Type type, MainGui main, StyleManager styleManager,
             ContextMenuListener contextMenuListener, boolean insertTop) {
@@ -130,9 +139,19 @@ public final class Channel extends JPanel {
         modPanelButton = new JButton();
         modPanelButton.setToolTipText("Channel Moderation Settings");
         modPanelButton.setVisible(false);
-        inputPanel.add(modPanelButton, BorderLayout.EAST);
         modPanelButton.addActionListener(e -> openModPanel());
-        
+
+        pinButton = new JButton();
+        pinButton.setToolTipText("Pinned Message");
+        pinButton.setVisible(false);
+        pinButton.addActionListener(e -> togglePinPopup());
+
+        // BorderLayout so both buttons fill the input's height
+        JPanel inputButtons = new JPanel(new BorderLayout());
+        inputButtons.add(pinButton, BorderLayout.WEST);
+        inputButtons.add(modPanelButton, BorderLayout.EAST);
+        inputPanel.add(inputButtons, BorderLayout.EAST);
+
         // Add components
         add(mainPane, BorderLayout.CENTER);
         add(inputPanel, BorderLayout.SOUTH);
@@ -145,13 +164,140 @@ public final class Channel extends JPanel {
         if (hasAccess && modPanelButton.getIcon() == null) {
             int height = input.getFontMetrics(input.getFont()).getHeight();
             ImageIcon icon = new ImageIcon(ModerationPanel.class.getResource("sword.png"));
-            Color foreground = modPanelButton.getForeground();
-            icon = GuiUtil.substituteColor(icon, Color.WHITE, ColorCorrectionNew.offset(foreground, ColorCorrectionNew.getLightness(foreground) < 180 ? 0.75f : 0.9f));
+            icon = GuiUtil.substituteColor(icon, Color.WHITE, getButtonIconColor(modPanelButton));
             icon = GuiUtil.getScaledIcon(icon, height, height);
             modPanelButton.setIcon(icon);
         }
+
+        boolean couldReadPinnedMessage = canReadPinnedMessage;
+        canReadPinnedMessage = AccessChecker.isModerator(room.getChannel(), TokenInfo.Scope.MANAGE_MSGS);
+        // A disconnect or part clears the pinned message from the channel
+        // state, so a rejoin also needs a new request. The time check keeps
+        // repeated user updates from sending more while one is pending.
+        boolean hasNoPinnedMessageResult = main.getChannelState(room.getChannel()).pinnedMessage() == null;
+        if (canReadPinnedMessage
+                && (!couldReadPinnedMessage
+                    || (hasNoPinnedMessageResult && refreshedPinnedMessage.secondsElapsed(10)))) {
+            refreshPinnedMessage();
+        }
+        updatePinButton();
     }
-    
+
+    private static Color getButtonIconColor(JButton button) {
+        Color foreground = button.getForeground();
+        return ColorCorrectionNew.offset(foreground, ColorCorrectionNew.getLightness(foreground) < 180 ? 0.75f : 0.9f);
+    }
+
+    /**
+     * Requests the current pinned message, if the local user can read it in
+     * this channel. The result arrives as a channel state update.
+     */
+    public void refreshPinnedMessage() {
+        // Hides a pin whose end time has passed without waiting for the response
+        updatePinButton();
+        if (canReadPinnedMessage) {
+            main.anonCustomCommand(room, CustomCommand.parse("/refresh pinnedMessage"), Parameters.create(""));
+            refreshedPinnedMessage.set();
+        }
+    }
+
+    /**
+     * Shows the pin button while there is an active pinned message that the
+     * local user can read, otherwise hides it and closes the popup. An open
+     * popup is updated with the current message.
+     */
+    public void updatePinButton() {
+        PinnedMessage pinnedMessage = main.getChannelState(room.getChannel()).pinnedMessage();
+        // A failed request (rate limit, server error) says nothing about the
+        // pin itself, so keep showing the last one until it expires
+        if (pinnedMessage != null && pinnedMessage.hasError() && shownPinnedMessage != null) {
+            pinnedMessage = shownPinnedMessage;
+        }
+        boolean isPinned = canReadPinnedMessage
+                && pinnedMessage != null
+                && pinnedMessage.isActive(System.currentTimeMillis());
+        shownPinnedMessage = isPinned ? pinnedMessage : null;
+        pinButton.setVisible(isPinned);
+        if (!isPinned) {
+            closePinPopup();
+            return;
+        }
+        if (pinButton.getIcon() == null) {
+            int height = input.getFontMetrics(input.getFont()).getHeight();
+            pinButton.setIcon(new PushpinIcon(height, getButtonIconColor(pinButton)));
+        }
+        if (pinText != null) {
+            pinText.setText(ModerationPanel.makePinnedMessageText(pinnedMessage));
+        }
+    }
+
+    private void togglePinPopup() {
+        if (pinPopup != null) {
+            closePinPopup();
+            return;
+        }
+        closeModPanel();
+        if (pinText == null) {
+            pinText = new ExtendedTextPane();
+            pinText.setEditable(false);
+            pinText.setLinkListener(url -> UrlOpener.openUrlPrompt(main, url));
+
+            FocusAdapter closeOnFocus = new FocusAdapter() {
+
+                @Override
+                public void focusGained(FocusEvent e) {
+                    closePinPopup();
+                }
+
+            };
+            text.addFocusListener(closeOnFocus);
+            input.addFocusListener(closeOnFocus);
+        }
+        pinText.setText(ModerationPanel.makePinnedMessageText(shownPinnedMessage));
+        JScrollPane scroll = new JScrollPane(pinText);
+        scroll.setPreferredSize(new Dimension(300, 70));
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createRaisedSoftBevelBorder(),
+                BorderFactory.createTitledBorder("Pinned Message")));
+        panel.add(scroll, BorderLayout.CENTER);
+
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(input));
+        dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        dialog.addWindowListener(new WindowAdapter() {
+
+            @Override
+            public void windowClosing(WindowEvent e) {
+                closePinPopup();
+            }
+
+        });
+        GuiUtil.installEscapeCloseOperation(dialog);
+        dialog.add(panel, BorderLayout.CENTER);
+        dialog.setUndecorated(true);
+        dialog.pack();
+        dialog.setLocation(getPopupLocation(dialog.getPreferredSize()));
+        dialog.setVisible(true);
+        pinPopup = dialog;
+    }
+
+    private void closePinPopup() {
+        if (pinPopup != null) {
+            pinPopup.dispose();
+            pinPopup = null;
+        }
+    }
+
+    /**
+     * Places a popup of the given size just above the input box, with its
+     * right edge lined up with the right edge of the buttons beside it.
+     */
+    private Point getPopupLocation(Dimension popupSize) {
+        Point location = inputPanel.getLocationOnScreen();
+        return new Point(location.x + inputPanel.getWidth() - popupSize.width,
+                         location.y - popupSize.height);
+    }
+
     public void updateModPanel() {
         if (modPanel != null) {
             ChannelState state = main.getChannelState(room.getChannel());
@@ -201,8 +347,7 @@ public final class Channel extends JPanel {
             refreshedPinnedMessage.set();
         }
         updateModPanel();
-        Point inputLocation = input.getLocationOnScreen();
-        int buttonWidth = modPanelButton.getSize().width;
+        closePinPopup();
         // Use this instead of Popup now so you can TAB through it and child dialogs are in front
         JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(input));
         GuiUtil.installEscapeCloseOperation(dialog);
@@ -210,7 +355,7 @@ public final class Channel extends JPanel {
         dialog.setUndecorated(true);
         dialog.pack();
         Dimension panelSize = dialog.getPreferredSize();
-        dialog.setLocation(inputLocation.x + input.getWidth() - panelSize.width + buttonWidth, inputLocation.y - panelSize.height);
+        dialog.setLocation(getPopupLocation(panelSize));
         dialog.setVisible(true);
         modPanelPopup = dialog;
     }

@@ -257,7 +257,7 @@ public class ModerationPanel extends JPanel {
         updating = false;
     }
     
-    private String makePinnedMessageText(PinnedMessage pinnedMessage) {
+    public static String makePinnedMessageText(PinnedMessage pinnedMessage) {
         if (pinnedMessage == null) {
             return "Loading...";
         }
@@ -274,7 +274,7 @@ public class ModerationPanel extends JPanel {
                              pinnedMessage.messageText);
     }
     
-    private String formatPinnedDate(long timestamp) {
+    private static String formatPinnedDate(long timestamp) {
         if (timestamp == -1) {
             return "end of stream.";
         }
