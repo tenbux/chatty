@@ -214,16 +214,34 @@ public class StreamSessionDetectorTest {
     }
 
     @Test
-    public void test_detect_impossibleDayAndHour24_skipped() {
+    public void test_detect_hour24Line_notCountedAsNextDay() {
         List<String> lines = new ArrayList<>();
-        addFiveChats(lines, 10, 0);
-        // Lenient parsing would turn these into Feb 28 and Nov 1 00:00, moving boundaries.
-        lines.add("[2026-10-31 24:00:00] <a> x");
-        lines.add("[2026-02-30 10:10:00] <a> x");
-        lines.add("[2026-04-31 10:10:00] <a> x");
-        List<StreamRange> ranges = detect(lines);
-        assertEquals(1, ranges.size());
-        assertRange(at(10, 0), at(10, 20), ranges.get(0));
+        for (int m : new int[] {0, 5, 10, 20}) {
+            lines.add(chat(23, m));
+        }
+        // Lenient parsing reads this as 2026-11-01 00:00, within the gap, making a fifth chat.
+        lines.add("[2026-10-31 24:00:00] <x> hi");
+        long beforeMs = LocalDateTime.of(2026, 11, 2, 0, 0).atZone(UTC).toInstant().toEpochMilli();
+        assertTrue(StreamSessionDetector.detect(lines, CHANNEL, UTC, beforeMs, NO_EDGE).isEmpty());
+    }
+
+    @Test
+    public void test_detect_impossibleDayLine_doesNotBridgeGap() {
+        List<String> lines = new ArrayList<>();
+        for (int m : new int[] {0, 5, 10, 15, 20}) {
+            lines.add(String.format("[2026-02-28 10:%02d:00] <u> hi", m));
+        }
+        // Lenient parsing reads this as 2026-02-28 10:45, bridging the 50 minute gap.
+        lines.add("[2026-02-30 10:45:00] <x> hi");
+        for (int m : new int[] {10, 15, 20, 25, 30}) {
+            lines.add(String.format("[2026-02-28 11:%02d:00] <u> hi", m));
+        }
+        long beforeMs = LocalDateTime.of(2026, 3, 1, 0, 0).atZone(UTC).toInstant().toEpochMilli();
+        List<StreamRange> ranges = StreamSessionDetector.detect(lines, CHANNEL, UTC, beforeMs, NO_EDGE);
+        long feb28 = LocalDateTime.of(2026, 2, 28, 0, 0).atZone(UTC).toInstant().toEpochMilli();
+        assertEquals(2, ranges.size());
+        assertRange(feb28 + at(10, 0) - at(0, 0), feb28 + at(10, 20) - at(0, 0), ranges.get(0));
+        assertRange(feb28 + at(11, 10) - at(0, 0), feb28 + at(11, 30) - at(0, 0), ranges.get(1));
     }
 
     private static long nyMs(int month, int day, int hour, int minute) {
