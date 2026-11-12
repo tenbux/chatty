@@ -3,12 +3,16 @@ package chatty.gui.components;
 import chatty.Room;
 import chatty.TwitchClient;
 import chatty.User;
+import chatty.gui.GuiUtil;
 import chatty.gui.MainGui;
 import chatty.util.MiscUtil;
 import chatty.util.api.StreamInfo;
 import chatty.util.chatlog.ChannelLogReader;
 import chatty.util.chatlog.ChatterTally;
 import chatty.util.chatlog.LeaderboardPost;
+import chatty.util.chatlog.PastStreamFinder;
+import chatty.util.chatlog.PastStreamFinder.PastStream;
+import chatty.util.chatlog.PastStreamPages;
 import chatty.util.chatlog.StreamLeaderboard;
 import chatty.util.chatlog.StreamLeaderboard.Snapshot;
 import chatty.util.chatlog.StreamRangeResolver.Resolution;
@@ -34,7 +38,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -45,7 +52,8 @@ import java.util.stream.IntStream;
 /**
  * Non-modal window showing who chatted most in the current (or most recent)
  * stream of one channel, with buttons to post the highlighted rows to that
- * channel or copy them (or the whole list) to the clipboard.
+ * channel or copy them (or the whole list) to the clipboard, and to step back
+ * and forward through earlier streams.
  * Counts come from the channel's log files, read on a background thread while
  * the window is visible.
  */
@@ -77,6 +85,10 @@ public class StreamLeaderboardDialog extends JDialog {
 
     private static final String STOP_LABEL = "Stop";
 
+    private static final String LOADING_PAST = "Looking for the previous stream...";
+
+    private static final String NO_OLDER_PAST = "No earlier streams in the logs";
+
     private final TwitchClient client;
     private final Settings settings;
     private final ZoneId zone = ZoneId.systemDefault();
@@ -88,6 +100,9 @@ public class StreamLeaderboardDialog extends JDialog {
     private final JButton postButton = new JButton(POST_LABEL);
     private final JButton copyButton = new JButton(COPIED_LABEL);
     private final Timer copiedReset = new Timer(COPIED_FEEDBACK_MS, e -> copyButton.setText(COPY_LABEL));
+    private final JButton backButton = new JButton("\u25C0");
+    private final JButton forwardButton = new JButton("\u25B6");
+    private final PastStreamPages pages = new PastStreamPages();
 
     private ScheduledExecutorService poller;
     private Channel channel;
@@ -99,17 +114,50 @@ public class StreamLeaderboardDialog extends JDialog {
     /** Stream named in the first line of copied text, null when there is none. */
     private StreamRange copyRange;
     private int copyTotal;
+    /** Latest poll result for page 0, kept while a past page is shown; null when there is no board. */
+    private Snapshot newestSnapshot;
+    /** Latest poll status text for page 0, empty when there is none. */
+    private String newestStatus = "";
+    /** Start of the latest page-0 stream range seen, empty until one arrives. */
+    private OptionalLong newestRangeStartMs = OptionalLong.empty();
+    /**
+     * Page 0's search anchor while no range has arrived, fixed at the first Back
+     * so a search that found nothing keeps Back disabled.
+     */
+    private OptionalLong noRangeAnchorMs = OptionalLong.empty();
+    /** Runs past-stream searches, created on first use; null when none was started. */
+    private ExecutorService pastExecutor;
+    /** Identifies the current past-stream search, so late results from a cancelled one are dropped. */
+    private Object pastToken;
+    private boolean isLoadingPast;
 
     public StreamLeaderboardDialog(MainGui owner, TwitchClient client) {
         super(owner);
         this.client = client;
         this.settings = client.settings;
 
-        header.setBorder(BorderFactory.createEmptyBorder(6, 8, 2, 8));
         status.setBorder(BorderFactory.createEmptyBorder(2, 8, 6, 8));
 
+        backButton.setToolTipText("Previous stream");
+        backButton.setMargin(GuiUtil.SMALLER_BUTTON_INSETS);
+        backButton.setEnabled(false);
+        backButton.addActionListener(e -> goBack());
+        forwardButton.setToolTipText("Next stream");
+        forwardButton.setMargin(GuiUtil.SMALLER_BUTTON_INSETS);
+        forwardButton.setEnabled(false);
+        forwardButton.addActionListener(e -> goForward());
+        JPanel nav = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
+        nav.setBorder(BorderFactory.createEmptyBorder(6, 6, 2, 0));
+        nav.add(backButton);
+        nav.add(forwardButton);
+        header.setBorder(BorderFactory.createEmptyBorder(6, 4, 2, 8));
+
+        JPanel headerRow = new JPanel(new BorderLayout());
+        headerRow.add(nav, BorderLayout.WEST);
+        headerRow.add(header, BorderLayout.CENTER);
+
         JPanel top = new JPanel(new BorderLayout());
-        top.add(header, BorderLayout.NORTH);
+        top.add(headerRow, BorderLayout.NORTH);
         top.add(status, BorderLayout.SOUTH);
 
         table.setFillsViewportHeight(true);
@@ -168,6 +216,7 @@ public class StreamLeaderboardDialog extends JDialog {
         }
         stopPolling();
         channel = target;
+        resetPast();
         setTitle("Stream Leaderboard: " + target.getChannel());
         copyRange = null;
         showRanking(List.of());
@@ -186,6 +235,7 @@ public class StreamLeaderboardDialog extends JDialog {
     public void setVisible(boolean visible) {
         if (!visible) {
             stopPolling();
+            resetPast();
         }
         super.setVisible(visible);
     }
@@ -216,6 +266,12 @@ public class StreamLeaderboardDialog extends JDialog {
     }
 
     private StreamLeaderboard createBoard(String channelName) {
+        ChannelLogReader reader = createReader(channelName);
+        return reader == null ? null : new StreamLeaderboard(reader, zone, System::currentTimeMillis);
+    }
+
+    /** Returns null when chat logging has no directory. */
+    private ChannelLogReader createReader(String channelName) {
         Path dir = client.chatLog.getPath();
         if (dir == null) {
             return null;
@@ -223,8 +279,7 @@ public class StreamLeaderboardDialog extends JDialog {
         if (settings.getBoolean("logSubdirectories")) {
             dir = dir.resolve(channelName);
         }
-        ChannelLogReader reader = new ChannelLogReader(dir, channelName, settings.getString("logSplit"), zone);
-        return new StreamLeaderboard(reader, zone, System::currentTimeMillis);
+        return new ChannelLogReader(dir, channelName, settings.getString("logSplit"), zone);
     }
 
     /** Poll-thread state of one polling session. */
@@ -236,7 +291,7 @@ public class StreamLeaderboardDialog extends JDialog {
     /** Runs on the poll thread. */
     private void poll(String channelName, StreamLeaderboard board, Object current, PollState pollState) {
         try {
-            String unsupported = findUnsupportedReason(channelName, board);
+            String unsupported = findUnsupportedReason(channelName, board != null);
             if (unsupported != null) {
                 publish(current, null, unsupported, false);
             } else {
@@ -264,8 +319,8 @@ public class StreamLeaderboardDialog extends JDialog {
         publish(current, null, statusText, true);
     }
 
-    private String findUnsupportedReason(String channelName, StreamLeaderboard board) {
-        if (board == null || !settings.getBoolean("logMessage") || !client.chatLog.isChanEnabled(channelName)) {
+    private String findUnsupportedReason(String channelName, boolean hasLogDir) {
+        if (!hasLogDir || !settings.getBoolean("logMessage") || !client.chatLog.isChanEnabled(channelName)) {
             return "Logging is off for this channel";
         }
         boolean isDefaultTemplate = settings.getString("logMessageTemplate")
@@ -292,19 +347,197 @@ public class StreamLeaderboardDialog extends JDialog {
             if (session != current) {
                 return;
             }
-            status.setText(statusText.isEmpty() ? " " : statusText);
+            newestStatus = statusText;
             if (snapshot != null) {
-                header.setText(describe(snapshot));
-                copyRange = snapshot.resolution() instanceof StreamRange range ? range : null;
-                copyTotal = snapshot.total();
-                showRanking(snapshot.ranking());
+                newestSnapshot = snapshot;
+                if (snapshot.resolution() instanceof StreamRange range) {
+                    newestRangeStartMs = OptionalLong.of(range.startMs());
+                    noRangeAnchorMs = OptionalLong.empty();
+                    pages.reanchor(range.startMs());
+                }
             } else if (!isKeepingBoard) {
                 // A failed read keeps the last good board; an unsupported setup has no valid board to keep.
-                header.setText(" ");
-                copyRange = null;
-                showRanking(List.of());
+                newestSnapshot = null;
             }
+            // A past page shown stays as it is; a reanchor that dropped held pages only changes the buttons.
+            if (pages.index() == 0) {
+                // A search can outlast a poll interval, and the poll status would replace its loading message.
+                if (!isLoadingPast) {
+                    showStatus(newestStatus);
+                }
+                showNewestPage();
+            }
+            updateNavButtons();
         });
+    }
+
+    private void showStatus(String text) {
+        status.setText(text.isEmpty() ? " " : text);
+    }
+
+    /** Shows page 0 from the latest poll result. */
+    private void showNewestPage() {
+        header.setText(newestSnapshot == null ? " " : describe(newestSnapshot));
+        copyRange = newestSnapshot != null && newestSnapshot.resolution() instanceof StreamRange range ? range : null;
+        copyTotal = newestSnapshot == null ? 0 : newestSnapshot.total();
+        showRanking(newestSnapshot == null ? List.of() : newestSnapshot.ranking());
+    }
+
+    private void showPastPage(PastStream page) {
+        header.setText(LeaderboardPost.formatPastHeader(page.range(), page.total(), zone));
+        copyRange = page.range();
+        copyTotal = page.total();
+        showRanking(page.ranking());
+        showStatus("");
+    }
+
+    /** Shows the page {@code pages} points at, with no rows highlighted. */
+    private void showCurrentPage() {
+        DefaultListSelectionModel selection = (DefaultListSelectionModel) table.getSelectionModel();
+        // showRanking skips a refresh mid-drag, and a past page gets no later poll to catch up.
+        selection.setValueIsAdjusting(false);
+        // Cleared first so showRanking doesn't reselect by name, and so an equal ranking still drops the highlight.
+        table.clearSelection();
+        PastStream page = pages.current();
+        if (page == null) {
+            showNewestPage();
+            showStatus(newestStatus);
+        } else {
+            showPastPage(page);
+        }
+        updateNavButtons();
+    }
+
+    /** Page 0's search anchor: its latest stream start, else the time of the first Back. */
+    private long newestBeforeMs() {
+        if (newestRangeStartMs.isPresent()) {
+            return newestRangeStartMs.getAsLong();
+        }
+        return noRangeAnchorMs.orElseGet(System::currentTimeMillis);
+    }
+
+    private boolean isBackAllowed() {
+        if (isLoadingPast || channel == null) {
+            return false;
+        }
+        String channelName = channel.getChannel();
+        if (!channelName.startsWith("#")
+                || findUnsupportedReason(channelName, client.chatLog.getPath() != null) != null) {
+            return false;
+        }
+        return pages.hasCachedOlder() || pages.canSearchOlder(newestBeforeMs());
+    }
+
+    private void updateNavButtons() {
+        backButton.setEnabled(isBackAllowed());
+        forwardButton.setEnabled(!isLoadingPast && pages.index() > 0);
+    }
+
+    private void goBack() {
+        if (!isBackAllowed()) {
+            updateNavButtons();
+            return;
+        }
+        if (pages.hasCachedOlder()) {
+            pages.back();
+            showCurrentPage();
+            return;
+        }
+        String channelName = channel.getChannel();
+        ChannelLogReader reader = createReader(channelName);
+        if (reader == null) {
+            updateNavButtons();
+            return;
+        }
+        if (pages.index() == 0 && newestRangeStartMs.isEmpty() && noRangeAnchorMs.isEmpty()) {
+            noRangeAnchorMs = OptionalLong.of(System.currentTimeMillis());
+        }
+        long anchor = pages.backAnchor(newestBeforeMs());
+        // A fresh reader, since each search resets the reader's progress and the poll thread owns its own.
+        PastStreamFinder finder = new PastStreamFinder(reader, channelName, zone);
+        Object token = new Object();
+        pastToken = token;
+        isLoadingPast = true;
+        showStatus(LOADING_PAST);
+        updateNavButtons();
+        if (pastExecutor == null) {
+            pastExecutor = Executors.newSingleThreadExecutor(runnable -> {
+                Thread thread = new Thread(runnable, "StreamLeaderboardPast-" + channelName);
+                thread.setDaemon(true);
+                return thread;
+            });
+        }
+        pastExecutor.execute(() -> findPast(channelName, finder, anchor, token));
+    }
+
+    /** Runs on the past-stream thread. */
+    private void findPast(String channelName, PastStreamFinder finder, long anchor, Object token) {
+        try {
+            Optional<PastStream> found = finder.findBefore(anchor);
+            SwingUtilities.invokeLater(() -> finishPastSearch(token, anchor, found));
+        } catch (IOException | RuntimeException ex) {
+            // Closing the window or switching channel interrupts the search, which can surface as a failed read.
+            if (ex instanceof ClosedByInterruptException || Thread.currentThread().isInterrupted()) {
+                return;
+            }
+            LOGGER.log(Level.WARNING, "Stream leaderboard: could not find the previous stream for " + channelName, ex);
+            SwingUtilities.invokeLater(() -> failPastSearch(token));
+        }
+    }
+
+    private void finishPastSearch(Object token, long anchor, Optional<PastStream> found) {
+        if (pastToken != token) {
+            return;
+        }
+        isLoadingPast = false;
+        // Page 0's stream changed while searching, so the result may skip or repeat the stream that just ended.
+        if (pages.backAnchor(newestBeforeMs()) != anchor) {
+            showStatus(pages.index() == 0 ? newestStatus : "");
+            goBack();
+            return;
+        }
+        if (found.isPresent()) {
+            pages.addOlderAndShow(found.get());
+            showCurrentPage();
+        } else {
+            pages.markNoOlder(anchor);
+            showStatus(NO_OLDER_PAST);
+            updateNavButtons();
+        }
+    }
+
+    private void failPastSearch(Object token) {
+        if (pastToken != token) {
+            return;
+        }
+        isLoadingPast = false;
+        showStatus(READ_ERROR);
+        updateNavButtons();
+    }
+
+    private void goForward() {
+        if (isLoadingPast || pages.index() == 0) {
+            updateNavButtons();
+            return;
+        }
+        pages.forward();
+        showCurrentPage();
+    }
+
+    /** Cancels any past-stream search and forgets past pages and page 0's last result. */
+    private void resetPast() {
+        pastToken = null;
+        if (pastExecutor != null) {
+            pastExecutor.shutdownNow();
+            pastExecutor = null;
+        }
+        isLoadingPast = false;
+        pages.reset();
+        newestSnapshot = null;
+        newestStatus = "";
+        newestRangeStartMs = OptionalLong.empty();
+        noRangeAnchorMs = OptionalLong.empty();
+        updateNavButtons();
     }
 
     private String describe(Snapshot snapshot) {
@@ -412,7 +645,7 @@ public class StreamLeaderboardDialog extends JDialog {
         try {
             MiscUtil.copyToClipboard(String.join("\n", lines));
         } catch (IllegalStateException ex) {
-            // Thrown when another app holds the clipboard; the next poll clears this status.
+            // Thrown when another app holds the clipboard; the next poll or page change clears this status.
             LOGGER.log(Level.WARNING, "Stream leaderboard: could not copy to the clipboard", ex);
             status.setText("Could not copy, the clipboard is busy");
             return;
