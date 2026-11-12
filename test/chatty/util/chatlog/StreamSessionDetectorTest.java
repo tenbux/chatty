@@ -8,6 +8,7 @@ import java.util.List;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class StreamSessionDetectorTest {
@@ -48,7 +49,7 @@ public class StreamSessionDetectorTest {
     private static void assertRange(long startMs, long endMs, StreamRange range) {
         assertEquals(startMs, range.startMs());
         assertEquals(endMs, range.endMs());
-        assertEquals(false, range.isLive());
+        assertFalse(range.isLive());
     }
 
     private static List<String> twoStreams() {
@@ -204,5 +205,60 @@ public class StreamSessionDetectorTest {
         List<StreamRange> ranges = detect(lines);
         assertEquals(1, ranges.size());
         assertRange(at(10, 0), at(10, 20), ranges.get(0));
+    }
+
+    @Test
+    public void test_detect_leftEdgeExactlyThirtyMinutesBefore_kept() {
+        List<StreamRange> ranges = StreamSessionDetector.detect(twoStreams(), CHANNEL, UTC, BEFORE, at(9, 30));
+        assertEquals(2, ranges.size());
+    }
+
+    @Test
+    public void test_detect_impossibleDayAndHour24_skipped() {
+        List<String> lines = new ArrayList<>();
+        addFiveChats(lines, 10, 0);
+        // Lenient parsing would turn these into Feb 28 and Nov 1 00:00, moving boundaries.
+        lines.add("[2026-10-31 24:00:00] <a> x");
+        lines.add("[2026-02-30 10:10:00] <a> x");
+        lines.add("[2026-04-31 10:10:00] <a> x");
+        List<StreamRange> ranges = detect(lines);
+        assertEquals(1, ranges.size());
+        assertRange(at(10, 0), at(10, 20), ranges.get(0));
+    }
+
+    private static long nyMs(int month, int day, int hour, int minute) {
+        return LocalDateTime.of(2026, month, day, hour, minute).atZone(ZoneId.of("America/New_York"))
+                .toInstant().toEpochMilli();
+    }
+
+    private static String nyChat(String date, String time) {
+        return "[" + date + " " + time + ":00] <user> hi";
+    }
+
+    @Test
+    public void test_detect_fallBackNight_matchesScript() {
+        List<String> lines = new ArrayList<>();
+        for (String time : new String[] {"01:20", "01:40", "01:55", "01:10", "01:30", "01:50", "02:05", "02:20"}) {
+            lines.add(nyChat("2026-11-01", time));
+        }
+        List<StreamRange> ranges = StreamSessionDetector.detect(lines, CHANNEL, ZoneId.of("America/New_York"),
+                nyMs(11, 2, 0, 0), NO_EDGE);
+        assertEquals(1, ranges.size());
+        assertRange(nyMs(11, 1, 1, 10), nyMs(11, 1, 2, 20), ranges.get(0));
+    }
+
+    @Test
+    public void test_detect_springForwardNight_matchesScript() {
+        List<String> lines = new ArrayList<>();
+        for (String time : new String[] {"01:00", "01:15", "01:30", "01:45"}) {
+            lines.add(nyChat("2026-03-08", time));
+        }
+        for (String time : new String[] {"03:05", "03:20", "03:35", "03:50", "04:05"}) {
+            lines.add(nyChat("2026-03-08", time));
+        }
+        List<StreamRange> ranges = StreamSessionDetector.detect(lines, CHANNEL, ZoneId.of("America/New_York"),
+                nyMs(3, 9, 0, 0), NO_EDGE);
+        assertEquals(1, ranges.size());
+        assertRange(nyMs(3, 8, 3, 5), nyMs(3, 8, 4, 5), ranges.get(0));
     }
 }
