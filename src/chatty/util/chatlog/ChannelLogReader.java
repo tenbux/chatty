@@ -16,6 +16,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -108,6 +109,50 @@ public class ChannelLogReader {
         if (!isSplit) {
             readFile(singleFile(), lines);
         }
+    }
+
+    /**
+     * Emits every complete line of each file that may hold lines between the
+     * given times, without following their growth. The lines of an overlapping
+     * file are not filtered, so the caller must check their timestamps.
+     *
+     * <p>Forgets previous progress like {@link #scanFrom}, so
+     * {@link #readAppended} has nothing sensible to follow afterwards. Use a
+     * separate instance for it.
+     *
+     * @param fromMs epoch milliseconds, inclusive
+     * @param toMs epoch milliseconds, inclusive
+     * @param lines receives the lines in file order
+     * @throws IOException if a file cannot be read
+     */
+    public void scanBetween(long fromMs, long toMs, Consumer<String> lines) throws IOException {
+        offsets.clear();
+        heads.clear();
+        newestDate = null;
+
+        if (!isSplit) {
+            readFile(singleFile(), lines);
+            return;
+        }
+        List<DatedFile> files = listFiles();
+        for (int i = 0; i < files.size(); i++) {
+            boolean isLast = i == files.size() - 1;
+            // A file lasts until the next one starts, whatever the split period.
+            if (startMillis(files.get(i).date) <= toMs
+                    && (isLast || startMillis(files.get(i + 1).date) > fromMs)) {
+                readFile(files.get(i).path, lines);
+            }
+        }
+    }
+
+    /**
+     * @return the start of the day of the oldest dated file, or empty if the
+     * log is not split or has no dated files
+     * @throws IOException if the directory cannot be listed
+     */
+    public OptionalLong oldestStartMs() throws IOException {
+        List<DatedFile> files = listFiles();
+        return files.isEmpty() ? OptionalLong.empty() : OptionalLong.of(startMillis(files.get(0).date));
     }
 
     /**

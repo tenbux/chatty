@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalLong;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -53,6 +54,18 @@ public class ChannelLogReaderTest {
         List<String> lines = new ArrayList<>();
         reader.scanFrom(fromMs, lines::add);
         return lines;
+    }
+
+    private static List<String> scanBetween(ChannelLogReader reader, long fromMs, long toMs) throws IOException {
+        List<String> lines = new ArrayList<>();
+        reader.scanBetween(fromMs, toMs, lines::add);
+        return lines;
+    }
+
+    private void writeThreeDays() throws IOException {
+        write("2026-10-01_#testchan.log", "A\n");
+        write("2026-10-02_#testchan.log", "B\n");
+        write("2026-10-03_#testchan.log", "C\n");
     }
 
     private static List<String> readNew(ChannelLogReader reader) throws IOException {
@@ -306,5 +319,54 @@ public class ChannelLogReaderTest {
 
         assertEquals(List.of("a"), seen);
         assertEquals(List.of("b", "c"), readNew(reader));
+    }
+
+    @Test
+    public void test_scanBetween_daily_readsOnlyOverlappingFiles() throws IOException {
+        writeThreeDays();
+
+        assertEquals(List.of("B"), scanBetween(reader("daily"), startOfDay(10, 2, 1), startOfDay(10, 2, 23)));
+    }
+
+    @Test
+    public void test_scanBetween_rangeSpanningFiles_readsEach() throws IOException {
+        writeThreeDays();
+
+        assertEquals(List.of("A", "B"), scanBetween(reader("daily"), startOfDay(10, 1, 12), startOfDay(10, 2, 12)));
+    }
+
+    @Test
+    public void test_scanBetween_never_readsSingleFile() throws IOException {
+        write("#testchan.log", "A\nB\n");
+
+        assertEquals(List.of("A", "B"), scanBetween(reader("never"), Long.MIN_VALUE, Long.MAX_VALUE));
+    }
+
+    @Test
+    public void test_scanBetween_calledTwice_readsFromStartBothTimes() throws IOException {
+        writeThreeDays();
+        ChannelLogReader reader = reader("daily");
+
+        assertEquals(List.of("B"), scanBetween(reader, startOfDay(10, 2, 1), startOfDay(10, 2, 23)));
+        assertEquals(List.of("B"), scanBetween(reader, startOfDay(10, 2, 1), startOfDay(10, 2, 23)));
+    }
+
+    @Test
+    public void test_oldestStartMs_daily_startOfOldestFile() throws IOException {
+        writeThreeDays();
+
+        assertEquals(OptionalLong.of(startOfDay(10, 1, 0)), reader("daily").oldestStartMs());
+    }
+
+    @Test
+    public void test_oldestStartMs_never_empty() throws IOException {
+        write("#testchan.log", "A\n");
+
+        assertEquals(OptionalLong.empty(), reader("never").oldestStartMs());
+    }
+
+    @Test
+    public void test_oldestStartMs_noFiles_empty() throws IOException {
+        assertEquals(OptionalLong.empty(), reader("daily").oldestStartMs());
     }
 }
