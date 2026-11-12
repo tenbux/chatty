@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalLong;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -368,5 +369,38 @@ public class ChannelLogReaderTest {
     @Test
     public void test_oldestStartMs_noFiles_empty() throws IOException {
         assertEquals(OptionalLong.empty(), reader("daily").oldestStartMs());
+    }
+
+    @Test
+    public void test_findFirstLine_daily_firstMatchFromOldestFile() throws IOException {
+        write("2026-10-03_#testchan.log", "C1 hit\n");
+        write("2026-10-02_#testchan.log", "B1\nB2 hit\nB3 hit\n");
+        write("2026-10-01_#testchan.log", "A1\n");
+        write("2026-10-01_#testchan-1.log", "A2 hit\n");
+        assertEquals(Optional.of("B2 hit"), reader("daily").findFirstLine(line -> line.endsWith("hit")));
+    }
+
+    @Test
+    public void test_findFirstLine_noMatch_empty() throws IOException {
+        writeThreeDays();
+        assertEquals(Optional.empty(), reader("daily").findFirstLine(line -> line.equals("D")));
+    }
+
+    @Test
+    public void test_findFirstLine_never_readsSingleFile() throws IOException {
+        write("#testchan.log", "A\r\nB\n");
+        write("2026-10-01_#testchan.log", "B\n");
+        assertEquals(Optional.of("B"), reader("never").findFirstLine(line -> line.startsWith("B")));
+        assertEquals(Optional.of("A"), reader("never").findFirstLine(line -> line.startsWith("A")));
+    }
+
+    @Test
+    public void test_findFirstLine_afterScan_appendedStillFollowed() throws IOException {
+        write("2026-10-01_#testchan.log", "A\n");
+        ChannelLogReader reader = reader("daily");
+        scan(reader, startOfDay(10, 1, 0));
+        reader.findFirstLine(line -> false);
+        append("2026-10-01_#testchan.log", "B\n");
+        assertEquals(List.of("B"), readNew(reader));
     }
 }

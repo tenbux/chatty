@@ -1,6 +1,8 @@
 package chatty.util.chatlog;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
@@ -16,8 +18,10 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -143,6 +147,38 @@ public class ChannelLogReader {
                 readFile(files.get(i).path, lines);
             }
         }
+    }
+
+    /**
+     * Reads the files from the oldest and stops at the first line that matches.
+     * Does not change the progress that {@link #readAppended} follows.
+     *
+     * @param condition tested on each line, in file order
+     * @return the first matching line, or empty if no line matches
+     * @throws IOException if a file cannot be read
+     */
+    public Optional<String> findFirstLine(Predicate<String> condition) throws IOException {
+        List<Path> paths = new ArrayList<>();
+        if (isSplit) {
+            for (DatedFile file : listFiles()) {
+                paths.add(file.path);
+            }
+        } else if (Files.isRegularFile(singleFile())) {
+            paths.add(singleFile());
+        }
+        for (Path path : paths) {
+            // An InputStreamReader replaces malformed bytes, where Files.newBufferedReader would throw.
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(Files.newInputStream(path), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (condition.test(line)) {
+                        return Optional.of(line);
+                    }
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     /**

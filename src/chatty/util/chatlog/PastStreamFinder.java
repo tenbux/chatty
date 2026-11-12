@@ -37,9 +37,15 @@ public class PastStreamFinder {
     private final String channel;
     private final ZoneId zone;
 
+    // Kept across searches: earlier history does not change, and finding the
+    // first marker can mean reading every log written before markers existed.
+    private boolean hasFoundFirstMarker;
+    private Optional<LocalDateTime> firstMarker = Optional.empty();
+
     /**
      * @param reader reads the channel's log files; its scan state is reset by
-     * every search
+     * every search. Reuse the finder for later searches of the same channel,
+     * since it remembers where the channel's markers begin
      * @param channel channel name including the leading '#'
      * @param zone zone the log timestamps were written in
      */
@@ -71,7 +77,7 @@ public class PastStreamFinder {
         if (oldest.isEmpty()) {
             List<String> lines = new ArrayList<>();
             reader.scanBetween(Long.MIN_VALUE, to, lines::add);
-            return last(StreamSessionDetector.detect(lines, channel, zone, beforeMs, Long.MIN_VALUE));
+            return last(StreamSessionDetector.detect(lines, channel, zone, beforeMs, Long.MIN_VALUE, this::firstMarker));
         }
         long window = INITIAL_WINDOW_MS;
         while (true) {
@@ -86,7 +92,7 @@ public class PastStreamFinder {
                 }
             });
             List<StreamRange> ranges = StreamSessionDetector.detect(
-                    lines, channel, zone, beforeMs, isReachingStart ? Long.MIN_VALUE : from);
+                    lines, channel, zone, beforeMs, isReachingStart ? Long.MIN_VALUE : from, this::firstMarker);
             if (!ranges.isEmpty()) {
                 return last(ranges);
             }
@@ -95,6 +101,17 @@ public class PastStreamFinder {
             }
             window *= 2;
         }
+    }
+
+    private Optional<LocalDateTime> firstMarker() throws IOException {
+        if (!hasFoundFirstMarker) {
+            // The cheap contains check skips the regex for nearly every line.
+            firstMarker = reader.findFirstLine(line -> line.contains(" is now ")
+                    && StreamSessionDetector.isMarkerOf(line, channel))
+                    .map(StreamSessionDetector::localTimeOf);
+            hasFoundFirstMarker = true;
+        }
+        return firstMarker;
     }
 
     private LocalDateTime toLocal(long epochMs) {

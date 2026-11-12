@@ -153,7 +153,7 @@ public class PastStreamFinderTest {
     @Test
     public void test_findBefore_preStreamChatOnly_notReturned() throws IOException {
         StringBuilder content = new StringBuilder();
-        // Lasts over 30 minutes so the pre-LIVE chat alone would pass the marker-less duration rule.
+        // Within the 30 minute gap of the LIVE marker, so it joins page 0's group instead of standing alone.
         for (int minute = 15; minute < 60; minute += 3) {
             content.append(chat(10, 31, 19, minute, "alice"));
         }
@@ -224,5 +224,40 @@ public class PastStreamFinderTest {
         writeDay(10, 31, live(10, 31, 20, 0) + chat(10, 31, 20, 1, "alice"));
 
         assertTrue(findBefore("daily", at(10, 31, 20, 0)).isEmpty());
+    }
+
+    /** 100 chats one minute apart from 10:00, with no LIVE or OFFLINE marker. */
+    private static String unmarkedChat(int month, int day) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 100; i++) {
+            sb.append(chat(month, day, 10 + i / 60, i % 60, "alice"));
+        }
+        return sb.toString();
+    }
+
+    @Test
+    public void test_findBefore_unmarkedChatBeforeFirstMarker_found() throws IOException {
+        // The oldest file keeps the 7 day window from reaching the start of history.
+        writeDay(9, 1, "[2026-09-01 20:00:00] some info line\n");
+        writeDay(10, 25, unmarkedChat(10, 25));
+        writeDay(10, 31, live(10, 31, 20, 0) + chat(10, 31, 20, 1, "alice"));
+
+        PastStream found = findBefore("daily", at(10, 31, 20, 0)).orElseThrow();
+
+        assertEquals(at(10, 25, 10, 0), found.range().startMs());
+        assertEquals(at(10, 25, 11, 39), found.range().endMs());
+        assertEquals(100, found.total());
+    }
+
+    @Test
+    public void test_findBefore_unmarkedChatAfterFirstMarker_skipped() throws IOException {
+        writeDay(9, 1, evening(9, 1));
+        writeDay(10, 25, unmarkedChat(10, 25));
+        writeDay(10, 31, live(10, 31, 20, 0) + chat(10, 31, 20, 1, "alice"));
+
+        PastStream found = findBefore("daily", at(10, 31, 20, 0)).orElseThrow();
+
+        assertEquals(at(9, 1, 20, 0), found.range().startMs());
+        assertEquals(at(9, 1, 22, 0), found.range().endMs());
     }
 }

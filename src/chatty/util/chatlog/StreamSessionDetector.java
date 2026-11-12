@@ -1,6 +1,7 @@
 package chatty.util.chatlog;
 
 import chatty.util.chatlog.StreamRangeResolver.StreamRange;
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -12,6 +13,7 @@ import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,10 +22,14 @@ import java.util.regex.Pattern;
  * log query script: gaps of silence split sessions, and Chatty's LIVE/OFFLINE
  * markers trim them.
  * <p>
- * One deliberate difference from the script: a group with no LIVE marker for
- * the channel that lasts under 30 minutes is dropped. Chatty writes no LIVE
- * marker when it joins a stream that is already live, so a short marker-less
- * group is offline chat. A group with a LIVE marker is kept however short.
+ * One deliberate difference from the script: a group with no LIVE or OFFLINE
+ * marker for the channel is offline chat, unless it predates the channel's
+ * first marker and has at least 100 chat lines. Logs written before Chatty had
+ * markers have none, so there only the amount of chat can tell a stream from
+ * offline chat. Later streams can also lack markers: Chatty writes no LIVE
+ * marker when it joins a stream that is already live, and none at all while
+ * the printStreamLive or logInfo setting is off. Such a stream is dropped
+ * unless Chatty saw it go offline.
  */
 public final class StreamSessionDetector {
 
@@ -35,8 +41,21 @@ public final class StreamSessionDetector {
             // SMART (the default) would turn 2026-02-30 into Feb 28 and 24:00:00 into the next day.
             .withResolverStyle(ResolverStyle.STRICT);
     private static final long GAP_MS = Duration.ofMinutes(30).toMillis();
-    private static final long MIN_UNMARKED_DURATION_MS = Duration.ofMinutes(30).toMillis();
     private static final int MIN_CHAT_MESSAGES = 5;
+    // Without markers, the amount of chat is the only sign of a stream; offline chat rarely reaches this.
+    private static final int MIN_UNMARKED_CHAT_MESSAGES = 100;
+
+    /** Finds the channel's first LIVE or OFFLINE marker in all of its logs. */
+    @FunctionalInterface
+    public interface FirstMarkerLookup {
+
+        /**
+         * @return the naive local time of the first marker, or empty if the
+         * logs have none
+         * @throws IOException if a log file cannot be read
+         */
+        Optional<LocalDateTime> find() throws IOException;
+    }
 
     private StreamSessionDetector() {
     }
@@ -53,9 +72,14 @@ public final class StreamSessionDetector {
      * were read from; the earliest session is discarded if it begins less than
      * 30 minutes after this time. Long.MIN_VALUE if the window reaches the
      * start of the available history
+     * @param firstMarker called at most once, and only if a group without
+     * markers may be a stream and the lines do not reach back to the start of
+     * the history
      * @return ended ranges (isLive is false) in chronological order
+     * @throws IOException if firstMarker cannot read the logs
      */
-    public static List<StreamRange> detect(List<String> lines, String channel, ZoneId zone, long beforeMs, long leftEdgeMs) {
+    public static List<StreamRange> detect(List<String> lines, String channel, ZoneId zone, long beforeMs,
+            long leftEdgeMs, FirstMarkerLookup firstMarker) throws IOException {
         // The script works on naive local datetimes, so grouping and trimming use
         // local time as an epoch-style number; across a DST change that differs
         // from real elapsed time, and matching the script is the goal.
@@ -73,12 +97,7 @@ public final class StreamSessionDetector {
                 continue;
             }
             boolean isChat = CHAT.matcher(line).find();
-            Marker marker = null;
-            Matcher markerMatch = MARKER.matcher(line);
-            if (markerMatch.find() && markerMatch.group(2).equalsIgnoreCase(name)) {
-                marker = markerMatch.group(3).equals("LIVE") ? Marker.LIVE : Marker.OFFLINE;
-            }
-            entries.add(new Entry(timeMs, isChat, marker));
+            entries.add(new Entry(timeMs, isChat, markerOf(line, name)));
         }
         // List.sort is stable, so equal times keep file order as the script does.
         entries.sort(Comparator.comparingLong(Entry::timeMs));
@@ -94,16 +113,37 @@ public final class StreamSessionDetector {
         }
 
         List<StreamRange> result = new ArrayList<>();
+        boolean hasEarlierMarker = false;
+        boolean hasLookedUpFirstMarker = false;
+        Optional<LocalDateTime> firstMarkerTime = Optional.empty();
         for (int i = 0; i < groups.size(); i++) {
             List<Entry> group = groups.get(i);
             long first = group.get(0).timeMs();
             long last = group.get(group.size() - 1).timeMs();
+            boolean hasMarker = group.stream().anyMatch(entry -> entry.marker() != null);
+            boolean isAfterMarker = hasEarlierMarker;
+            hasEarlierMarker |= hasMarker;
             if (last >= beforeLocal) {
                 continue;
             }
             // The Long.MIN_VALUE check runs first so the subtraction below never overflows.
             if (i == 0 && leftEdgeLocal != Long.MIN_VALUE && first - leftEdgeLocal < GAP_MS) {
                 continue;
+            }
+            if (!hasMarker) {
+                if (isAfterMarker || countChat(group, first, last) < MIN_UNMARKED_CHAT_MESSAGES) {
+                    continue;
+                }
+                // Lines reaching the start of history already showed there is no earlier marker.
+                if (leftEdgeLocal != Long.MIN_VALUE) {
+                    if (!hasLookedUpFirstMarker) {
+                        firstMarkerTime = firstMarker.find();
+                        hasLookedUpFirstMarker = true;
+                    }
+                    if (firstMarkerTime.isPresent() && last >= toNaiveMs(firstMarkerTime.get())) {
+                        continue;
+                    }
+                }
             }
             StreamRange range = toRange(group, first, last, zone);
             if (range != null) {
@@ -125,9 +165,6 @@ public final class StreamSessionDetector {
                 liveIndex = i;
                 break;
             }
-        }
-        if (liveIndex < 0 && end - start < MIN_UNMARKED_DURATION_MS) {
-            return null;
         }
         if (liveIndex >= 0) {
             start = group.get(liveIndex).timeMs();
@@ -159,6 +196,25 @@ public final class StreamSessionDetector {
     }
 
     /**
+     * @param line a raw log line
+     * @param channel channel name including the leading '#'
+     * @return whether the line is a LIVE or OFFLINE marker of the channel with
+     * a real timestamp
+     */
+    static boolean isMarkerOf(String line, String channel) {
+        return markerOf(line, channel.startsWith("#") ? channel.substring(1) : channel) != null
+                && localTimeOf(line) != null;
+    }
+
+    private static Marker markerOf(String line, String name) {
+        Matcher matcher = MARKER.matcher(line);
+        if (!matcher.find() || !matcher.group(2).equalsIgnoreCase(name)) {
+            return null;
+        }
+        return matcher.group(3).equals("LIVE") ? Marker.LIVE : Marker.OFFLINE;
+    }
+
+    /**
      * Reads the leading timestamp of a log line with the detector's strict
      * rules, without applying a zone.
      *
@@ -178,9 +234,13 @@ public final class StreamSessionDetector {
         }
     }
 
+    private static long toNaiveMs(LocalDateTime time) {
+        return time.toInstant(ZoneOffset.UTC).toEpochMilli();
+    }
+
     private static Long parseLocalMs(String timestamp) {
         try {
-            return LocalDateTime.parse(timestamp, TIME_FORMAT).toInstant(ZoneOffset.UTC).toEpochMilli();
+            return toNaiveMs(LocalDateTime.parse(timestamp, TIME_FORMAT));
         } catch (DateTimeParseException ex) {
             // Matches the digit pattern but is not a real date, e.g. month 13.
             return null;

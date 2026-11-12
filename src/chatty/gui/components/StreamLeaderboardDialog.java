@@ -128,6 +128,8 @@ public class StreamLeaderboardDialog extends JDialog {
     private OptionalLong noRangeAnchorMs = OptionalLong.empty();
     /** Runs past-stream searches, created on first use; null when none was started. */
     private ExecutorService pastExecutor;
+    /** Finds past streams of the current channel; used only on the past-stream thread once created. */
+    private PastStreamFinder pastFinder;
     /** Identifies the current past-stream search, so late results from a canceled one are dropped. */
     private Object pastToken;
     private boolean isLoadingPast;
@@ -472,17 +474,20 @@ public class StreamLeaderboardDialog extends JDialog {
             return;
         }
         String channelName = channel.getChannel();
-        ChannelLogReader reader = createReader(channelName);
-        if (reader == null) {
-            updateNavButtons();
-            return;
+        if (pastFinder == null) {
+            // Its own reader, since each search resets the reader's progress and the poll thread owns its own.
+            ChannelLogReader reader = createReader(channelName);
+            if (reader == null) {
+                updateNavButtons();
+                return;
+            }
+            pastFinder = new PastStreamFinder(reader, channelName, zone);
         }
+        PastStreamFinder finder = pastFinder;
         if (pages.index() == 0 && newestRangeStartMs.isEmpty() && noRangeAnchorMs.isEmpty()) {
             noRangeAnchorMs = OptionalLong.of(System.currentTimeMillis());
         }
         long anchor = pages.backAnchor(newestBeforeMs());
-        // A fresh reader, since each search resets the reader's progress and the poll thread owns its own.
-        PastStreamFinder finder = new PastStreamFinder(reader, channelName, zone);
         Object token = new Object();
         pastToken = token;
         isLoadingPast = true;
@@ -563,6 +568,7 @@ public class StreamLeaderboardDialog extends JDialog {
             pastExecutor.shutdownNow();
             pastExecutor = null;
         }
+        pastFinder = null;
         isLoadingPast = false;
         hasNewestPublish = false;
         pastStatus = null;
