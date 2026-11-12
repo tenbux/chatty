@@ -216,10 +216,10 @@ public class StreamSessionDetectorTest {
     @Test
     public void test_detect_hour24Line_notCountedAsNextDay() {
         List<String> lines = new ArrayList<>();
-        for (int m : new int[] {0, 5, 10, 20}) {
+        for (int m : new int[] {35, 40, 45, 50}) {
             lines.add(chat(23, m));
         }
-        // Lenient parsing reads this as 2026-11-01 00:00, within the gap, making a fifth chat.
+        // Lenient parsing reads this as 2026-11-01 00:00, completing a five-chat session.
         lines.add("[2026-10-31 24:00:00] <x> hi");
         long beforeMs = LocalDateTime.of(2026, 11, 2, 0, 0).atZone(UTC).toInstant().toEpochMilli();
         assertTrue(StreamSessionDetector.detect(lines, CHANNEL, UTC, beforeMs, NO_EDGE).isEmpty());
