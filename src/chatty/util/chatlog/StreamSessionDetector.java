@@ -149,6 +149,26 @@ public final class StreamSessionDetector {
         return count;
     }
 
+    /**
+     * Reads the leading timestamp of a log line with the detector's strict
+     * rules, without applying a zone.
+     *
+     * @param line a raw log line
+     * @return the naive local time, or null if the line has no real timestamp
+     */
+    static LocalDateTime localTimeOf(String line) {
+        Matcher matcher = ANY_TIMESTAMP.matcher(line);
+        if (!matcher.find()) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(matcher.group(1), TIME_FORMAT);
+        } catch (DateTimeParseException ex) {
+            // Matches the digit pattern but is not a real date, e.g. month 13.
+            return null;
+        }
+    }
+
     private static Long parseLocalMs(String timestamp) {
         try {
             return LocalDateTime.parse(timestamp, TIME_FORMAT).toInstant(ZoneOffset.UTC).toEpochMilli();

@@ -4,16 +4,13 @@ import chatty.util.chatlog.LeaderboardLogLine.ChatLine;
 import chatty.util.chatlog.StreamRangeResolver.StreamRange;
 import java.io.IOException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Finds the stream that ended before a given time in a channel's log files and
@@ -29,8 +26,6 @@ public class PastStreamFinder {
     public record PastStream(StreamRange range, List<ChatterTally.Entry> ranking, int total) {
     }
 
-    private static final Pattern TIMESTAMP = Pattern.compile("^\\[(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})\\]");
-    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss");
     // Matches the detector's gap rule, so a stream that began just before the
     // cutoff is still seen as a whole.
     private static final long GAP_MS = Duration.ofMinutes(30).toMillis();
@@ -80,9 +75,11 @@ public class PastStreamFinder {
         while (true) {
             long from = beforeMs - window;
             boolean isReachingStart = from <= oldest.getAsLong();
+            LocalDateTime fromLocal = toLocal(from);
+            LocalDateTime toLocal = toLocal(to);
             List<String> lines = new ArrayList<>();
             reader.scanBetween(isReachingStart ? oldest.getAsLong() : from, to, line -> {
-                if (isInRange(line, from, to)) {
+                if (isInRange(line, fromLocal, toLocal)) {
                     lines.add(line);
                 }
             });
@@ -98,27 +95,25 @@ public class PastStreamFinder {
         }
     }
 
+    private LocalDateTime toLocal(long epochMs) {
+        return LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMs), zone);
+    }
+
     private static Optional<StreamRange> last(List<StreamRange> ranges) {
         return ranges.isEmpty() ? Optional.empty() : Optional.of(ranges.get(ranges.size() - 1));
     }
 
     /**
      * Files are read whole, so lines outside the window must be dropped here or
-     * the detector would see a window edge in the middle of the data. Lines
-     * without a readable timestamp are kept because the detector ignores them.
+     * the detector would see a window edge in the middle of the data. The
+     * comparison uses naive local time because that is the domain the detector
+     * applies its left-edge rule in; comparing instants would misplace lines in
+     * the repeated hour of a DST fall-back. Lines without a readable timestamp
+     * are kept because the detector ignores them.
      */
-    private boolean isInRange(String line, long fromMs, long toMs) {
-        Matcher matcher = TIMESTAMP.matcher(line);
-        if (!matcher.find()) {
-            return true;
-        }
-        long timeMs;
-        try {
-            timeMs = LocalDateTime.parse(matcher.group(1), TIME_FORMAT).atZone(zone).toInstant().toEpochMilli();
-        } catch (DateTimeParseException ex) {
-            return true;
-        }
-        return timeMs >= fromMs && timeMs <= toMs;
+    private static boolean isInRange(String line, LocalDateTime from, LocalDateTime to) {
+        LocalDateTime time = StreamSessionDetector.localTimeOf(line);
+        return time == null || (!time.isBefore(from) && !time.isAfter(to));
     }
 
     private PastStream count(StreamRange range) throws IOException {

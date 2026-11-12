@@ -161,4 +161,67 @@ public class PastStreamFinderTest {
 
         assertTrue(findBefore("daily", at(10, 31, 20, 0)).isEmpty());
     }
+
+    @Test
+    public void test_findBefore_fallBackWindowEdge_streamFoundWhole() throws IOException {
+        ZoneId newYork = ZoneId.of("America/New_York");
+        StringBuilder first = new StringBuilder(live(10, 31, 23, 0));
+        for (int minute = 0; minute < 60; minute += 5) {
+            first.append(chat(10, 31, 23, minute, "alice"));
+        }
+        StringBuilder second = new StringBuilder();
+        // Hours 0 and 2 plus the repeated hour 1 (written twice, once per pass).
+        for (int hour : new int[]{0, 1, 1, 2}) {
+            for (int minute = 0; minute < 60; minute += 5) {
+                second.append(String.format("[2026-11-01 %02d:%02d:00] <bob> hi\n", hour, minute));
+            }
+        }
+        second.append("[2026-11-01 03:00:00] ** testchan is now OFFLINE **\n");
+        writeDay(10, 31, first.toString());
+        Files.writeString(dir.resolve("2026-11-01_#testchan.log"), second.toString(), StandardCharsets.UTF_8);
+        // The window edge lands at 01:10 in the second (EST) pass of the repeated hour.
+        long edge = LocalDateTime.of(2026, 11, 1, 1, 10).atZone(newYork)
+                .withLaterOffsetAtOverlap().toInstant().toEpochMilli();
+        long beforeMs = edge + java.time.Duration.ofDays(7).toMillis();
+
+        ChannelLogReader reader = new ChannelLogReader(dir, CHANNEL, "daily", newYork);
+        PastStream found = new PastStreamFinder(reader, CHANNEL, newYork).findBefore(beforeMs).orElseThrow();
+
+        assertEquals(LocalDateTime.of(2026, 10, 31, 23, 0).atZone(newYork).toInstant().toEpochMilli(),
+                found.range().startMs());
+        assertEquals(60, found.total());
+    }
+
+    @Test
+    public void test_findBefore_streamStraddlingLeftEdge_foundWhole() throws IOException {
+        // Stream 10-23 20:00 to 10-24 02:00; beforeMs 10-31 01:00 puts the first
+        // window's left edge (10-24 01:00) inside it, so it is first discarded as cut.
+        StringBuilder first = new StringBuilder(live(10, 23, 20, 0));
+        for (int minute = 0; minute < 240; minute += 20) {
+            first.append(chat(10, 23, 20 + minute / 60, minute % 60, "alice"));
+        }
+        StringBuilder second = new StringBuilder();
+        for (int minute = 0; minute < 120; minute += 20) {
+            second.append(chat(10, 24, minute / 60, minute % 60, "bob"));
+        }
+        second.append(offline(10, 24, 2, 0));
+        writeDay(10, 23, first.toString());
+        writeDay(10, 24, second.toString());
+        writeDay(10, 31, live(10, 31, 1, 0) + chat(10, 31, 1, 1, "alice"));
+
+        PastStream found = findBefore("daily", at(10, 31, 1, 0)).orElseThrow();
+
+        assertEquals(at(10, 23, 20, 0), found.range().startMs());
+        assertEquals(at(10, 24, 2, 0), found.range().endMs());
+        assertEquals(12 + 6, found.total());
+    }
+
+    @Test
+    public void test_findBefore_widensThenRunsOut_empty() throws IOException {
+        // Oldest file is 20 days back, so the 7 and 14 day windows miss it and the 28 day one reaches it.
+        writeDay(10, 11, "[2026-10-11 20:00:00] some info line\n");
+        writeDay(10, 31, live(10, 31, 20, 0) + chat(10, 31, 20, 1, "alice"));
+
+        assertTrue(findBefore("daily", at(10, 31, 20, 0)).isEmpty());
+    }
 }
