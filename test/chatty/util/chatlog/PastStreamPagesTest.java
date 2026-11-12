@@ -139,6 +139,23 @@ public class PastStreamPagesTest {
     }
 
     @Test
+    public void test_reset_forgetsAnchor_nextReanchorOnlyRecords() {
+        PastStreamPages pages = new PastStreamPages();
+        pages.reanchor(5000);
+        pages.reset();
+        PastStream found = page(3000);
+        pages.addOlderAndShow(found);
+        pages.forward();
+
+        pages.reanchor(6000);
+
+        assertEquals(0, pages.index());
+        assertTrue(pages.hasCachedOlder());
+        pages.back();
+        assertSame(found, pages.current());
+    }
+
+    @Test
     public void test_addOlderAndShow_afterForward_dropsPagesBeyond() {
         PastStreamPages pages = new PastStreamPages();
         pages.addOlderAndShow(page(3000));

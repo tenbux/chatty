@@ -101,9 +101,10 @@ public class PastStreamPages {
 
     /**
      * Reacts to the newest page's anchor moving (for example a new stream
-     * started). The first call only records the value. When it differs from the
-     * last one, held pages are dropped except the shown past page, which stays
-     * as the only page at index 1.
+     * started). The first call, and the first after {@link #reset()}, only
+     * records the value. When it differs from the last one, held pages are
+     * dropped except the shown past page, which stays as the only page at
+     * index 1.
      *
      * @param newestBeforeMs the time the newest page's search is anchored to
      */
@@ -115,7 +116,8 @@ public class PastStreamPages {
         }
         PastStream shown = current();
         if (shown == null) {
-            reset();
+            // Not reset(), which would also forget the value just recorded.
+            dropPages();
             return;
         }
         older.clear();
@@ -128,9 +130,15 @@ public class PastStreamPages {
     }
 
     /**
-     * Drops all pages and the no-older mark and returns to page 0.
+     * Drops all pages, the no-older mark and the last newest anchor, and
+     * returns to page 0. The next {@link #reanchor(long)} only records.
      */
     public void reset() {
+        dropPages();
+        lastNewestBeforeMs = OptionalLong.empty();
+    }
+
+    private void dropPages() {
         older.clear();
         index = 0;
         noOlderAnchorMs = OptionalLong.empty();

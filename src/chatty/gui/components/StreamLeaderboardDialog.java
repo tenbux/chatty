@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -127,9 +128,17 @@ public class StreamLeaderboardDialog extends JDialog {
     private OptionalLong noRangeAnchorMs = OptionalLong.empty();
     /** Runs past-stream searches, created on first use; null when none was started. */
     private ExecutorService pastExecutor;
-    /** Identifies the current past-stream search, so late results from a cancelled one are dropped. */
+    /** Identifies the current past-stream search, so late results from a canceled one are dropped. */
     private Object pastToken;
     private boolean isLoadingPast;
+    /** Whether the current polling session has published, so page 0's anchor is known before Back. */
+    private boolean hasNewestPublish;
+    /**
+     * Result of the last past-stream search while page 0 shows it, kept over
+     * the poll status until the page changes or the poll status does; null when
+     * there is none.
+     */
+    private String pastStatus;
 
     public StreamLeaderboardDialog(MainGui owner, TwitchClient client) {
         super(owner);
@@ -244,17 +253,22 @@ public class StreamLeaderboardDialog extends JDialog {
         String channelName = channel.getChannel();
         Object current = new Object();
         session = current;
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "StreamLeaderboard-" + channelName);
-            thread.setDaemon(true);
-            return thread;
-        });
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(
+                daemonThreadFactory("StreamLeaderboard-" + channelName));
         poller = executor;
         // Built here and used only by the poll thread afterwards, as StreamLeaderboard is not thread-safe.
         StreamLeaderboard board = createBoard(channelName);
         PollState pollState = new PollState();
         executor.scheduleWithFixedDelay(() -> poll(channelName, board, current, pollState),
                 0, POLL_INTERVAL_SECONDS, TimeUnit.SECONDS);
+    }
+
+    private static ThreadFactory daemonThreadFactory(String threadName) {
+        return runnable -> {
+            Thread thread = new Thread(runnable, threadName);
+            thread.setDaemon(true);
+            return thread;
+        };
     }
 
     private void stopPolling() {
@@ -347,12 +361,20 @@ public class StreamLeaderboardDialog extends JDialog {
             if (session != current) {
                 return;
             }
+            hasNewestPublish = true;
+            if (!statusText.equals(newestStatus)) {
+                pastStatus = null;
+            }
             newestStatus = statusText;
             if (snapshot != null) {
                 newestSnapshot = snapshot;
                 if (snapshot.resolution() instanceof StreamRange range) {
                     newestRangeStartMs = OptionalLong.of(range.startMs());
-                    noRangeAnchorMs = OptionalLong.empty();
+                    if (noRangeAnchorMs.isPresent()) {
+                        // Recorded first so gaining a range counts as a move, dropping pages found before it.
+                        pages.reanchor(noRangeAnchorMs.getAsLong());
+                        noRangeAnchorMs = OptionalLong.empty();
+                    }
                     pages.reanchor(range.startMs());
                 }
             } else if (!isKeepingBoard) {
@@ -363,7 +385,7 @@ public class StreamLeaderboardDialog extends JDialog {
             if (pages.index() == 0) {
                 // A search can outlast a poll interval, and the poll status would replace its loading message.
                 if (!isLoadingPast) {
-                    showStatus(newestStatus);
+                    showStatus(pastStatus != null ? pastStatus : newestStatus);
                 }
                 showNewestPage();
             }
@@ -398,6 +420,7 @@ public class StreamLeaderboardDialog extends JDialog {
         selection.setValueIsAdjusting(false);
         // Cleared first so showRanking doesn't reselect by name, and so an equal ranking still drops the highlight.
         table.clearSelection();
+        pastStatus = null;
         PastStream page = pages.current();
         if (page == null) {
             showNewestPage();
@@ -417,7 +440,7 @@ public class StreamLeaderboardDialog extends JDialog {
     }
 
     private boolean isBackAllowed() {
-        if (isLoadingPast || channel == null) {
+        if (isLoadingPast || !hasNewestPublish || channel == null) {
             return false;
         }
         String channelName = channel.getChannel();
@@ -458,14 +481,11 @@ public class StreamLeaderboardDialog extends JDialog {
         Object token = new Object();
         pastToken = token;
         isLoadingPast = true;
+        pastStatus = null;
         showStatus(LOADING_PAST);
         updateNavButtons();
         if (pastExecutor == null) {
-            pastExecutor = Executors.newSingleThreadExecutor(runnable -> {
-                Thread thread = new Thread(runnable, "StreamLeaderboardPast-" + channelName);
-                thread.setDaemon(true);
-                return thread;
-            });
+            pastExecutor = Executors.newSingleThreadExecutor(daemonThreadFactory("StreamLeaderboardPast-" + channelName));
         }
         pastExecutor.execute(() -> findPast(channelName, finder, anchor, token));
     }
@@ -482,6 +502,10 @@ public class StreamLeaderboardDialog extends JDialog {
             }
             LOGGER.log(Level.WARNING, "Stream leaderboard: could not find the previous stream for " + channelName, ex);
             SwingUtilities.invokeLater(() -> failPastSearch(token));
+        } catch (Error err) {
+            // Without this, loading would stay on until a channel switch or close.
+            SwingUtilities.invokeLater(() -> failPastSearch(token));
+            throw err;
         }
     }
 
@@ -501,6 +525,7 @@ public class StreamLeaderboardDialog extends JDialog {
             showCurrentPage();
         } else {
             pages.markNoOlder(anchor);
+            pastStatus = NO_OLDER_PAST;
             showStatus(NO_OLDER_PAST);
             updateNavButtons();
         }
@@ -511,6 +536,7 @@ public class StreamLeaderboardDialog extends JDialog {
             return;
         }
         isLoadingPast = false;
+        pastStatus = READ_ERROR;
         showStatus(READ_ERROR);
         updateNavButtons();
     }
@@ -532,6 +558,8 @@ public class StreamLeaderboardDialog extends JDialog {
             pastExecutor = null;
         }
         isLoadingPast = false;
+        hasNewestPublish = false;
+        pastStatus = null;
         pages.reset();
         newestSnapshot = null;
         newestStatus = "";
