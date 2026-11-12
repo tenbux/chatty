@@ -107,18 +107,19 @@ public class PastStreamPages {
      * index 1.
      *
      * @param newestBeforeMs the time the newest page's search is anchored to
+     * @return whether the anchor differed from the last recorded one
      */
-    public void reanchor(long newestBeforeMs) {
+    public boolean reanchor(long newestBeforeMs) {
         boolean isChanged = lastNewestBeforeMs.isPresent() && lastNewestBeforeMs.getAsLong() != newestBeforeMs;
         lastNewestBeforeMs = OptionalLong.of(newestBeforeMs);
         if (!isChanged) {
-            return;
+            return false;
         }
         PastStream shown = current();
         if (shown == null) {
             // Not reset(), which would also forget the value just recorded.
             dropPages();
-            return;
+            return true;
         }
         older.clear();
         older.add(shown);
@@ -127,6 +128,7 @@ public class PastStreamPages {
         if (noOlderAnchorMs.isPresent() && noOlderAnchorMs.getAsLong() != shown.range().startMs()) {
             noOlderAnchorMs = OptionalLong.empty();
         }
+        return true;
     }
 
     /**

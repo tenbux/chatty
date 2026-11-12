@@ -153,7 +153,8 @@ public class PastStreamFinderTest {
     @Test
     public void test_findBefore_preStreamChatOnly_notReturned() throws IOException {
         StringBuilder content = new StringBuilder();
-        for (int minute = 40; minute < 60; minute += 3) {
+        // Lasts over 30 minutes so the pre-LIVE chat alone would pass the marker-less duration rule.
+        for (int minute = 15; minute < 60; minute += 3) {
             content.append(chat(10, 31, 19, minute, "alice"));
         }
         content.append(live(10, 31, 20, 0)).append(chat(10, 31, 20, 1, "alice"));

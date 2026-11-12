@@ -34,10 +34,14 @@ public class StreamSessionDetectorTest {
         return line(hour, minute, "** " + channel + " is now " + state + " **");
     }
 
-    /** Adds five chats from the given start, five minutes apart. */
+    /**
+     * Adds five chats from the given start, eight minutes apart, so the group
+     * lasts 32 minutes and clears the 30 minute minimum for a group without a
+     * LIVE marker.
+     */
     private static void addFiveChats(List<String> lines, int hour, int minute) {
         for (int i = 0; i < 5; i++) {
-            int total = minute + i * 5;
+            int total = minute + i * 8;
             lines.add(chat(hour + total / 60, total % 60));
         }
     }
@@ -55,7 +59,7 @@ public class StreamSessionDetectorTest {
     private static List<String> twoStreams() {
         List<String> lines = new ArrayList<>();
         addFiveChats(lines, 10, 0);
-        addFiveChats(lines, 11, 0);
+        addFiveChats(lines, 12, 0);
         return lines;
     }
 
@@ -63,8 +67,8 @@ public class StreamSessionDetectorTest {
     public void test_detect_twoStreamsSplitByGap_twoRanges() {
         List<StreamRange> ranges = detect(twoStreams());
         assertEquals(2, ranges.size());
-        assertRange(at(10, 0), at(10, 20), ranges.get(0));
-        assertRange(at(11, 0), at(11, 20), ranges.get(1));
+        assertRange(at(10, 0), at(10, 32), ranges.get(0));
+        assertRange(at(12, 0), at(12, 32), ranges.get(1));
     }
 
     @Test
@@ -145,7 +149,7 @@ public class StreamSessionDetectorTest {
         lines.add(marker(10, 10, "testchan", "OFFLINE"));
         List<StreamRange> ranges = detect(lines);
         assertEquals(1, ranges.size());
-        assertRange(at(10, 0), at(10, 20), ranges.get(0));
+        assertRange(at(10, 0), at(10, 32), ranges.get(0));
     }
 
     private static List<String> trimScenario(String markerChannel) {
@@ -156,6 +160,8 @@ public class StreamSessionDetectorTest {
         lines.add(marker(10, 26, markerChannel, "LIVE"));
         lines.add(chat(10, 27));
         lines.add(marker(10, 28, markerChannel, "OFFLINE"));
+        // Stretches the group past 30 minutes so another channel's markers leave it a valid marker-less group.
+        lines.add(chat(10, 31));
         return lines;
     }
 
@@ -168,7 +174,7 @@ public class StreamSessionDetectorTest {
     public void test_detect_otherChannelMarker_ignored() {
         List<StreamRange> ranges = detect(trimScenario("otherchan"));
         assertEquals(1, ranges.size());
-        assertRange(at(10, 0), at(10, 28), ranges.get(0));
+        assertRange(at(10, 0), at(10, 31), ranges.get(0));
     }
 
     @Test
@@ -188,7 +194,7 @@ public class StreamSessionDetectorTest {
     public void test_detect_leftEdgeCut_firstGroupDiscarded() {
         List<StreamRange> ranges = StreamSessionDetector.detect(twoStreams(), CHANNEL, UTC, BEFORE, at(9, 45));
         assertEquals(1, ranges.size());
-        assertRange(at(11, 0), at(11, 20), ranges.get(0));
+        assertRange(at(12, 0), at(12, 32), ranges.get(0));
     }
 
     @Test
@@ -204,7 +210,7 @@ public class StreamSessionDetectorTest {
         lines.add(2, "[2026-13-45 10:00:00] <a> x");
         List<StreamRange> ranges = detect(lines);
         assertEquals(1, ranges.size());
-        assertRange(at(10, 0), at(10, 20), ranges.get(0));
+        assertRange(at(10, 0), at(10, 32), ranges.get(0));
     }
 
     @Test
@@ -228,20 +234,69 @@ public class StreamSessionDetectorTest {
     @Test
     public void test_detect_impossibleDayLine_doesNotBridgeGap() {
         List<String> lines = new ArrayList<>();
-        for (int m : new int[] {0, 5, 10, 15, 20}) {
+        for (int m : new int[] {0, 10, 20, 30, 35}) {
             lines.add(String.format("[2026-02-28 10:%02d:00] <u> hi", m));
         }
-        // Lenient parsing reads this as 2026-02-28 10:45, bridging the 50 minute gap.
+        // Lenient parsing reads this as 2026-02-28 10:45, bridging the 35 minute gap.
         lines.add("[2026-02-30 10:45:00] <x> hi");
-        for (int m : new int[] {10, 15, 20, 25, 30}) {
+        for (int m : new int[] {10, 20, 30, 40, 50}) {
             lines.add(String.format("[2026-02-28 11:%02d:00] <u> hi", m));
         }
         long beforeMs = LocalDateTime.of(2026, 3, 1, 0, 0).atZone(UTC).toInstant().toEpochMilli();
         List<StreamRange> ranges = StreamSessionDetector.detect(lines, CHANNEL, UTC, beforeMs, NO_EDGE);
         long feb28 = LocalDateTime.of(2026, 2, 28, 0, 0).atZone(UTC).toInstant().toEpochMilli();
         assertEquals(2, ranges.size());
-        assertRange(feb28 + at(10, 0) - at(0, 0), feb28 + at(10, 20) - at(0, 0), ranges.get(0));
-        assertRange(feb28 + at(11, 10) - at(0, 0), feb28 + at(11, 30) - at(0, 0), ranges.get(1));
+        assertRange(feb28 + at(10, 0) - at(0, 0), feb28 + at(10, 35) - at(0, 0), ranges.get(0));
+        assertRange(feb28 + at(11, 10) - at(0, 0), feb28 + at(11, 50) - at(0, 0), ranges.get(1));
+    }
+
+    @Test
+    public void test_detect_shortGroupWithoutLive_dropped() {
+        List<String> lines = new ArrayList<>();
+        for (int m : new int[] {0, 4, 8, 12, 16, 20}) {
+            lines.add(chat(10, m));
+        }
+        assertTrue(detect(lines).isEmpty());
+    }
+
+    @Test
+    public void test_detect_thirtyMinuteGroupWithoutLive_kept() {
+        List<String> lines = new ArrayList<>();
+        for (int m : new int[] {0, 7, 15, 22, 30}) {
+            lines.add(chat(10, m));
+        }
+        List<StreamRange> ranges = detect(lines);
+        assertEquals(1, ranges.size());
+        assertRange(at(10, 0), at(10, 30), ranges.get(0));
+    }
+
+    @Test
+    public void test_detect_shortGroupWithLive_kept() {
+        List<String> lines = new ArrayList<>();
+        lines.add(marker(10, 0, "testchan", "LIVE"));
+        for (int m : new int[] {2, 4, 6, 8, 10}) {
+            lines.add(chat(10, m));
+        }
+        List<StreamRange> ranges = detect(lines);
+        assertEquals(1, ranges.size());
+        assertRange(at(10, 0), at(10, 10), ranges.get(0));
+    }
+
+    @Test
+    public void test_detect_markerNameDifferentCase_trimmed() {
+        List<String> lines = new ArrayList<>();
+        for (int m = 0; m <= 10; m += 5) {
+            lines.add(chat(10, m));
+        }
+        lines.add(marker(10, 15, "TestChan", "LIVE"));
+        for (int m = 20; m <= 40; m += 5) {
+            lines.add(chat(10, m));
+        }
+        lines.add(marker(10, 45, "TestChan", "OFFLINE"));
+        lines.add(chat(10, 50));
+        List<StreamRange> ranges = detect(lines);
+        assertEquals(1, ranges.size());
+        assertRange(at(10, 15), at(10, 45), ranges.get(0));
     }
 
     private static long nyMs(int month, int day, int hour, int minute) {

@@ -370,12 +370,17 @@ public class StreamLeaderboardDialog extends JDialog {
                 newestSnapshot = snapshot;
                 if (snapshot.resolution() instanceof StreamRange range) {
                     newestRangeStartMs = OptionalLong.of(range.startMs());
+                    boolean isAnchorMoved = false;
                     if (noRangeAnchorMs.isPresent()) {
                         // Recorded first so gaining a range counts as a move, dropping pages found before it.
-                        pages.reanchor(noRangeAnchorMs.getAsLong());
+                        isAnchorMoved = pages.reanchor(noRangeAnchorMs.getAsLong());
                         noRangeAnchorMs = OptionalLong.empty();
                     }
-                    pages.reanchor(range.startMs());
+                    isAnchorMoved |= pages.reanchor(range.startMs());
+                    if (isAnchorMoved) {
+                        // A "no earlier streams" verdict was for the old anchor and must not outlive it.
+                        pastStatus = null;
+                    }
                 }
             } else if (!isKeepingBoard) {
                 // A failed read keeps the last good board; an unsupported setup has no valid board to keep.
@@ -504,6 +509,7 @@ public class StreamLeaderboardDialog extends JDialog {
             SwingUtilities.invokeLater(() -> failPastSearch(token));
         } catch (Error err) {
             // Without this, loading would stay on until a channel switch or close.
+            LOGGER.log(Level.SEVERE, "Stream leaderboard: previous stream search failed for " + channelName, err);
             SwingUtilities.invokeLater(() -> failPastSearch(token));
             throw err;
         }

@@ -19,6 +19,11 @@ import java.util.regex.Pattern;
  * Finds stream sessions in raw channel log lines using the same rules as the
  * log query script: gaps of silence split sessions, and Chatty's LIVE/OFFLINE
  * markers trim them.
+ * <p>
+ * One deliberate difference from the script: a group with no LIVE marker for
+ * the channel that lasts under 30 minutes is dropped. Chatty writes no LIVE
+ * marker when it joins a stream that is already live, so a short marker-less
+ * group is offline chat. A group with a LIVE marker is kept however short.
  */
 public final class StreamSessionDetector {
 
@@ -30,6 +35,7 @@ public final class StreamSessionDetector {
             // SMART (the default) would turn 2026-02-30 into Feb 28 and 24:00:00 into the next day.
             .withResolverStyle(ResolverStyle.STRICT);
     private static final long GAP_MS = Duration.ofMinutes(30).toMillis();
+    private static final long MIN_UNMARKED_DURATION_MS = Duration.ofMinutes(30).toMillis();
     private static final int MIN_CHAT_MESSAGES = 5;
 
     private StreamSessionDetector() {
@@ -119,6 +125,9 @@ public final class StreamSessionDetector {
                 liveIndex = i;
                 break;
             }
+        }
+        if (liveIndex < 0 && end - start < MIN_UNMARKED_DURATION_MS) {
+            return null;
         }
         if (liveIndex >= 0) {
             start = group.get(liveIndex).timeMs();

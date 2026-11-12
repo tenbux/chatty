@@ -26,8 +26,10 @@ public class PastStreamFinder {
     public record PastStream(StreamRange range, List<ChatterTally.Entry> ranking, int total) {
     }
 
-    // Matches the detector's gap rule, so a stream that began just before the
-    // cutoff is still seen as a whole.
+    // Read this far past beforeMs: if a group ending just before beforeMs
+    // continues into the page shown, activity within the detector's 30 minute
+    // gap reveals it, and the detector then discards the group instead of
+    // returning it as a past stream.
     private static final long GAP_MS = Duration.ofMinutes(30).toMillis();
     private static final long INITIAL_WINDOW_MS = Duration.ofDays(7).toMillis();
 
