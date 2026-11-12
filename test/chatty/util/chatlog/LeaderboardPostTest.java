@@ -93,4 +93,25 @@ public class LeaderboardPostTest {
     public void test_delay_noSlowMode_1500() {
         assertEquals(1500, LeaderboardPost.delayBetweenLinesMs(false, 0));
     }
+
+    @Test
+    public void test_formatPastHeader_sameDay() {
+        StreamRange range = new StreamRange(at(1, 19, 0), at(1, 22, 0), false);
+
+        assertEquals("Nov 1, 7:00 PM-10:00 PM, 980 messages", LeaderboardPost.formatPastHeader(range, 980, ZONE));
+    }
+
+    @Test
+    public void test_formatPastHeader_acrossMidnight_endDated() {
+        StreamRange range = new StreamRange(at(1, 23, 44), at(2, 1, 2), false);
+
+        assertEquals("Nov 1, 11:44 PM-Nov 2 1:02 AM, 10 messages", LeaderboardPost.formatPastHeader(range, 10, ZONE));
+    }
+
+    @Test
+    public void test_formatPastHeader_oneMessage_singular() {
+        StreamRange range = new StreamRange(at(3, 19, 44), at(3, 23, 2), false);
+
+        assertEquals("Nov 3, 7:44 PM-11:02 PM, 1 message", LeaderboardPost.formatPastHeader(range, 1, ZONE));
+    }
 }

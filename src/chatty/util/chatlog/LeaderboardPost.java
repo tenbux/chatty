@@ -4,6 +4,7 @@ import chatty.util.chatlog.ChatterTally.Entry;
 import chatty.util.chatlog.StreamRangeResolver.StreamRange;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
@@ -26,6 +27,7 @@ public final class LeaderboardPost {
     private static final long SLOW_MODE_MARGIN_MS = 1000;
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MMM d", Locale.US);
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("h:mm a", Locale.US);
 
     private LeaderboardPost() {
     }
@@ -56,6 +58,22 @@ public final class LeaderboardPost {
         String runTime = formatRunTime(endMs - range.startMs());
         return channel + " stream, " + date + ", " + (range.isLive() ? "live for " + runTime : runTime)
                 + ", " + messages(total);
+    }
+
+    /**
+     * @param range the past stream shown, never live
+     * @param total messages counted in that stream
+     * @param zone time zone the dates and times are shown in
+     * @return the start date and time, the end time (dated only if it falls on a
+     *         different day than the start), and the message total
+     */
+    public static String formatPastHeader(StreamRange range, int total, ZoneId zone) {
+        ZonedDateTime start = Instant.ofEpochMilli(range.startMs()).atZone(zone);
+        ZonedDateTime end = Instant.ofEpochMilli(range.endMs()).atZone(zone);
+        String endText = end.toLocalDate().equals(start.toLocalDate())
+                ? TIME_FORMAT.format(end)
+                : DATE_FORMAT.format(end) + " " + TIME_FORMAT.format(end);
+        return DATE_FORMAT.format(start) + ", " + TIME_FORMAT.format(start) + "-" + endText + ", " + messages(total);
     }
 
     private static String formatRunTime(long durationMs) {
