@@ -68,7 +68,7 @@ public class StreamLeaderboardDialog extends JDialog {
 
     private static final String UNEXPECTED_ERROR = "Leaderboard error, see the debug log";
 
-    private static final String DEFAULT_TIMESTAMP = "[yyyy-MM-dd HH:mm:ss]";
+    private static final Set<String> SUPPORTED_TIMESTAMPS = Set.of("[yyyy-MM-dd HH:mm:ss]", "[yyyy-MM-dd HH:mm:ssXXX]");
 
     private static final String NOT_A_CHANNEL = "Open a channel tab to see its leaderboard";
 
@@ -341,8 +341,8 @@ public class StreamLeaderboardDialog extends JDialog {
         }
         boolean isDefaultTemplate = settings.getString("logMessageTemplate")
                 .equals(settings.getStringDefault("logMessageTemplate"));
-        boolean isDefaultTimestamp = DEFAULT_TIMESTAMP.equals(settings.getString("logTimestamp"));
-        if (!isDefaultTemplate || !isDefaultTimestamp) {
+        boolean isSupportedTimestamp = SUPPORTED_TIMESTAMPS.contains(settings.getString("logTimestamp"));
+        if (!isDefaultTemplate || !isSupportedTimestamp) {
             return "Log format not supported (custom timestamp or message template)";
         }
         return null;

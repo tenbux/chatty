@@ -47,7 +47,8 @@ public class PastStreamFinder {
      * every search. Reuse the finder for later searches of the same channel,
      * since it remembers where the channel's markers begin
      * @param channel channel name including the leading '#'
-     * @param zone zone the log timestamps were written in
+     * @param zone zone the log timestamps were written in; a timestamp with a
+     * UTC offset uses that offset instead
      */
     public PastStreamFinder(ChannelLogReader reader, String channel, ZoneId zone) {
         this.reader = reader;

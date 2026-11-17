@@ -57,7 +57,8 @@ public class StreamLeaderboard {
 
     /**
      * @param reader reader for the channel's log files
-     * @param zone zone the log timestamps were written in
+     * @param zone zone the log timestamps were written in, used only for
+     * timestamps without a UTC offset
      * @param nowMs clock in epoch milliseconds
      */
     public StreamLeaderboard(ChannelLogReader reader, ZoneId zone, LongSupplier nowMs) {

@@ -230,6 +230,7 @@ public class LogSettings extends SettingsPanel {
         addTimestampFormat(timestampOptions, "[hh:mm:ss a]");
         addTimestampFormat(timestampOptions, "[hh:mm:ssa]");
         addTimestampFormat(timestampOptions, "[yyyy-MM-dd HH:mm:ss]");
+        addTimestampFormat(timestampOptions, "[yyyy-MM-dd HH:mm:ssXXX]");
         addTimestampFormat(timestampOptions, "[yyyy-MM-dd hh:mm:ss a]");
         addTimestampFormat(timestampOptions, "[yyyy-MM-dd hh:mm:ssa]");
         ComboStringSetting timestampCombo = new ComboStringSetting(timestampOptions);

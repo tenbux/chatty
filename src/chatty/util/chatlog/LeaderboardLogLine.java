@@ -1,9 +1,10 @@
 package chatty.util.chatlog;
 
+import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -36,7 +37,8 @@ public sealed interface LeaderboardLogLine permits LeaderboardLogLine.ChatLine, 
      * Parses one log line.
      *
      * @param line a raw line from a channel log file
-     * @param zone zone the log timestamps were written in
+     * @param zone zone the log timestamps were written in, used only for
+     * timestamps without a UTC offset
      * @return the parsed line, or null for anything that is neither a chat
      * message nor a status marker (headers, info, system messages, separators,
      * malformed lines)
@@ -44,11 +46,11 @@ public sealed interface LeaderboardLogLine permits LeaderboardLogLine.ChatLine, 
     static LeaderboardLogLine parse(String line, ZoneId zone) {
         Matcher marker = Parsing.MARKER.matcher(line);
         if (marker.matches()) {
-            Long timeMs = Parsing.toEpochMs(marker.group(1), zone);
+            Long timeMs = Parsing.toEpochMs(marker, zone);
             if (timeMs == null) {
                 return null;
             }
-            return new StatusMarker(timeMs, marker.group(2).equals("LIVE"));
+            return new StatusMarker(timeMs, marker.group("state").equals("LIVE"));
         }
         Matcher chat = Parsing.CHAT.matcher(line);
         if (chat.matches()) {
@@ -63,10 +65,10 @@ public sealed interface LeaderboardLogLine permits LeaderboardLogLine.ChatLine, 
      */
     final class Parsing {
 
-        private static final String TIME = "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})";
+        private static final String TIME = "(?<time>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})(?<offset>Z|[+-]\\d{2}:\\d{2})?";
         // DOTALL because a message can contain Unicode line separators, which "." would not match.
-        private static final Pattern CHAT = Pattern.compile("^\\[" + TIME + "\\] <([^>]+)>\\*? (.*)$", Pattern.DOTALL);
-        private static final Pattern MARKER = Pattern.compile("^\\[" + TIME + "\\] \\*\\* .+ is now (LIVE|OFFLINE) \\*\\*$");
+        private static final Pattern CHAT = Pattern.compile("^\\[" + TIME + "\\] <(?<user>[^>]+)>\\*? (.*)$", Pattern.DOTALL);
+        private static final Pattern MARKER = Pattern.compile("^\\[" + TIME + "\\] \\*\\* .+ is now (?<state>LIVE|OFFLINE) \\*\\*$");
         // Localized display names are logged as "DisplayName (login)".
         private static final Pattern LOCALIZED_NAME = Pattern.compile(".* \\(([^()\\s]+)\\)$");
         private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -78,21 +80,26 @@ public sealed interface LeaderboardLogLine permits LeaderboardLogLine.ChatLine, 
         private Parsing() {
         }
 
-        private static Long toEpochMs(String timestamp, ZoneId zone) {
+        private static Long toEpochMs(Matcher line, ZoneId zone) {
             try {
-                return LocalDateTime.parse(timestamp, TIME_FORMAT).atZone(zone).toInstant().toEpochMilli();
-            } catch (DateTimeParseException ex) {
-                // Matches the digit pattern but is not a real date, e.g. month 13.
+                LocalDateTime time = LocalDateTime.parse(line.group("time"), TIME_FORMAT);
+                String offset = line.group("offset");
+                if (offset == null) {
+                    return time.atZone(zone).toInstant().toEpochMilli();
+                }
+                return time.toInstant(ZoneOffset.of(offset)).toEpochMilli();
+            } catch (DateTimeException ex) {
+                // Matches the digit pattern but is not a real date or offset, e.g. month 13 or +19:00.
                 return null;
             }
         }
 
         private static ChatLine toChatLine(Matcher chat, ZoneId zone) {
-            Long timeMs = toEpochMs(chat.group(1), zone);
+            Long timeMs = toEpochMs(chat, zone);
             if (timeMs == null) {
                 return null;
             }
-            String raw = chat.group(2);
+            String raw = chat.group("user");
             int start = 0;
             boolean hasBotSigil = false;
             while (start < raw.length() && SIGILS.indexOf(raw.charAt(start)) >= 0) {

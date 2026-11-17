@@ -431,4 +431,71 @@ public class StreamSessionDetectorTest {
         assertEquals(1, ranges.size());
         assertRange(nyMs(3, 8, 3, 5), nyMs(3, 8, 4, 5), ranges.get(0));
     }
+
+    private static long utcMs(int month, int day, int hour, int minute) {
+        return LocalDateTime.of(2026, month, day, hour, minute).atZone(UTC).toInstant().toEpochMilli();
+    }
+
+    @Test
+    public void test_detect_fallBackNightWithOffsets_endsAtOfflineInstant() throws Exception {
+        List<String> lines = new ArrayList<>();
+        lines.add("[2026-11-01 00:30:00-04:00] ** testchan is now LIVE **");
+        for (String time : new String[] {"00:30", "00:50", "01:10", "01:30", "01:50"}) {
+            lines.add("[2026-11-01 " + time + ":00-04:00] <user> hi");
+        }
+        for (String time : new String[] {"01:00", "01:20"}) {
+            lines.add("[2026-11-01 " + time + ":00-05:00] <user> hi");
+        }
+        lines.add("[2026-11-01 01:30:00-05:00] ** testchan is now OFFLINE **");
+        List<StreamRange> ranges = StreamSessionDetector.detect(lines, CHANNEL, ZoneId.of("America/New_York"),
+                nyMs(11, 2, 0, 0), NO_EDGE, NOT_CALLED);
+        assertEquals(1, ranges.size());
+        assertRange(utcMs(11, 1, 4, 30), utcMs(11, 1, 6, 30), ranges.get(0));
+    }
+
+    @Test
+    public void test_detect_offsetAddedMidStream_rangeSpansBothFormats() throws Exception {
+        List<String> lines = new ArrayList<>();
+        lines.add("[2026-11-17 20:00:00] ** testchan is now LIVE **");
+        for (String time : new String[] {"20:00", "20:10", "20:20"}) {
+            lines.add(nyChat("2026-11-17", time));
+        }
+        for (String time : new String[] {"20:30", "20:40", "20:50"}) {
+            lines.add("[2026-11-17 " + time + ":00-05:00] <user> hi");
+        }
+        lines.add("[2026-11-17 21:00:00-05:00] ** testchan is now OFFLINE **");
+        List<StreamRange> ranges = StreamSessionDetector.detect(lines, CHANNEL, ZoneId.of("America/New_York"),
+                nyMs(11, 18, 0, 0), NO_EDGE, NOT_CALLED);
+        assertEquals(1, ranges.size());
+        assertRange(nyMs(11, 17, 20, 0), nyMs(11, 17, 21, 0), ranges.get(0));
+    }
+
+    @Test
+    public void test_localTimeOf_lineWithOffset_returnsWallClockTime() {
+        assertEquals(LocalDateTime.of(2026, 11, 1, 1, 30),
+                StreamSessionDetector.localTimeOf("[2026-11-01 01:30:00-05:00] <user> hi"));
+        assertEquals(LocalDateTime.of(2026, 11, 1, 1, 30),
+                StreamSessionDetector.localTimeOf("[2026-11-01 01:30:00Z] <user> hi"));
+    }
+
+    @Test
+    public void test_isMarkerOf_markerWithOffset_returnsTrue() {
+        assertTrue(StreamSessionDetector.isMarkerOf("[2026-11-01 01:30:00-05:00] ** testchan is now OFFLINE **", CHANNEL));
+    }
+
+    @Test
+    public void test_isMarkerOf_markerWithInvalidOffset_returnsFalse() {
+        assertFalse(StreamSessionDetector.isMarkerOf("[2026-11-01 01:30:00+19:00] ** testchan is now OFFLINE **", CHANNEL));
+        assertFalse(StreamSessionDetector.isMarkerOf("[2026-11-01 01:30:00+05:60] ** testchan is now OFFLINE **", CHANNEL));
+    }
+
+    @Test
+    public void test_detect_offsetOutOfRange_lineIgnored() throws Exception {
+        List<String> lines = new ArrayList<>();
+        addFiveChats(lines, 10, 0);
+        lines.add(line(10, 50, "<user> hi").replace(":00]", ":00+19:00]"));
+        List<StreamRange> ranges = detect(lines);
+        assertEquals(1, ranges.size());
+        assertRange(at(10, 0), at(10, 32), ranges.get(0));
+    }
 }

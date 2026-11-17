@@ -1,5 +1,6 @@
 package chatty.util.chatlog;
 
+import chatty.util.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -82,6 +83,48 @@ public class LeaderboardLogLineTest {
         LeaderboardLogLine.ChatLine chat = parseChat("[2026-10-31 20:00:05] <viewer_one> hi");
         LeaderboardLogLine other = LeaderboardLogLine.parse("[2026-10-31 20:00:05] <viewer_one> hi", ZoneId.of("America/New_York"));
         assertEquals(4 * 3600_000L, ((LeaderboardLogLine.ChatLine) other).timeMs() - chat.timeMs());
+    }
+
+    @Test
+    public void test_parse_chatWithOffset_usesOffsetNotZone() {
+        LeaderboardLogLine.ChatLine chat = parseChat("[2026-11-01 01:30:00-05:00] <viewer_one> hi");
+        assertEquals(ms("2026-11-01 06:30:00"), chat.timeMs());
+        assertEquals("viewer_one", chat.key());
+    }
+
+    @Test
+    public void test_parse_chatWithUtcDesignator_readsAsUtc() {
+        LeaderboardLogLine parsed = LeaderboardLogLine.parse("[2026-10-31 20:00:05Z] <viewer_one> hi", ZoneId.of("America/New_York"));
+        assertEquals(ms("2026-10-31 20:00:05"), ((LeaderboardLogLine.ChatLine) parsed).timeMs());
+    }
+
+    @Test
+    public void test_parse_markerWithOffset_returnsStatusMarker() {
+        assertEquals(new LeaderboardLogLine.StatusMarker(ms("2026-11-01 06:30:00"), false),
+                LeaderboardLogLine.parse("[2026-11-01 01:30:00-05:00] ** Some Streamer is now OFFLINE **", ZONE));
+    }
+
+    @Test
+    public void test_parse_fallBackRepeatedHourWithOffsets_givesDistinctInstants() {
+        ZoneId newYork = ZoneId.of("America/New_York");
+        LeaderboardLogLine first = LeaderboardLogLine.parse("[2026-11-01 01:30:00-04:00] <viewer_one> hi", newYork);
+        LeaderboardLogLine second = LeaderboardLogLine.parse("[2026-11-01 01:30:00-05:00] <viewer_one> hi", newYork);
+        assertEquals(3600_000L, ((LeaderboardLogLine.ChatLine) second).timeMs() - ((LeaderboardLogLine.ChatLine) first).timeMs());
+    }
+
+    @Test
+    public void test_parse_offsetOutOfRange_returnsNull() {
+        assertNull(LeaderboardLogLine.parse("[2026-10-31 20:00:05+19:00] <viewer_one> hi", ZONE));
+    }
+
+    @Test
+    public void test_parse_lineWrittenWithOffsetFormat_roundTrips() {
+        long timeMs = ms("2026-11-01 06:30:00");
+        for (String timezone : new String[]{"America/New_York", "UTC"}) {
+            String stamp = new Timestamp("[yyyy-MM-dd HH:mm:ssXXX]", timezone).make2(timeMs, null);
+            LeaderboardLogLine.ChatLine chat = parseChat(stamp + " <viewer_one> hi");
+            assertEquals(stamp, timeMs, chat.timeMs());
+        }
     }
 
     @Test
