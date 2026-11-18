@@ -12,6 +12,9 @@ import javax.swing.text.Document;
 import javax.swing.text.Element;
 import java.awt.*;
 import java.awt.event.ItemListener;
+import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,7 +35,8 @@ public class DebugWindow extends JFrame {
     private final JTextArea textEventSubLog;
     private final JTextArea otherLog;
     private final JTextArea timerLog;
-    
+    private final Map<JTextArea, ArrayDeque<String>> hiddenLines = new HashMap<>();
+
     public DebugWindow(ItemListener listener) {
         setTitle("Debug");
 
@@ -122,14 +126,57 @@ public class DebugWindow extends JFrame {
         printLine(timerLog, line);
     }
     
+    @Override
+    public void setVisible(boolean visible) {
+        if (visible) {
+            for (Map.Entry<JTextArea, ArrayDeque<String>> entry : hiddenLines.entrySet()) {
+                flushHiddenLines(entry.getKey(), entry.getValue());
+            }
+        }
+        super.setVisible(visible);
+    }
+
     private void printLine(JTextArea text, String line) {
+        String formatted = "["+DateTime.currentTimeExact()+"] "+line+"\n";
+        // Thread dumps showed EDT stalls of up to 79 seconds on macOS in text
+        // area layout doing font fallback lookups for emoji. By elimination
+        // these hidden text areas were the likely source (not proven), so
+        // lines are buffered until the window is shown.
+        if (!isVisible()) {
+            ArrayDeque<String> pending = hiddenLines.computeIfAbsent(text, k -> new ArrayDeque<>());
+            pending.addLast(formatted);
+            if (pending.size() > MAX_NUMBER_LINES) {
+                pending.removeFirst();
+            }
+            return;
+        }
         try {
             Document doc = text.getDocument();
-            doc.insertString(doc.getLength(), "["+DateTime.currentTimeExact()+"] "+line+"\n", null);
+            doc.insertString(doc.getLength(), formatted, null);
             if (autoscroll.isSelected()) {
                 text.setCaretPosition(doc.getLength());
             }
             clearSomeChat(doc);
+        } catch (BadLocationException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void flushHiddenLines(JTextArea text, ArrayDeque<String> pending) {
+        if (pending.isEmpty()) {
+            return;
+        }
+        try {
+            Document doc = text.getDocument();
+            doc.insertString(doc.getLength(), String.join("", pending), null);
+            pending.clear();
+            int excess = doc.getDefaultRootElement().getElementCount() - MAX_NUMBER_LINES;
+            if (excess > 0) {
+                removeFirstLines(doc, excess);
+            }
+            if (autoscroll.isSelected()) {
+                text.setCaretPosition(doc.getLength());
+            }
         } catch (BadLocationException e) {
             e.printStackTrace();
         }
